@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Leaderboard · ReadRash</title>
+<meta name="theme-color" content="#121016">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Racing+Sans+One&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<link rel="stylesheet" href="assets/site.css">
+<style>
+/* Layout: title band, league + period switches, one wide table */
+.top{padding-block:48px 24px;display:flex;flex-direction:column;gap:12px}
+.top h1{font-size:clamp(46px,9vw,86px)}
+.top h1 em{font-style:inherit;color:var(--heat)}
+.controls{display:flex;gap:12px;flex-wrap:wrap;justify-content:space-between;align-items:center;margin-bottom:14px}
+.boardwrap{background:var(--asphalt-2);border-radius:20px;padding:16px clamp(10px,3vw,26px) 22px;overflow-x:auto;margin-bottom:60px}
+.tabs.small .tab{font-size:15px;padding:7px 12px}
+</style>
+</head>
+<body>
+<header class="nav gut">
+  <div class="inner">
+    <a class="logo" href="index.html">READ<span>RASH</span></a>
+    <nav class="links" aria-label="Main">
+      <a class="opt" href="index.html#how">How to play</a>
+      <a href="leaderboard.html" aria-current="page">Leaderboard</a>
+      <a class="btn sm" href="play.html">Ride now</a>
+    </nav>
+  </div>
+</header>
+<main class="gut">
+  <div class="inner">
+    <div class="top">
+      <p class="kicker">Konkan Coast</p>
+      <h1>Fastest <em>readers.</em></h1>
+      <p class="lede">Score is words per minute times accuracy, so clean reading beats wild guessing. Each rider's best ride counts.</p>
+    </div>
+    <div class="controls">
+      <div class="tabs" role="tablist" aria-label="League">
+        <button class="tab" role="tab" data-lg="rookie" aria-selected="false">Rookie</button>
+        <button class="tab" role="tab" data-lg="pro" aria-selected="true">Pro</button>
+        <button class="tab" role="tab" data-lg="legend" aria-selected="false">Legend</button>
+      </div>
+      <div class="tabs small" role="tablist" aria-label="Period">
+        <button class="tab ptab" role="tab" data-p="today" aria-selected="true">Today</button>
+        <button class="tab ptab" role="tab" data-p="week" aria-selected="false">This week</button>
+        <button class="tab ptab" role="tab" data-p="all" aria-selected="false">All time</button>
+      </div>
+    </div>
+    <div class="boardwrap">
+      <table class="board"><thead><tr><th>#</th><th>Rider</th><th class="r">Score</th><th class="r">WPM</th><th class="r">Acc</th></tr></thead><tbody id="boardBody"></tbody></table>
+      <p class="note" id="boardNote" style="margin:12px 0 0"></p>
+    </div>
+  </div>
+</main>
+<footer class="foot gut">
+  <div class="inner"><span class="logo" style="font-size:22px">READ<span>RASH</span></span><span>Read fast. Ride rash. © 2026 ReadRash</span></div>
+</footer>
+<script src="assets/game.js"></script>
+<script src="assets/board.js"></script>
+<script>
+Board.mount({ body: document.getElementById("boardBody"), note: document.getElementById("boardNote"),
+  tabs: document.querySelectorAll(".tab:not(.ptab)"), periodTabs: document.querySelectorAll(".ptab"),
+  league: (window.ReadRash && window.ReadRash.Store.get("league","pro")) || "pro", period: "today", limit: 50 });
+document.querySelectorAll(".tab:not(.ptab)").forEach(t => t.setAttribute("aria-selected", String(t.dataset.lg === ((window.ReadRash && window.ReadRash.Store.get("league","pro")) || "pro"))));
+</script>
+</body>
+</html>

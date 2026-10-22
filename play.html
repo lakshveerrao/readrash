@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Ride · ReadRash</title>
+<meta name="theme-color" content="#121016">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Racing+Sans+One&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<link rel="stylesheet" href="assets/site.css">
+<style>
+/* Layout: race view on top, instrument cluster + paragraph below; every other step is a panel over the paused road */
+.wrap{max-width:1040px;margin:0 auto;padding-block:14px 30px;display:flex;flex-direction:column;gap:12px}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.bar .left{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.quit{background:none;border:none;color:var(--muted);font:inherit;font-size:13px;cursor:pointer;text-decoration:underline;padding:4px}
+.stage{position:relative;border-radius:18px;overflow:hidden;background:#3d9be0;box-shadow:0 0 0 3px #000,0 10px 0 3px #000}
+.stage canvas{display:block;width:100%;height:300px}
+.pop{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;text-align:center;padding:0 16px;
+  font-family:var(--display);font-style:italic;font-size:clamp(36px,8.5vw,84px);color:var(--sun);text-shadow:0 5px 0 var(--ink),0 0 30px rgba(0,0,0,.35)}
+.pop.go{color:var(--heat)}
+.pop.small{font-size:clamp(20px,4vw,36px);align-items:flex-start;padding-top:16%}
+.dash{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:stretch}
+.cluster{background:linear-gradient(180deg,#26222d,#17151b);border-radius:18px;padding:10px 16px 12px;display:flex;flex-direction:column;align-items:center;min-width:150px;box-shadow:inset 0 0 0 3px #000}
+.gauge{position:relative;width:132px;height:76px}
+.gauge svg{width:100%;height:100%;overflow:visible}
+.gauge .bg{fill:none;stroke:#3a3542;stroke-width:9;stroke-linecap:round}
+.gauge .fg{fill:none;stroke:url(#gg);stroke-width:9;stroke-linecap:round}
+.gauge b{position:absolute;left:0;right:0;bottom:-2px;text-align:center;font-family:var(--display);font-weight:400;font-size:34px;line-height:1;font-variant-numeric:tabular-nums}
+.cluster small{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.nitro{width:100%;height:8px;border-radius:99px;background:#3a3542;overflow:hidden;margin-top:8px}
+.nitro i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--heat),var(--sun));transition:width .15s}
+.nitro.full i{box-shadow:0 0 12px var(--sun)}
+.crow{display:flex;justify-content:space-between;width:100%;margin-top:6px;align-items:baseline}
+.crow .pos{font-family:var(--display);font-size:22px;font-style:italic}
+.card{background:var(--paper);color:var(--ink);border-radius:18px;padding:clamp(14px,2.6vw,24px);min-width:0}
+.para{font-size:clamp(19px,3vw,27px);line-height:1.75;margin:0;max-width:64ch}
+.w{display:inline-block;border-radius:6px;padding:1px 3px;transition:background .08s,color .08s}
+.w.done{color:#a19ca8}
+.w.cur{background:var(--sun);color:var(--ink);box-shadow:0 3px 0 var(--ink)}
+.w.cur.act-swipe{background:var(--heat);color:#fff}
+.w.cur.act-dodge{background:var(--cool);color:var(--ink)}
+.w.miss{color:var(--bad);text-decoration:underline wavy;text-underline-offset:6px}
+.w.shake{animation:shake .3s}
+@keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.veil{display:flex;flex-wrap:wrap;gap:12px}
+.veil i{display:block;height:20px;border-radius:6px;background:#e7dcc8}
+.heard{margin-top:10px;font-size:13px;color:#6b7280;min-height:18px}
+@media (max-width:560px){
+  .dash{grid-template-columns:1fr}
+  .cluster{flex-direction:row;gap:14px;min-width:0;padding:8px 12px;align-items:center}
+  .gauge{width:96px;height:56px}.gauge b{font-size:26px}
+  .cside{flex:1;display:flex;flex-direction:column;gap:4px}.nitro{margin-top:0}
+}
+
+/* panels */
+.overlay{position:fixed;inset:0;background:rgba(10,8,14,.8);display:flex;align-items:center;justify-content:center;z-index:30;
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.panel{background:var(--paper);color:var(--ink);border-radius:22px;padding:clamp(18px,4vw,30px);max-width:640px;width:100%;display:flex;flex-direction:column;gap:16px;box-shadow:0 8px 0 var(--ink);max-height:100%;overflow:auto}
+.panel h2{font-size:clamp(32px,7vw,50px)}
+.panel h2 span{color:var(--heat)}
+.panel p{margin:0}
+.panel .tabs{background:#efe6d6}
+.panel .tab{color:#6b6476}
+.panel .tab[aria-selected="true"]{background:var(--ink);color:var(--paper)}
+.races{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.race{font:inherit;cursor:pointer;border:3px solid var(--ink);background:#fff;color:var(--ink);border-radius:14px;padding:10px 8px;display:flex;flex-direction:column;gap:6px;align-items:flex-start;text-align:left;min-width:0}
+.race b{font-family:var(--display);font-style:italic;font-weight:400;font-size:17px;line-height:1.05}
+.race small{font-size:12px;color:#6b6476}
+.race .st{color:#d8cdb8;font-size:15px;letter-spacing:1px}
+.race .st i{font-style:normal;color:#f2a900}
+.race[aria-pressed="true"]{background:var(--sun);box-shadow:0 4px 0 var(--ink);transform:translateY(-2px)}
+.race[aria-pressed="true"] .st{color:#9c8d70}
+.race[disabled]{opacity:.45;cursor:not-allowed;background:#f1ebe0}
+@media (max-width:620px){.races{grid-template-columns:repeat(2,1fr)}.race:last-child{grid-column:span 2}}
+.who{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:#fff;border:2px dashed #cfc4b2;border-radius:12px;padding:10px 12px}
+.who b{font-family:var(--display);font-style:italic;font-weight:400;font-size:20px}
+.linkbtn{background:none;border:none;font:inherit;font-size:14px;font-weight:700;color:#b14a12;cursor:pointer;text-decoration:underline;padding:2px}
+.big-say{font-family:var(--display);font-style:italic;font-size:clamp(64px,16vw,120px);line-height:1;text-align:center;color:var(--ink)}
+.big-say span{color:var(--heat)}
+.mic{display:flex;align-items:center;justify-content:center;gap:10px;font-weight:700}
+.mic i{width:14px;height:14px;border-radius:50%;background:#cfc4b2}
+.mic.on i{background:#ff3b3b;box-shadow:0 0 0 0 rgba(255,59,59,.6);animation:ring 1.2s infinite}
+@keyframes ring{to{box-shadow:0 0 0 14px rgba(255,59,59,0)}}
+.heardbox{text-align:center;min-height:24px;color:#6b6476;font-size:15px}
+.err{color:var(--bad);font-weight:700;font-size:14px}
+.starsbig{display:flex;gap:10px;justify-content:center;font-size:54px;line-height:1}
+.starsbig i{font-style:normal;color:#e3d9c6;transform:scale(.6);transition:transform .35s cubic-bezier(.3,1.6,.5,1),color .2s}
+.starsbig i.on{color:#f2a900;transform:scale(1)}
+.starsgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;font-size:12.5px;color:#6b6476;text-align:center}
+.starsgrid .ok{color:var(--ink);font-weight:700}
+.podium{display:flex;flex-direction:column;gap:6px}
+.podium div{display:flex;justify-content:space-between;gap:10px;background:#fff;border:2px solid var(--ink);border-radius:10px;padding:7px 12px;font-variant-numeric:tabular-nums}
+.podium div.me{background:var(--sun)}
+.podium b{font-family:var(--display);font-style:italic;font-weight:400;font-size:18px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.stat{background:#fff;border:2px solid var(--ink);border-radius:12px;padding:8px;text-align:center}
+.stat b{display:block;font-family:var(--display);font-weight:400;font-size:24px;font-variant-numeric:tabular-nums}
+.stat small{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#6b6476}
+@media (max-width:460px){.stats{grid-template-columns:repeat(2,1fr)}}
+.practice{display:flex;flex-wrap:wrap;gap:6px}
+.practice span{background:#ffe3df;color:var(--bad);border-radius:999px;padding:4px 10px;font-weight:700}
+.post{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:#1b1b22;color:var(--chalk);border-radius:14px;padding:12px 14px}
+.post .nm{font-family:var(--display);font-style:italic;font-size:20px;flex:1;min-width:140px}
+.post .linkbtn{color:var(--sun)}
+.row{display:flex;gap:10px;flex-wrap:wrap}.row .btn{flex:1}
+.demo-chip{background:var(--cool);color:var(--ink);font-weight:700}
+</style>
+</head>
+<body>
+<header class="nav gut">
+  <div class="inner">
+    <a class="logo" href="index.html">READ<span>RASH</span></a>
+    <nav class="links" aria-label="Main">
+      <a class="opt" href="index.html#how">How to play</a>
+      <a href="leaderboard.html">Leaderboard</a>
+    </nav>
+  </div>
+</header>
+
+<main class="gut">
+<div class="wrap">
+  <div class="bar">
+    <div class="left">
+      <span class="chip"><span class="dot" id="micDot"></span><span id="modeTxt">Voice</span></span>
+      <span class="chip" id="raceChip">Konkan Coast</span>
+      <span class="chip" id="timeChip">0.0s</span>
+      <span class="chip" id="wpmChip">0 wpm</span>
+    </div>
+    <div class="left">
+      <button class="chip" id="sndBtn" aria-pressed="true">Sound on</button>
+      <button class="quit" id="quitBtn" hidden>Stop race</button>
+    </div>
+  </div>
+
+  <div class="stage">
+    <canvas id="road" aria-label="Race view: your bike against three rival riders on the Konkan coast"></canvas>
+    <div class="pop" id="pop"></div>
+  </div>
+
+  <div class="dash">
+    <div class="cluster">
+      <div class="gauge">
+        <svg viewBox="0 0 132 76" aria-hidden="true">
+          <defs><linearGradient id="gg" x1="0" x2="1"><stop offset="0" stop-color="#ffd23f"/><stop offset="1" stop-color="#ff6a1a"/></linearGradient></defs>
+          <path class="bg" d="M10 70 A56 56 0 0 1 122 70"/>
+          <path class="fg" id="arc" d="M10 70 A56 56 0 0 1 122 70" pathLength="100" stroke-dasharray="0 100"/>
+        </svg>
+        <b id="kmh">0</b>
+      </div>
+      <div class="cside" style="width:100%">
+        <div class="crow"><small>km/h</small><span class="pos" id="posTxt">–</span></div>
+        <div class="nitro" id="nitroWrap" title="Nitro: 10 words in a row"><i id="nitroBar"></i></div>
+        <div class="crow"><small>Nitro</small><small id="streakTxt">0/10</small></div>
+      </div>
+    </div>
+    <div class="card">
+      <p class="para" id="para" aria-live="polite"></p>
+      <div class="heard" id="heard"></div>
+    </div>
+  </div>
+</div>
+</main>
+
+<!-- 1. pick a race -->
+<div class="overlay" id="pickScreen">
+  <div class="panel">
+    <div>
+      <p class="kicker" style="color:#b14a12">World 1 · Konkan Coast</p>
+      <h2 style="margin-top:6px">Pick your <span>race.</span></h2>
+    </div>
+    <div class="tabs" role="tablist" aria-label="League" id="lgTabs">
+      <button class="tab" role="tab" data-lg="rookie" aria-selected="false">Rookie</button>
+      <button class="tab" role="tab" data-lg="pro" aria-selected="true">Pro</button>
+      <button class="tab" role="tab" data-lg="legend" aria-selected="false">Legend</button>
+    </div>
+    <div class="races" id="raceList" role="group" aria-label="Races"></div>
+    <p class="note" style="color:#6b6476;margin:0">Earn a star to unlock the next race. ★ finish · ★ win · ★ 95% accuracy</p>
+    <div class="who"><span>Riding as <b id="whoName"></b></span><button class="linkbtn" id="reroll">New name</button></div>
+    <button class="btn" id="rideBtn">Ride</button>
+  </div>
+</div>
+
+<!-- 2. voice not available here -->
+<div class="overlay" id="gateScreen" hidden>
+  <div class="panel">
+    <h2>Voice racing needs <span>Chrome.</span></h2>
+    <p id="gateMsg">ReadRash runs on your voice. Open this page in Chrome or Edge on a laptop or Android phone, allow the microphone, and you're riding.</p>
+    <div class="row">
+      <button class="btn" id="demoBtn">Watch a demo ride</button>
+      <button class="btn ghost" id="gateBack">Back</button>
+    </div>
+    <p class="note" style="color:#6b6476">The demo rider reads on autopilot so you can see how a race plays. Demo rides don't earn stars.</p>
+  </div>
+</div>
+
+<!-- 3. mic check + say GO -->
+<div class="overlay" id="micScreen" hidden>
+  <div class="panel" style="align-items:center;text-align:center">
+    <p class="kicker" style="color:#b14a12" id="micStep">Mic check</p>
+    <div class="big-say" id="sayWord">Say <span>READY</span></div>
+    <div class="mic" id="micState"><i></i><span id="micLabel">Starting microphone…</span></div>
+    <div class="heardbox" id="micHeard"></div>
+    <p class="err" id="micErr" hidden></p>
+    <button class="linkbtn" id="micBack">Back to races</button>
+  </div>
+</div>
+
+<!-- 4. results -->
+<div class="overlay" id="endScreen" hidden>
+  <div class="panel">
+    <h2 id="endTitle"></h2>
+    <div class="starsbig" id="starsBig" aria-label="Stars earned"><i>★</i><i>★</i><i>★</i></div>
+    <div class="starsgrid" id="starsGrid"><span>Finish</span><span>Win</span><span>95% accuracy</span></div>
+    <div class="podium" id="podium"></div>
+    <div class="stats">
+      <div class="stat"><b id="sTime">0s</b><small>Time</small></div>
+      <div class="stat"><b id="sWpm">0</b><small>Words/min</small></div>
+      <div class="stat"><b id="sAcc">0%</b><small>Accuracy</small></div>
+      <div class="stat"><b id="sSwipe">0</b><small>Swipes</small></div>
+    </div>
+    <div id="practiceWrap"><p style="font-weight:700;margin-bottom:8px">Words to practice</p><div class="practice" id="practice"></div></div>
+    <div class="post" id="postBox">
+      <span class="nm" id="postName"></span>
+      <button class="linkbtn" id="postReroll">New name</button>
+      <button class="btn sm" id="postBtn">Post score</button>
+      <span class="note" id="postMsg" style="flex-basis:100%;color:#cfc6b8"></span>
+    </div>
+    <div class="row">
+      <button class="btn" id="nextBtn">Next race</button>
+      <button class="btn ghost" id="againBtn">Ride again</button>
+      <button class="btn ghost" id="pickBtn">All races</button>
+    </div>
+  </div>
+</div>
+
+<script src="assets/game.js"></script>
+<script src="assets/board.js"></script>
+<script>
+(() => {
+const RR = window.ReadRash, $ = id => document.getElementById(id);
+const show = id => ["pickScreen","gateScreen","micScreen","endScreen"].forEach(s => $(s).hidden = s !== id);
+let league = RR.Store.get("league", "pro"); if (!RR.LEAGUES[league]) league = "pro";
+let race = 0, demo = false, lastRes = null, firstGo = true;
+
+const ctl = RR.create({ canvas: $("road"), league, race,
+  ui: { para:$("para"), heard:$("heard"), kmh:$("kmh"), arc:$("arc"), nitroBar:$("nitroBar"), nitroWrap:$("nitroWrap"), streakTxt:$("streakTxt"), posTxt:$("posTxt"), pop:$("pop"), timeChip:$("timeChip"), wpmChip:$("wpmChip") } });
+
+/* ---- sound + mode chips ---- */
+$("sndBtn").onclick = () => { RR.Sound.setOn(!RR.Sound.on); $("sndBtn").textContent = RR.Sound.on ? "Sound on" : "Sound off"; $("sndBtn").setAttribute("aria-pressed", RR.Sound.on); };
+RR.Voice.onState = on => { $("micDot").classList.toggle("on", on); $("micState").classList.toggle("on", on); if (on) $("micLabel").textContent = "Listening"; };
+function setModeChip(){ const c=$("modeTxt").parentElement; c.classList.toggle("demo-chip", demo); $("modeTxt").textContent = demo ? "Demo ride" : "Voice"; }
+
+/* ---- pick screen ---- */
+function renderPick(){
+  const st = RR.stars(league);
+  $("lgTabs").querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.lg === league)));
+  const box = $("raceList"); box.innerHTML = "";
+  RR.RACES.forEach((r, i) => {
+    const open = i === 0 || st[i-1] > 0;
+    if (!open && race === i) race = 0;
+    const b = document.createElement("button"); b.className = "race"; b.disabled = !open; b.setAttribute("aria-pressed", String(i === race));
+    b.innerHTML = `<small>Race ${i+1}</small><b></b><span class="st">${[0,1,2].map(k => k < st[i] ? "<i>★</i>" : "★").join("")}</span>`;
+    b.querySelector("b").textContent = open ? r.t : "Locked";
+    b.onclick = () => { race = i; renderPick(); };
+    box.appendChild(b);
+  });
+  $("whoName").textContent = RR.nickname();
+}
+$("lgTabs").querySelectorAll(".tab").forEach(t => t.onclick = () => { league = t.dataset.lg; RR.Store.set("league", league); renderPick(); });
+$("reroll").onclick = () => { RR.Store.set("name", RR.randomName()); renderPick(); };
+$("rideBtn").onclick = () => { RR.Sound.wake(); if (!RR.VOICE_OK) { show("gateScreen"); return; } demo = false; setModeChip(); startMic(); };
+$("gateBack").onclick = () => show("pickScreen");
+$("demoBtn").onclick = () => { RR.Sound.wake(); demo = true; setModeChip(); ctl.load(league, race); ctl.setAutopilot(true, RR.LEAGUES[league].demo); raceLabel(); show(null); $("quitBtn").hidden = false; ctl.countdown(); };
+if (RR.IN_VIEWER) $("gateMsg").textContent = "ReadRash runs on your voice, and microphones are switched off in this preview. On the live site in Chrome or Edge, you'll allow the mic and ride with your voice.";
+function raceLabel(){ $("raceChip").textContent = `${RR.LEAGUES[league].name} · ${RR.RACES[race].t}`; }
+
+/* ---- mic check: say READY (first time), then say GO ---- */
+const GO = new Set(["go","goes","gone","goal","gold","ko","goh","gooo","goo","ghost","coat"]);
+let micStage = "ready";
+function startMic(){
+  ctl.setAutopilot(false); ctl.load(league, race); raceLabel();
+  show("micScreen"); $("micErr").hidden = true; $("micHeard").textContent = "";
+  micStage = firstGo ? "ready" : "go"; paintMic();
+  RR.Voice.onDenied = () => { $("micErr").hidden = false; $("micErr").textContent = "Microphone is blocked. Click the lock icon next to the address, allow the microphone, then come back to races and try again."; $("micLabel").textContent = "No microphone"; };
+  RR.Voice.start(micHandler);
+}
+function paintMic(){
+  $("micStep").textContent = micStage === "ready" ? "Mic check" : `${RR.LEAGUES[league].name} · ${RR.RACES[race].t}`;
+  $("sayWord").innerHTML = micStage === "ready" ? "Say <span>READY</span>" : "Say <span>GO!</span>";
+}
+function micHandler(e){
+  if (e.reset) return;
+  let txt = ""; for (let r = e.resultIndex; r < e.results.length; r++) txt += " " + e.results[r][0].transcript;
+  txt = txt.trim(); if (!txt) return;
+  $("micHeard").textContent = "Heard: " + txt;
+  const toks = txt.split(/\s+/).map(RR.norm).filter(Boolean);
+  if (micStage === "ready" && toks.some(t => RR.sim(t, "ready") >= .6 || t.startsWith("read") || t === "redi" || t === "reddy")) {
+    micStage = "go"; firstGo = false; paintMic(); $("micHeard").textContent = "Mic works! Now say GO.";
+    RR.Sound.tone(660, .12, "square", .05); return;
+  }
+  if (micStage === "go" && toks.some(t => GO.has(t))) {
+    micStage = "off"; show(null); $("quitBtn").hidden = false;
+    ctl.listen(); ctl.countdown();
+  }
+}
+$("micBack").onclick = () => { RR.Voice.stop(); show("pickScreen"); renderPick(); };
+
+/* ---- results ---- */
+ctl.on("finish", res => {
+  lastRes = res; RR.Voice.stop(); $("quitBtn").hidden = true;
+  setTimeout(() => showResults(res), res.stopped ? 150 : 1600);
+});
+function showResults(res){
+  const place = res.place;
+  $("endTitle").innerHTML = res.stopped ? "Ride <span>stopped</span>" : place === 1 ? "You <span>won!</span>" : `You came <span>${RR.ord(place)}</span>`;
+  const got = [!res.stopped, place === 1, !res.stopped && res.acc >= 95];
+  const earned = demo ? 0 : got.filter(Boolean).length;
+  const bigs = $("starsBig").querySelectorAll("i"); bigs.forEach(i => i.classList.remove("on"));
+  got.forEach((g, i) => { if (g && !demo) setTimeout(() => { bigs[i].classList.add("on"); RR.Sound.tone(780 + i * 140, .12, "square", .05); }, 300 + i * 260); });
+  $("starsGrid").querySelectorAll("span").forEach((s, i) => s.className = got[i] && !demo ? "ok" : "");
+  $("starsBig").hidden = $("starsGrid").hidden = demo;
+  if (!demo && earned) RR.saveStars(league, race, earned);
+  $("podium").innerHTML = ""; res.podium.forEach((r, i) => { const d = document.createElement("div"); if (r.me) d.className = "me";
+    const a = document.createElement("b"); a.textContent = `${i+1}. ${r.me ? (demo ? "DEMO RIDER" : "YOU") : r.name}`; const t = document.createElement("span"); t.textContent = r.t != null ? (r.t/1000).toFixed(1) + "s" : "still riding"; d.append(a, t); $("podium").appendChild(d); });
+  $("sTime").textContent = (res.timeMs/1000).toFixed(1) + "s"; $("sWpm").textContent = res.wpm; $("sAcc").textContent = res.acc + "%"; $("sSwipe").textContent = res.swipes;
+  $("practice").innerHTML = ""; res.trouble.forEach(m => { const s = document.createElement("span"); s.textContent = m; $("practice").appendChild(s); }); $("practiceWrap").hidden = !res.trouble.length || demo;
+  const canPost = !demo && !res.stopped;
+  $("postBox").hidden = !canPost; $("postName").textContent = RR.nickname(); $("postMsg").textContent = "Score " + Math.round(res.wpm * res.acc / 100) + " · posts to the " + RR.LEAGUES[league].name + " board"; $("postBtn").disabled = false; $("postBtn").textContent = "Post score";
+  const st = RR.stars(league); const nextOpen = race < RR.RACES.length - 1 && st[race] > 0;
+  $("nextBtn").hidden = !nextOpen || demo;
+  show("endScreen");
+}
+$("postReroll").onclick = () => { RR.Store.set("name", RR.randomName()); $("postName").textContent = RR.nickname(); };
+$("postBtn").onclick = async () => {
+  if (!lastRes) return; $("postBtn").disabled = true; $("postMsg").textContent = "Posting…";
+  try { const j = await Board.submit({ name: RR.nickname(), league, race, words: lastRes.words, correct: lastRes.correct, attempts: lastRes.attempts, timeMs: lastRes.timeMs });
+    $("postBtn").textContent = "Posted"; $("postMsg").textContent = j.rank ? `You're #${j.rank} on today's ${RR.LEAGUES[league].name} board.` : "Posted to the board.";
+  } catch (e) { $("postBtn").disabled = false; $("postMsg").textContent = "Couldn't reach the leaderboard. Check your connection and try again."; }
+};
+$("nextBtn").onclick = () => { race++; if (demo) { $("demoBtn").click(); return; } startMic(); };
+$("againBtn").onclick = () => { if (demo) { $("demoBtn").click(); return; } startMic(); };
+$("pickBtn").onclick = () => { demo = false; setModeChip(); ctl.setAutopilot(false); ctl.load(league, race); show("pickScreen"); renderPick(); };
+$("quitBtn").onclick = () => { ctl.finish(); };
+
+renderPick(); raceLabel(); setModeChip(); show("pickScreen");
+window.__rr = ctl;
+})();
+</script>
+</body>
+</html>
