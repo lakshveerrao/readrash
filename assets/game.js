@@ -261,12 +261,25 @@ const GP = {
 };
 GP.LAP_LEN=GP.LAP_SEGS*SEG;
 Object.values(GP.lg).forEach(l=>l.vMin=l.vMax*.32);
+// Sprint words, three tiers per level: lap 1 uses tier 1, the final lap tier 3 (words get tougher every lap)
 const WORDPOOL = {
-  rookie:"cat dog bat hat map cup bus box fox fish frog duck cow pig hen egg jam bag bed pen lamp milk ball kite tree leaf rock sand ship boat star moon rain snow wind fire cake rice corn apple mango lemon grape plum bell drum kick jump swim clap hop spin sing dance smile laugh happy funny big small fast slow hot cold wet dry soft loud green pink black white brown gold bike car truck train plane bridge hill farm park shop zoo nest shell crab tiger lion zebra monkey rabbit puppy kitten hand foot door table chair clock book desk toy gift sock shoe hat cap ring tent lake pond bee ant owl goat sheep horse chick rocket robot mouse cheese pizza juice cookie candy tiger jelly happy sleepy jump stop spot dig mud bug log pot top mop fan van jet net wig",
-  pro:"rocket puddle whisper jungle pencil garden blanket parrot dolphin turtle pumpkin rainbow thunder lightning picnic pocket ladder hammer candle bucket basket button pirate castle dragon wizard planet comet magnet marble jacket helmet engine tunnel island tomato banana coconut cricket racket trophy circus giggle tickle bubble pebble puzzle riddle sandwich popcorn pancake cupboard teacher doctor farmer sailor captain monster shadow mirror lantern camel penguin giraffe elephant octopus spider beetle butterfly sunflower mountain river ocean forest desert lighthouse balloon chocolate biscuit juggle wobble gallop sprinkle whistle twinkle zigzag hammock suitcase backpack keyboard battery spaceship skateboard football motorbike helicopter scooter waterfall seashell starfish treasure compass tornado orange cabbage noodle muffin waffle yogurt cereal",
-  legend:"enormous mysterious thoroughly adventure dangerous beautiful incredible tremendous magnificent extraordinary curious fortunate gigantic invisible impossible necessary particular remarkable spectacular temperature environment imagination celebration exploration conversation electricity telescope microscope astronaut hurricane avalanche earthquake eruption dinosaur crocodile chimpanzee rhinoceros hippopotamus caterpillar kangaroo alligator architecture engineering mathematics geography laboratory technology satellite navigation civilization knowledge fascinating unbelievable mischievous courageous ridiculous enthusiastic delicious ambitious generous independent important interesting opportunity responsibility vocabulary photograph government accelerate determination champion constellation phenomenon atmosphere encyclopedia investigation magnificent marathon migration octagon parachute penguins submarine symphony tarantula thermometer tournament umbrella volunteer wilderness"
+  rookie:[
+    "cat dog bat hat map cup bus box fox pig hen egg jam bag bed pen mud bug log pot mop fan van jet net wig cap kit lid lip hop hug jug rug fun gum bun cub tub web yak zip ram ant ox owl cow toy zoo hut nut pin tin fin rat cot dot tap pan sad leg peg kid fig gas hot wet big six ten jog dig sip wax rib cab pop mix sock hit nod",
+    "fish frog duck milk ball kite tree leaf rock sand ship boat star moon rain snow wind fire cake rice corn lamp drum bell kick jump swim clap spin sing gift shoe ring tent lake pond goat lion bird nest crab shell desk book door hand foot bread grape lemon apple mango park farm hill bike train truck chair table clock smile happy funny jelly candy pizza juice horse sheep chick mouse cheese cloud storm grass plant beach wave brush paint glass spoon green black white brown queen",
+    "rabbit puppy kitten monkey tiger zebra rocket robot cookie window garden yellow purple orange teacher pencil basket button carrot doctor farmer turtle parrot jacket helmet ladder hammer candle bucket muffin pancake popcorn rainbow dragon pirate castle wizard planet magnet picnic pocket puddle bubble giggle cupcake football balloon sister brother tickle penguin spider dinner jungle river forest pillow",
+  ],
+  pro:[
+    "whisper pencil garden blanket dolphin pumpkin thunder ladder candle bucket basket button pirate castle comet marble jacket engine tunnel island cricket racket trophy circus pebble puzzle riddle sandwich cupboard sailor captain monster shadow mirror lantern camel beetle mountain ocean biscuit juggle wobble gallop whistle twinkle zigzag hammock suitcase backpack keyboard scooter seashell starfish treasure compass cabbage noodle waffle yogurt goggles",
+    "lightning chocolate butterfly sunflower elephant octopus giraffe lighthouse waterfall skateboard helicopter battery spaceship motorbike cereal banana coconut tomato volcano kangaroo dinosaur umbrella telephone computer hospital library gorilla bicycle cucumber detective vegetable potato magician newspaper hamburger crocodile photograph holiday adventure tornado medicine alphabet carnival skeleton gymnastics instrument dentist dragonfly ladybug snowflake fireworks sunglasses playground toothbrush cardboard highway",
+    "caterpillar watermelon calculator alligator avocado macaroni harmonica escalator thermometer motorcycle binoculars accordion ambulance astronaut submarine parachute xylophone microphone pineapple strawberry grasshopper porcupine dictionary cauliflower marshmallow trampoline octagon pyramid telescope hurricane mosquito tambourine chimpanzee flamingo armadillo dandelion lollipop stethoscope cinnamon broccoli spaghetti buffalo saxophone kaleidoscope",
+  ],
+  legend:[
+    "enormous dangerous beautiful curious gigantic remarkable adventure telescope microscope hurricane avalanche crocodile alligator satellite champion tournament volunteer marathon parachute submarine symphony atmosphere migration wilderness generous delicious ambitious courageous mischievous fortunate tremendous important library galaxy cathedral comedian volcano festival molecule orchestra calendar elegant ferocious hilarious horizon passenger energy gravity oxygen history mystery pyramid skeleton cinema detective inventor explorer skyscraper",
+    "mysterious incredible magnificent invisible impossible necessary particular spectacular temperature celebration exploration conversation caterpillar rhinoceros photographer geography technology thermometer accelerate fascinating ridiculous independent interesting navigation constellation tarantula environment helicopter calculator observation astronomy biography democracy diameter anaconda harmonica binoculars hibernation evaporate electronic ingredient original material delivery discovery emergency",
+    "extraordinary electricity hippopotamus encyclopedia responsibility opportunity civilization determination unbelievable enthusiastic architecture engineering mathematics laboratory phenomenon refrigerator personality anniversary curiosity university veterinarian pronunciation consideration communication imagination vocabulary investigation biodiversity international photosynthesis accidentally sophisticated revolutionary microorganism appreciation extraterrestrial multiplication cooperation mathematician disappointment abbreviation circumference",
+  ],
 };
-Object.keys(WORDPOOL).forEach(k=>WORDPOOL[k]=[...new Set(WORDPOOL[k].split(/\s+/).filter(Boolean))]);
+Object.keys(WORDPOOL).forEach(k=>WORDPOOL[k]=WORDPOOL[k].map(t=>t.split(/\s+/).filter(Boolean)));
 const CHARS=[ // in-game characters fill the grid when there aren't enough real ghost runs yet
   {name:"ZIPPY",jacket:"#2f9bf0",helmet:"#0d4f96",paint:"#ffd23f"},{name:"TARA",jacket:"#ff4f9a",helmet:"#fff4e2",paint:"#7a2cbf"},
   {name:"BABLU",jacket:"#36b862",helmet:"#1b1b22",paint:"#e0392b"},{name:"MEENA",jacket:"#9b59ff",helmet:"#ffd23f",paint:"#1b1b22"},
@@ -347,10 +360,12 @@ function create(o){
   function loadGP(lg,laps,ghostRows){
     league=lg; gpLaps=laps; apWpm=LEAGUES[lg].demo; const L=GP.lg[lg]; VREF=L.vMax; HUD0=GP.START; HUDLEN=laps*GP.LAP_LEN; FINZ=GP.START+HUDLEN;
     segs=buildGPRoad(laps,DRAW);
-    const pool=WORDPOOL[lg]; let bag=[]; signs=[];
-    for(let lap=0;lap<laps;lap++) for(let k=0;k<GP.SIGNS;k++){
-      if(!bag.length) bag=shuffled(pool); let w=bag.pop(); if(signs.length&&w===signs[signs.length-1].word){ if(!bag.length) bag=shuffled(pool); w=bag.pop(); }
-      signs.push({z:GP.START+lap*GP.LAP_LEN+(GP.FIRST+k*GP.SIGN_GAP)*SEG, word:w, key:norm(w), state:0, lap, t:0}); }
+    // words get tougher lap by lap: tier 1 on lap 1, tier 3 on the final lap, a blend in between; no repeats in a race
+    const tiers=WORDPOOL[lg], bags=tiers.map(t=>shuffled(t)), used=new Set(); signs=[];
+    const draw=t=>{ for(let k=0;k<3;k++){ const b=bags[Math.max(0,Math.min(2,t+[0,-1,1][k]))]; while(b.length){ const w=b.pop(); if(!used.has(w)){ used.add(w); return w; } } } return shuffled(tiers[t])[0]; };
+    for(let lap=0;lap<laps;lap++){ const f=laps===1?0:lap/(laps-1)*(laps===2?1.5:2), lo=Math.floor(f), mix=f-lo;
+      for(let k=0;k<GP.SIGNS;k++){ const t=Math.min(2,lo+(Math.random()<mix?1:0)), w=draw(t);
+        signs.push({z:GP.START+lap*GP.LAP_LEN+(GP.FIRST+k*GP.SIGN_GAP)*SEG, word:w, key:norm(w), state:0, lap, tier:t, t:0}); } }
     words=signs.map(s=>s.word); keys=signs.map(s=>s.key);
     status=words.map(()=>"todo"); trouble=new Set(); acts=[]; idx=0;
     correctCount=0; attemptCount=0; streak=0; gpMissed=0; gpWrong=0; heat=.35; lapIdx=0; splits=[]; finishT=null; lights=0;
@@ -413,7 +428,7 @@ function create(o){
         if(sg.state===0){ sg.state=-1; sg.t=now; gpMissed++; streak=0; heat=Math.max(0,heat-.2); trouble.add(i); pop("MISSED!",450,"small"); Sound.tone(180,.2,"sawtooth",.04,-60); } }
       const d=P.z-GP.START, lapNow=Math.floor(d/GP.LAP_LEN);
       while(lapNow>lapIdx&&lapIdx<gpLaps){ splits.push(Math.round(now)); lapIdx++;
-        if(lapIdx<gpLaps){ pop(lapIdx===gpLaps-1?"FINAL LAP!":"LAP "+(lapIdx+1),1100,"go"); Sound.tone(880,.2,"square",.05); } }
+        if(lapIdx<gpLaps){ pop(lapIdx===gpLaps-1?"FINAL LAP! TOUGHEST WORDS":"LAP "+(lapIdx+1)+" · TOUGHER WORDS",1400,"go lap"); Sound.tone(880,.2,"square",.05); } }
       if(d>=gpLaps*GP.LAP_LEN&&finishT==null){ finishT=Math.round(now); finish(false); }
       setText("timeChip",(now/1000).toFixed(1)+"s");
       const mins=now/60000; setText("wpmChip",(mins>.05?Math.round(correctCount/mins):0)+" wpm");
@@ -845,7 +860,7 @@ function create(o){
     setAutopilot:(on,wpm)=>{ autopilot=on; if(wpm) apWpm=wpm; },
     on:(k,f)=>{ (listeners[k]=listeners[k]||[]).push(f); },
     pause, resume, resize,
-    state:()=>({gp:gp?{signs:signs.map(s=>({w:s.word,st:s.state})),lap:lapIdx,place:gpPlace(),heat,missed:gpMissed,wrong:gpWrong,v:P.v,z:P.z}:null,phase,idx,total:words.length,P:{...P},place:placeOf(),swipes,dodges,ema,quality,acts:acts.map(a=>a?a.type:null),riders:riders.map(r=>({name:r.name,z:Math.round(r.z),bound:r.bound})),words:[...words]}),
+    state:()=>({gp:gp?{signs:signs.map(s=>({w:s.word,st:s.state,tier:s.tier,lap:s.lap})),lap:lapIdx,place:gpPlace(),heat,missed:gpMissed,wrong:gpWrong,v:P.v,z:P.z}:null,phase,idx,total:words.length,P:{...P},place:placeOf(),swipes,dodges,ema,quality,acts:acts.map(a=>a?a.type:null),riders:riders.map(r=>({name:r.name,z:Math.round(r.z),bound:r.bound})),words:[...words]}),
     judgeWord:(w,final=true,last=false)=>judge(norm(w),null,final,last)
   };
 }

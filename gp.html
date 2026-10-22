@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Rash GP · ReadRash</title>
+<title>Rash GP Sprint · ReadRash</title>
 <meta name="description" content="Rash GP: a 12-rider lap race where you read the words on the signs out loud to go faster.">
 <meta name="theme-color" content="#121016">
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -102,10 +102,10 @@
   <div class="panel">
     <a class="x" href="index.html" aria-label="Close and go home">✕</a>
     <div>
-      <p class="kicker" style="color:#b14a12">Konkan circuit · 12 riders</p>
+      <p class="kicker" style="color:#b14a12">Sprint · Read the word · 12 riders</p>
       <h2 style="margin-top:6px">Rash <span>GP</span></h2>
     </div>
-    <p>Words appear on signs over the road. Read each one out loud before you ride under it. Right word: faster. Wrong or missed: slower. First across the line after the last lap wins.</p>
+    <p>Words appear on signs over the road. Read each one out loud before you ride under it. Right word: faster. Wrong or missed: slower. Words get tougher every lap. First across the line after the last lap wins.</p>
     <p class="lab">Level</p>
     <div class="pick" id="lgPick">
       <button class="choice" data-lg="rookie" aria-pressed="false"><b>Rookie</b><small>Short words</small></button>
@@ -194,7 +194,7 @@ const ctl = RR.create({ canvas: $("road"), mode: "gp", league, laps,
 $("sndBtn").onclick = () => { RR.Sound.setOn(!RR.Sound.on); $("sndBtn").textContent = RR.Sound.on ? "Sound on" : "Sound off"; $("sndBtn").setAttribute("aria-pressed", RR.Sound.on); };
 RR.Voice.onState = on => { $("micDot").classList.toggle("on", on); $("micState").classList.toggle("on", on); if (on) $("micLabel").textContent = "Listening"; };
 function setModeChip(){ const c = $("modeTxt").parentElement; c.classList.toggle("demo-chip", demo); $("modeTxt").textContent = demo ? "Demo race" : "Voice"; }
-function label(){ $("raceChip").textContent = `Rash GP · ${RR.LEAGUES[league].name} · ${laps} laps`; }
+function label(){ $("raceChip").textContent = `Rash GP · Sprint · ${RR.LEAGUES[league].name} · ${laps} laps`; }
 
 /* ---- ghosts: real players' best runs for this level + lap count ---- */
 async function fetchGhosts(){
