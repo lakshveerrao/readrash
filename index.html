@@ -77,6 +77,22 @@ section.blk{padding-block:clamp(56px,9vw,104px)}
 .boardwrap{background:var(--asphalt-2);border-radius:20px;padding:18px clamp(12px,3vw,26px) 22px;overflow-x:auto}
 .bhead{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
 
+/* rash gp band */
+.gpband{display:grid;grid-template-columns:1.05fr 1fr;gap:28px;align-items:center;background:linear-gradient(135deg,#1d1a22,#2a1a12);border-radius:24px;padding:clamp(20px,4vw,40px);border:1px solid rgba(255,106,26,.25)}
+.gpcopy{display:flex;flex-direction:column;gap:16px;align-items:flex-start;min-width:0}
+.gpfacts{display:flex;gap:10px;flex-wrap:wrap}
+.gpfacts span{background:rgba(255,255,255,.06);border-radius:10px;padding:8px 12px;font-size:14px;color:#d9d2c6}
+.gpfacts b{font-family:var(--display);font-style:italic;font-weight:400;font-size:20px;color:var(--sun);margin-right:4px}
+.gpart{position:relative;height:320px;border-radius:18px;overflow:hidden;background:linear-gradient(180deg,#3d9be0,#9fd6f4 45%,#86b84a 45%);min-width:0}
+.groad{position:absolute;left:50%;bottom:0;width:120%;height:55%;transform:translateX(-50%);background:#57565f;clip-path:polygon(46% 0,54% 0,100% 100%,0 100%)}
+.gsign{position:absolute;left:50%;transform:translateX(-50%);font-weight:700;border:3px solid var(--ink);border-radius:8px;background:#fff4e2;color:var(--ink);white-space:nowrap;z-index:2;box-shadow:0 3px 0 var(--ink)}
+.gsign.far{top:46%;font-size:12px;padding:1px 10px;opacity:.85}
+.gsign.mid{top:31%;font-size:18px;padding:3px 18px;background:#36b862;color:#fff}
+.gsign.near{top:5%;font-size:34px;padding:6px 34px;background:var(--sun);outline:3px solid var(--sun);outline-offset:4px}
+.glap,.gpos{position:absolute;bottom:14px;font-family:var(--display);font-style:italic;font-size:26px;color:#fff;text-shadow:0 3px 0 var(--ink);z-index:2}
+.glap{right:16px}.gpos{left:16px;color:var(--sun)}.gpos small{font-size:15px;color:#fff}
+@media (max-width:820px){.gpband{grid-template-columns:1fr}.gpart{height:240px}.gsign.near{font-size:26px;padding:4px 22px}}
+
 /* closing */
 .closer{text-align:center;display:flex;flex-direction:column;align-items:center;gap:20px}
 .closer h2{font-size:clamp(44px,8vw,90px)}
@@ -89,6 +105,7 @@ section.blk{padding-block:clamp(56px,9vw,104px)}
     <a class="logo" href="index.html">READ<span>RASH</span></a>
     <nav class="links" aria-label="Main">
       <a class="opt" href="#how">How to play</a>
+      <a href="gp.html">Rash GP</a>
       <a class="opt" href="leaderboard.html">Leaderboard</a>
       <a class="btn sm" href="play.html">Ride now</a>
     </nav>
@@ -135,6 +152,27 @@ section.blk{padding-block:clamp(56px,9vw,104px)}
         <h3>3. Swipe &amp; dodge</h3>
         <p>Orange word on a rival? Read it to swat them off the road. Blue word on traffic? Read it to swerve past.</p>
       </article>
+    </div>
+  </div>
+</section>
+
+<section class="blk gut" id="gp" style="padding-top:0">
+  <div class="inner">
+    <div class="gpband">
+      <div class="gpcopy">
+        <p class="kicker">New mode</p>
+        <h2 class="sec-h">Rash <em>GP.</em></h2>
+        <p class="lede">Twelve riders. Lap after lap. Words flash up on signs over the road, and you read each one before you ride under it. Right word: faster. Wrong or missed: slower.</p>
+        <div class="gpfacts"><span><b>12</b> riders</span><span><b>2 · 3 · 5</b> laps</span><span><b>Ghosts</b> of real players</span></div>
+        <a class="btn" href="gp.html">Race Rash GP</a>
+      </div>
+      <div class="gpart" aria-hidden="true">
+        <div class="gsign far">compass</div>
+        <div class="gsign mid ok">✓ rocket</div>
+        <div class="gsign near now">butterfly</div>
+        <div class="groad"></div>
+        <div class="glap">LAP 2/3</div><div class="gpos">3rd <small>/ 12</small></div>
+      </div>
     </div>
   </div>
 </section>

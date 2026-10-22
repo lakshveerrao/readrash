@@ -4,12 +4,15 @@ Static site + one Cloudflare Pages Function for the leaderboard.
 
 ```
 index.html         home page (live demo ride in the hero)
-play.html          the game: pick race → mic check → say GO → race → results
+play.html          story races: pick race → mic check → say GO → race → results
+gp.html            Rash GP: 12-rider lap race, words on overhead signs, ghosts of real runs
 leaderboard.html   full board (league × today / week / all time)
 assets/game.js     engine: road, sprites, voice, rivals, scoring
 assets/board.js    leaderboard client
 assets/site.css    shared styles
-functions/api/scores.js   GET/POST /api/scores (D1)
+functions/api/scores.js   GET/POST /api/scores (story race board)
+functions/api/gp.js       GET/POST /api/gp (Rash GP board)
+functions/api/ghosts.js   GET /api/ghosts (real runs to race against)
 schema.sql         database table
 _headers           allows the microphone on this site
 ```
@@ -30,3 +33,12 @@ Voice needs HTTPS, which Cloudflare gives you automatically.
 
 ## Changing a passage
 If you edit a race text in `assets/game.js`, update its word count in `WORDS` at the top of `functions/api/scores.js`, or posts for that race will be rejected.
+
+## Database updates
+`schema.sql` only uses `CREATE ... IF NOT EXISTS`, so it is safe to run again whenever it changes:
+
+```
+npx wrangler d1 execute readrash --remote --file=schema.sql
+```
+Rash GP needs the `gp_runs` table from this file.
+If you change GP speeds or lap length in `assets/game.js`, update the matching numbers at the top of `functions/api/gp.js`.

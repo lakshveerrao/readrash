@@ -35,7 +35,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .links a{text-decoration:none;color:var(--muted)}
 .links a:hover,.links a[aria-current="page"]{color:var(--chalk)}
 .links a.btn{color:#fff}
-@media (max-width:640px){.links a.opt{display:none}}
+@media (max-width:640px){.links a.opt{display:none}.links{gap:14px}}
 
 /* buttons */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--display);font-style:italic;font-size:22px;line-height:1;cursor:pointer;
