@@ -13,7 +13,19 @@
 <link rel="stylesheet" href="assets/site.css">
 <link rel="stylesheet" href="assets/game.css">
 <style>
-/* Rash GP: same race view; the text card becomes a NOW / NEXT word board with a countdown bar to the next sign */
+/* Rash GP: same race view; the text card shows the three lane words of the next gantry, with what waits in each lane */
+.lanecard{display:flex;flex-direction:column;gap:10px;justify-content:center;min-height:150px}
+.lanes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ln{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;background:#fff;border:3px solid #e6dccb;border-radius:14px;padding:10px 6px 9px;min-width:0;text-align:center}
+.ln.here{border-color:var(--ink);background:#fff7d6;box-shadow:0 4px 0 var(--ink)}
+.ln.here::after{content:"YOU";position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--heat);color:#fff;font-size:10px;font-weight:700;letter-spacing:.1em;padding:2px 7px;border-radius:6px}
+.lt{font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#8a8294}
+.ln b{font-family:var(--read);font-weight:700;font-size:clamp(20px,4.2vw,38px);line-height:1.05;color:var(--ink);white-space:nowrap;min-width:0;max-width:100%}
+.ln i{font-style:normal;font-size:11px;font-weight:700;letter-spacing:.08em;border-radius:6px;padding:2px 8px;min-height:18px}
+.lanes.locked .ln{opacity:.45}
+.lanes.locked .ln b{color:#8a8294}
+.tag-n{background:var(--sun);color:var(--ink)}.tag-t{background:var(--bad);color:#fff}.tag-c{background:#d6f3f7;color:#11606b}.tag-r{background:#ffd9ec;color:#9b1d5b}
+@media (max-width:520px){.ln{padding:9px 4px 7px}.ln b{font-size:clamp(16px,5.4vw,24px)}}
 .wordcard{display:flex;flex-direction:column;justify-content:center;gap:10px;min-height:150px}
 .wrow{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
 .wlab{font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#8a8294;width:46px;flex:none}
@@ -87,10 +99,13 @@
         <div class="crow"><small>Nitro</small><small id="streakTxt">0/10</small></div>
       </div>
     </div>
-    <div class="card wordcard" aria-live="polite">
-      <div class="wrow"><span class="wlab">Now</span><span class="now" id="nowWord">Get ready</span></div>
+    <div class="card lanecard" aria-live="polite">
+      <div class="lanes" id="lanes">
+        <div class="ln"><span class="lt">Left</span><b>·</b><i></i></div>
+        <div class="ln"><span class="lt">Middle</span><b>Get ready</b><i></i></div>
+        <div class="ln"><span class="lt">Right</span><b>·</b><i></i></div>
+      </div>
       <div class="signbar" aria-hidden="true"><i id="signBar"></i></div>
-      <div class="wrow"><span class="wlab">Next</span><span class="next" id="nextWord"></span></div>
       <div class="heard" id="heard"></div>
     </div>
   </div>
@@ -105,7 +120,7 @@
       <p class="kicker" style="color:#b14a12">Sprint · Read the word · 12 riders</p>
       <h2 style="margin-top:6px">Rash <span>GP</span></h2>
     </div>
-    <p>Words appear on signs over the road. Read each one out loud before you ride under it. Right word: faster. Wrong or missed: slower. Words get tougher every lap. First across the line after the last lap wins.</p>
+    <p>Every sign has three words, one over each lane. <b>Read a word and you ride into its lane.</b> Hard words hide nitro, easy words hide traffic, and 11 riders fight you for every lane. Words get tougher every lap.</p>
     <p class="lab">Level</p>
     <div class="pick" id="lgPick">
       <button class="choice" data-lg="rookie" aria-pressed="false"><b>Rookie</b><small>Short words</small></button>
@@ -114,13 +129,13 @@
     </div>
     <p class="lab">Laps</p>
     <div class="pick" id="lapPick">
-      <button class="choice" data-laps="2" aria-pressed="false"><b>2 laps</b><small>Sprint · 40 words</small></button>
-      <button class="choice" data-laps="3" aria-pressed="true"><b>3 laps</b><small>Classic · 60 words</small></button>
-      <button class="choice" data-laps="5" aria-pressed="false"><b>5 laps</b><small>Endurance · 100 words</small></button>
+      <button class="choice" data-laps="2" aria-pressed="false"><b>2 laps</b><small>Quick · 20 signs</small></button>
+      <button class="choice" data-laps="3" aria-pressed="true"><b>3 laps</b><small>Classic · 30 signs</small></button>
+      <button class="choice" data-laps="5" aria-pressed="false"><b>5 laps</b><small>Endurance · 50 signs</small></button>
     </div>
     <div class="who"><span>Riding as <b id="whoName"></b></span><button class="linkbtn" id="reroll">New name</button></div>
     <button class="btn" id="rideBtn">Line up</button>
-    <p class="note" style="color:#6b6476;margin:0" id="gridNote">Faded riders are ghosts: replays of real players' best runs.</p>
+    <p class="note" style="color:#6b6476;margin:0" id="gridNote">Stuck behind a rider? Read another lane's word to overtake. Ride close behind someone to fill your slipstream, then read to slingshot past.</p>
   </div>
 </div>
 
@@ -158,12 +173,12 @@
     <div class="stats">
       <div class="stat"><b id="sTime">0s</b><small>Race time</small></div>
       <div class="stat"><b id="sBest">0s</b><small>Best lap</small></div>
-      <div class="stat"><b id="sRead">0</b><small>Words read</small></div>
-      <div class="stat"><b id="sAcc">0%</b><small>Accuracy</small></div>
+      <div class="stat"><b id="sRead">0</b><small>Signs read</small></div>
+      <div class="stat"><b id="sDuel">0</b><small>Duels won</small></div>
     </div>
     <div><p style="font-weight:700;margin-bottom:8px">Lap times</p><div class="splits" id="splits"></div></div>
     <div><p style="font-weight:700;margin-bottom:8px">Standings</p><div class="standings" id="standings"></div></div>
-    <div id="practiceWrap"><p style="font-weight:700;margin-bottom:8px">Words to practice</p><div class="practice" id="practice"></div></div>
+    <div id="practiceWrap"><p style="font-weight:700;margin-bottom:8px">Signs you missed</p><div class="practice" id="practice"></div></div>
     <div class="post" id="postBox">
       <span class="nm" id="postName"></span>
       <button class="linkbtn" id="postReroll">New name</button>
@@ -185,24 +200,18 @@ const RR = window.ReadRash, $ = id => document.getElementById(id);
 const show = id => ["pickScreen","gateScreen","micScreen","endScreen"].forEach(s => $(s).hidden = s !== id);
 let league = RR.Store.get("league", "pro"); if (!RR.LEAGUES[league]) league = "pro";
 let laps = RR.Store.get("gpLaps", 3); if (![2,3,5].includes(laps)) laps = 3;
-let demo = false, lastRes = null, firstGo = true, exiting = false, ghostRows = [];
+let demo = false, lastRes = null, firstGo = true, exiting = false;
 
 const ctl = RR.create({ canvas: $("road"), mode: "gp", league, laps,
   ui: { heard:$("heard"), kmh:$("kmh"), arc:$("arc"), nitroBar:$("nitroBar"), nitroWrap:$("nitroWrap"), streakTxt:$("streakTxt"), posTxt:$("posTxt"), pop:$("pop"),
-        timeChip:$("timeChip"), wpmChip:$("wpmChip"), nowWord:$("nowWord"), nextWord:$("nextWord"), signBar:$("signBar"), lapTxt:$("lapTxt") } });
+        timeChip:$("timeChip"), wpmChip:$("wpmChip"), lanes:$("lanes"), signBar:$("signBar"), lapTxt:$("lapTxt") } });
 
 $("sndBtn").onclick = () => { RR.Sound.setOn(!RR.Sound.on); $("sndBtn").textContent = RR.Sound.on ? "Sound on" : "Sound off"; $("sndBtn").setAttribute("aria-pressed", RR.Sound.on); };
 RR.Voice.onState = on => { $("micDot").classList.toggle("on", on); $("micState").classList.toggle("on", on); if (on) $("micLabel").textContent = "Listening"; };
 function setModeChip(){ const c = $("modeTxt").parentElement; c.classList.toggle("demo-chip", demo); $("modeTxt").textContent = demo ? "Demo race" : "Voice"; }
 function label(){ $("raceChip").textContent = `Rash GP · Sprint · ${RR.LEAGUES[league].name} · ${laps} laps`; }
 
-/* ---- ghosts: real players' best runs for this level + lap count ---- */
-async function fetchGhosts(){
-  try { const r = await fetch(`/api/ghosts?league=${league}&laps=${laps}`); if (!r.ok) throw 0; const ct = r.headers.get("content-type") || ""; if (!ct.includes("json")) throw 0;
-    const j = await r.json(); return (j.rows || []).map(g => ({ name: g.name, splits: typeof g.splits === "string" ? JSON.parse(g.splits) : g.splits }));
-  } catch (e) { return []; }
-}
-async function prepare(){ ghostRows = await fetchGhosts(); ctl.loadGP(league, laps, ghostRows); label(); }
+async function prepare(){ ctl.loadGP(league, laps); label(); }
 
 /* ---- setup screen ---- */
 function renderPick(){
@@ -242,21 +251,20 @@ $("micBack").onclick = () => { RR.Voice.stop(); show("pickScreen"); renderPick()
 const fmt = ms => ms == null ? "–" : (ms/1000).toFixed(1) + "s";
 ctl.on("finish", res => {
   lastRes = res; RR.Voice.stop(); $("quitBtn").hidden = true;
-  if (exiting) { exiting = false; demo = false; setModeChip(); ctl.setAutopilot(false); ctl.loadGP(league, laps, ghostRows); show("pickScreen"); renderPick(); return; }
+  if (exiting) { exiting = false; demo = false; setModeChip(); ctl.setAutopilot(false); ctl.loadGP(league, laps); show("pickScreen"); renderPick(); return; }
   setTimeout(() => showResults(res), 1700);
 });
 function showResults(res){
   const p = res.place;
   $("endTitle").innerHTML = p === 1 ? "You won <span>Rash GP!</span>" : `You finished <span>${RR.ord(p)}</span>`;
-  $("sTime").textContent = fmt(res.timeMs); $("sBest").textContent = fmt(res.best); $("sRead").textContent = `${res.correct}/${res.signs}`; $("sAcc").textContent = res.acc + "%";
+  $("sTime").textContent = fmt(res.timeMs); $("sBest").textContent = fmt(res.best); $("sRead").textContent = `${res.correct}/${res.signs}`; $("sDuel").textContent = `${res.duelsWon}/${res.duelsWon + res.duelsLost}`;
   $("splits").innerHTML = ""; res.lapTimes.forEach((t, i) => { const s = document.createElement("span"); s.textContent = `Lap ${i+1} · ${fmt(t)}`; if (t === res.best) s.className = "best"; $("splits").appendChild(s); });
   $("standings").innerHTML = ""; res.podium.forEach((r, i) => { const d = document.createElement("div"); if (r.me) d.className = "me";
     const a = document.createElement("b"); a.textContent = `${i+1}. ${r.me ? (demo ? "DEMO RIDER" : "YOU") : r.name}`;
-    if (r.ghost) { const g = document.createElement("span"); g.className = "g"; g.textContent = "ghost"; a.appendChild(g); }
-    const t = document.createElement("span"); t.textContent = fmt(r.t); d.append(a, t); $("standings").appendChild(d); });
+        const t = document.createElement("span"); t.textContent = fmt(r.t); d.append(a, t); $("standings").appendChild(d); });
   $("practice").innerHTML = ""; res.trouble.forEach(m => { const s = document.createElement("span"); s.textContent = m; $("practice").appendChild(s); }); $("practiceWrap").hidden = !res.trouble.length || demo;
   $("postBox").hidden = demo; $("postName").textContent = RR.nickname(); $("postBtn").disabled = false; $("postBtn").textContent = "Post time";
-  $("postMsg").textContent = `${fmt(res.timeMs)} · posts to the ${RR.LEAGUES[league].name} ${laps}-lap board, and your run becomes a ghost others can race.`;
+  $("postMsg").textContent = `${fmt(res.timeMs)} · posts to the ${RR.LEAGUES[league].name} ${laps}-lap board, and ${res.crashes ? res.crashes + " crash" + (res.crashes > 1 ? "es" : "") + " · " : ""}${res.missed} missed sign${res.missed === 1 ? "" : "s"}.`;
   show("endScreen");
 }
 $("postReroll").onclick = () => { RR.Store.set("name", RR.randomName()); $("postName").textContent = RR.nickname(); };

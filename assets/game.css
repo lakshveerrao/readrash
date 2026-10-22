@@ -98,3 +98,5 @@
 .x:hover{background:var(--sun)}
 .exit{background:var(--bad);color:#fff;font-weight:700}
 .demo-chip{background:var(--cool);color:var(--ink);font-weight:700}
+
+.panel > div:first-of-type{padding-right:46px}

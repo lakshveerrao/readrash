@@ -199,6 +199,8 @@ const PAINT={
   bus:[.95,280,(g,u)=>{ const {R,E,T}=tools(g,u); E(0,0,50,4,"rgba(0,0,0,.28)"); R(-46,-12,14,12,"#0d0d10",3); R(32,-12,14,12,"#0d0d10",3);
     R(-48,-100,96,90,"#c7362b",5); R(-48,-60,96,8,"#ffd23f"); R(-42,-94,84,28,"#26303a",3); R(-38,-90,76,6,"rgba(255,255,255,.15)",2);
     R(-42,-24,14,7,"#ff3030",2); R(28,-24,14,7,"#ff3030",2); T("KONKAN EXPRESS",0,-42,7.5,"#fff4e2","bold Verdana,sans-serif"); }],
+  nitro:[.8,120,(g,u)=>{ const {R,E,T}=tools(g,u); E(0,0,34,5,"rgba(0,0,0,.25)"); const bg=g.createLinearGradient(-30*u,0,30*u,0); bg.addColorStop(0,"#0d5fa8"); bg.addColorStop(.45,"#3ec1d3"); bg.addColorStop(1,"#0d4f96");
+    g.fillStyle=bg; rr(g,-30*u,-92*u,60*u,88*u,14*u); g.fill(); R(-30,-62,60,14,"#ffd23f"); R(-12,-100,24,10,"#1b1b22",3); T("N",0,-30,30,"#fff4e2"); }],
   barrel:[.6,110,(g,u)=>{ const {R,E}=tools(g,u); E(0,0,30,4,"rgba(0,0,0,.25)"); const bg=g.createLinearGradient(-28*u,0,28*u,0); bg.addColorStop(0,"#c84f12"); bg.addColorStop(.4,"#ff7a2a"); bg.addColorStop(1,"#a83e0c");
     g.fillStyle=bg; rr(g,-28*u,-96*u,56*u,96*u,8*u); g.fill(); R(-28,-72,56,14,"rgba(255,244,226,.92)"); R(-28,-40,56,14,"rgba(255,244,226,.92)"); E(0,-96,28,6,"#e05a12"); }]
 };
@@ -206,7 +208,7 @@ function boardSprite(text){ return sprite("board"+text,1.7,170,(g,u)=>{ const {R
   const hot=text==="READRASH"||text==="RIDE RASH"; R(-79,-97,158,40,hot?"#ff6a1a":"#ffd23f",2);
   T(text,0,-77,text.length>12?11:text.length>9?14:18,hot?"#fff4e2":"#1b1b22"); }); }
 function getSprite(t,sp){ if(t==="board") return boardSprite(sp.text); const d=PAINT[t]; return sprite(t,d[0],d[1],d[2]); }
-const WH={post:150,rail:200,palm:2000,palm2:1900,mango:1300,house:900,boat:520,lighthouse:2600,fort:1500,banyan:1600,bush:300,rock:170,laterite:220,pole:1600,mile:240,board:1100,stall:800,auto:440,cow:340,truck:900,bus:900,barrel:220,bike:440};
+const WH={nitro:260,post:150,rail:200,palm:2000,palm2:1900,mango:1300,house:900,boat:520,lighthouse:2600,fort:1500,banyan:1600,bush:300,rock:170,laterite:220,pole:1600,mile:240,board:1100,stall:800,auto:440,cow:340,truck:900,bus:900,barrel:220,bike:440};
 
 /* ================= road geometry ================= */
 const SEG=200, RW=2000, CAMH=900, camDepth=1/Math.tan(50*Math.PI/180), playerZ=CAMH*camDepth;
@@ -256,7 +258,7 @@ const ridges=[0,1,2].map(l=>Array.from({length:64},(_,i)=>.32+.28*Math.sin(i*.7+
 
 /* ================= Rash GP: lap racing on a circuit, words on overhead signs ================= */
 const GP = {
-  SIGN_GAP:50, SIGNS:20, FIRST:30, LAP_SEGS:1000, START:40*SEG, LAPS:[2,3,5],
+  ROWS:10, ROW_GAP:95, FIRST:45, OPEN:.74, LANES:[-.66,0,.66], LAP_SEGS:1000, START:40*SEG, LAPS:[2,3,5],
   lg:{ rookie:{vMax:8333}, pro:{vMax:13333}, legend:{vMax:18333} } // full-speed = one sign every 1.2s / 0.75s / 0.55s
 };
 GP.LAP_LEN=GP.LAP_SEGS*SEG;
@@ -352,108 +354,200 @@ function create(o){
   const listeners={};
   const emit=(k,v)=>{ (listeners[k]||[]).forEach(f=>f(v)); };
 
-  /* ---------- Rash GP ---------- */
+  /* ---------- Rash GP: word lanes + a pack that fights back ---------- */
   const gp=o.mode==="gp";
-  let gpLaps=3, signs=[], ghosts=[], heat=.35, lapIdx=0, splits=[], gpMissed=0, gpWrong=0, lastPlace=12;
+  let gpLaps=3, rows=[], gpObs=[], gpNitro=[], rivals=[], heat=.4, lapIdx=0, splits=[], gpMissed=0, gpWrong=0, lastPlace=12;
+  let posCand={p:12,t:0}, draft=0, slingUntil=-99999, blockedMsgT=-9999, duelT=-9999, posFlash=null, crashes=0, duelsWon=0, duelsLost=0;
   let VREF=RACE_LEN/4.6, HUD0=START_Z, HUDLEN=RACE_LEN, FINZ=FINISH_Z;
-  function pendingSigns(){ const out=[]; for(const s of signs){ if(s.state===0&&s.z>P.z+80){ out.push(s); if(out.length===2) break; } } return out; }
-  function loadGP(lg,laps,ghostRows){
+  const LANE_X=GP.LANES;
+  const SAY_PASS=["See ya!","Catch me!","Too slow!","Bye bye!"], SAY_LOSE=["Nooo!","Hey!","No way!","Come back!"];
+  function nextPending(){ for(const r of rows){ if(r.state===0&&r.z>P.z+80) return r; } return null; }
+  function curRow(){ const r=nextPending(); return r&&r.z-P.z<=GP.ROW_GAP*SEG*GP.OPEN?r:null; }
+  function nextRow(r){ const i=rows.indexOf(r); return i>=0?rows[i+1]||null:null; }
+  function laneCenterOf(x){ let b=0; LANE_X.forEach((lx,i)=>{ if(Math.abs(x-lx)<Math.abs(x-LANE_X[b])) b=i; }); return b; }
+  function loadGP(lg,laps){
     league=lg; gpLaps=laps; apWpm=LEAGUES[lg].demo; const L=GP.lg[lg]; VREF=L.vMax; HUD0=GP.START; HUDLEN=laps*GP.LAP_LEN; FINZ=GP.START+HUDLEN;
     segs=buildGPRoad(laps,DRAW);
-    // words get tougher lap by lap: tier 1 on lap 1, tier 3 on the final lap, a blend in between; no repeats in a race
-    const tiers=WORDPOOL[lg], bags=tiers.map(t=>shuffled(t)), used=new Set(); signs=[];
-    const draw=t=>{ for(let k=0;k<3;k++){ const b=bags[Math.max(0,Math.min(2,t+[0,-1,1][k]))]; while(b.length){ const w=b.pop(); if(!used.has(w)){ used.add(w); return w; } } } return shuffled(tiers[t])[0]; };
-    for(let lap=0;lap<laps;lap++){ const f=laps===1?0:lap/(laps-1)*(laps===2?1.5:2), lo=Math.floor(f), mix=f-lo;
-      for(let k=0;k<GP.SIGNS;k++){ const t=Math.min(2,lo+(Math.random()<mix?1:0)), w=draw(t);
-        signs.push({z:GP.START+lap*GP.LAP_LEN+(GP.FIRST+k*GP.SIGN_GAP)*SEG, word:w, key:norm(w), state:0, lap, tier:t, t:0}); } }
-    words=signs.map(s=>s.word); keys=signs.map(s=>s.key);
-    status=words.map(()=>"todo"); trouble=new Set(); acts=[]; idx=0;
-    correctCount=0; attemptCount=0; streak=0; gpMissed=0; gpWrong=0; heat=.35; lapIdx=0; splits=[]; finishT=null; lights=0;
-    Object.assign(P,{z:GP.START-2800,target:0,v:0,x:0,lean:0,state:"ride",until:0,boostUntil:0,swipeT:-9999,copUntil:0});
-    // grid: real players' ghost runs first, in-game characters fill the rest; everyone lines up ahead of you
-    const real=(ghostRows||[]).filter(g=>g&&Array.isArray(g.splits)&&g.splits.length===laps&&g.splits.every(Number.isFinite)).slice(0,6);
-    const nBots=11-real.length, crew=shuffled(CHARS);
-    const bots=Array.from({length:nBots},(_,i)=>{ const h=.4+.5*(i/Math.max(1,nBots-1)); const c=crew[i%crew.length]; return {name:c.name,kit:c,ghost:false,splits:botSplits(lg,laps,h)}; });
-    ghosts=shuffled([...real.map((g,i)=>({name:g.name,kit:GHOST_KIT[i%2],ghost:true,splits:g.splits.slice()})),...bots])
-      .map((g,k)=>Object.assign(g,{off:-2800+(Math.floor(k/2)+1)*560,lane:(k%2?.5:-.5)+(Math.random()-.5)*.2,dist:0,finishT:null}));
-    ghosts.forEach(g=>{ g.x=g.lane; g.z=GP.START+g.off; });
+    // words: three per gantry (easy / medium / hard), getting tougher lap by lap; no repeats in a race
+    const tiers=WORDPOOL[lg], bags=tiers.map(t=>shuffled(t)), used=new Set();
+    const draw=t=>{ t=Math.max(0,Math.min(2,t)); for(const d of [0,-1,1,-2,2]){ const b=bags[Math.max(0,Math.min(2,t+d))]; while(b.length){ const w=b.pop(); if(!used.has(w)){ used.add(w); return w; } } } return shuffled(tiers[t])[0]; };
+    rows=[]; gpObs=[]; gpNitro=[];
+    const traffic=["auto","barrel","cow","truck","auto","barrel","bus"];
+    for(let lap=0;lap<laps;lap++){ const f=laps===1?0:lap/(laps-1)*(laps===2?1.5:2);
+      for(let k=0;k<GP.ROWS;k++){ const base=Math.min(2,Math.floor(f)+(Math.random()<f-Math.floor(f)?1:0));
+        const ws=[draw(base-1),draw(base),draw(base+1)].sort((a,b)=>a.length-b.length); // easy, medium, hard
+        const perm=shuffled([0,1,2]), words3=[], content=["clear","clear","clear"];
+        perm.forEach((lane,d)=>{ words3[lane]=ws[d]; });
+        const easyLane=perm[0], hardLane=perm[2], midLane=perm[1];
+        if(k>0||lap>0){ if(Math.random()<.7) content[easyLane]="traffic"; if(Math.random()<.65) content[hardLane]="nitro"; if(content[easyLane]!=="traffic"&&Math.random()<.35) content[midLane]="traffic"; }
+        const z=GP.START+lap*GP.LAP_LEN+(GP.FIRST+k*GP.ROW_GAP)*SEG;
+        const r={z,lap,k,words:words3,keys:words3.map(norm),content,state:0,chosen:-1,t:0}; rows.push(r);
+        content.forEach((c,lane)=>{ if(c==="traffic") gpObs.push({z:z+GP.ROW_GAP*SEG*.18,lane,type:traffic[(k+lane+lap)%traffic.length],hit:false});
+                                  if(c==="nitro") gpNitro.push({z:z+GP.ROW_GAP*SEG*.1,lane,taken:false}); });
+      } }
+    words=rows.flatMap(r=>r.words); keys=words.map(norm); status=[]; trouble=new Set(); acts=[]; idx=0;
+    correctCount=0; attemptCount=0; streak=0; gpMissed=0; gpWrong=0; crashes=0; duelsWon=0; duelsLost=0; heat=.4; lapIdx=0; splits=[]; finishT=null; lights=0; draft=0; slingUntil=0; posFlash=null;
+    Object.assign(P,{z:GP.START-2800,target:0,v:0,x:0,lane:1,lean:0,state:"ride",until:0,boostUntil:0,swipeT:-9999,copUntil:0});
+    // the pack: in-game riders with personalities; everyone lines up ahead of you
+    const crew=shuffled(CHARS), styles=["sprinter","closer","blocker","steady"];
+    const skills=shuffled([1,.97,.93,.88,.84,.8,.76,.72,.68,.62,.56]);
+    rivals=crew.slice(0,11).map((c,k)=>({name:c.name,kit:c,style:skills[k]>=.97?"closer":styles[k%4],skill:skills[k],
+      pack:k<6, base:k<6?[-900,-350,250,700,1200,1700][k]:(k%2?-1:1)*(2600+Math.random()*5000), ph:Math.random()*6,
+      z:GP.START-2800+(Math.floor(k/2)+1)*540, v:0, lane:k%3, x:LANE_X[k%3], lastRow:-1, side:0, sayT:-9999, say:null, knockT:-99999, knockDir:1, duel:null, swipeT:-9999, lean:0}));
     riders=[]; obstacles=[]; skyOff=0; parts=[]; bursts=[]; shakeAmt=0; phase="idle"; lastPlace=12;
     setText("timeChip","0.0s"); setText("wpmChip","0 wpm"); setText("posTxt","12th / 12"); gpUI(true);
   }
-  function ghostDist(g,t){
-    const sp=g.splits, D=GP.LAP_LEN, last=sp[sp.length-1];
-    if(t>=last) return sp.length*D+(t-last)*GP.lg[league].vMin/1000;
-    let i=0; while(t>sp[i]) i++;
-    const a=i?sp[i-1]:0, b=sp[i]; let f=(t-a)/(b-a);
-    if(i===0){ const warm=1400, tt=t<warm?t*t/(2*warm):t-warm/2; f=tt/(b-warm/2); }
-    return (i+Math.max(0,Math.min(1,f)))*D;
-  }
-  function gpPlace(){ let p=1; const myD=P.z-GP.START; ghosts.forEach(g=>{ if(g.finishT!=null?(finishT==null||g.finishT<finishT):(g.z-GP.START)>myD) p++; }); return p; }
-  let uiNow=null, uiNext=null, barTick=0;
+  function gpPlace(){ let p=1; rivals.forEach(r=>{ if(r.finishT!=null?(finishT==null||r.finishT<finishT):r.z>P.z) p++; }); return p; }
+  let uiKey="", barTick=0;
+  function laneTag(r,lane){ const c=r.content[lane]; if(c==="nitro") return ["NITRO","n"]; if(c==="traffic") return ["TRAFFIC","t"];
+    const rv=rivals.find(v=>v.lane===lane&&v.z>r.z&&v.z<r.z+GP.ROW_GAP*SEG*.8&&v.finishT==null); return rv?[rv.name,"r"]:["CLEAR","c"]; }
   function gpUI(force){
-    const pend=pendingSigns(), a=pend[0]?pend[0].word:"", b=pend[1]?pend[1].word:"";
-    const nowTxt=phase==="race"?(a||"FINISH!"):phase==="done"?"FINISH!":"Get ready";
-    if(force||nowTxt!==uiNow){ uiNow=nowTxt; setText("nowWord",nowTxt); }
-    const nextTxt=phase==="race"?b:"";
-    if(force||nextTxt!==uiNext){ uiNext=nextTxt; setText("nextWord",nextTxt); }
-    const bar=$u("signBar"); if(bar&&(force||++barTick%3===0)){ const f=pend[0]&&phase==="race"?Math.max(0,Math.min(1,(pend[0].z-P.z)/(GP.SIGN_GAP*SEG))):0; bar.style.width=(f*100).toFixed(1)+"%"; }
+    const r=phase==="race"?nextPending():null, open=!!(r&&r===curRow()), box=$u("lanes");
+    if(box){ box.classList.toggle("locked",!!r&&!open); const key=(r?r.z+"|"+r.state+"|"+open:"none")+"|"+P.lane+"|"+phase;
+      if(force||key!==uiKey){ uiKey=key; const kids=box.children;
+        for(let i=0;i<3;i++){ const el=kids[i]; if(!el) continue; const wEl=el.querySelector("b"), tEl=el.querySelector("i");
+          if(r){ wEl.textContent=r.words[i]; wEl.style.fontSize=""; const cw=el.clientWidth-10; if(cw>0&&wEl.scrollWidth>cw){ const f=parseFloat(getComputedStyle(wEl).fontSize); wEl.style.fontSize=Math.max(11,f*cw/wEl.scrollWidth)+"px"; } const [tg,cl]=laneTag(r,i); tEl.textContent=tg; tEl.className="tag-"+cl; }
+          else { wEl.textContent=phase==="done"?"FINISH!":phase==="race"?"…":i===1?"Get ready":"·"; tEl.textContent=""; tEl.className=""; }
+          el.classList.toggle("here",i===P.lane); } } }
+    const bar=$u("signBar"); if(bar&&(force||++barTick%3===0)){ const f=r&&open?Math.max(0,Math.min(1,(r.z-P.z)/(GP.ROW_GAP*SEG*GP.OPEN))):0; bar.style.width=(f*100).toFixed(1)+"%"; }
     setText("lapTxt",`${Math.min(gpLaps,lapIdx+1)}/${gpLaps}`);
   }
-  function gpHit(sg){ sg.state=1; sg.t=now; correctCount++; attemptCount++; streak++; heat=Math.min(1,heat+.14);
+  function say(rv,list){ if(now-rv.sayT<3500) return; rv.sayT=now; rv.say=list[Math.floor(Math.random()*list.length)]; }
+  function chooseLane(r,lane){
+    const early=Math.max(0,Math.min(1,(r.z-P.z)/(GP.ROW_GAP*SEG*GP.OPEN)));
+    r.state=1; r.chosen=lane; r.t=now; P.lane=lane; correctCount++; attemptCount++; streak++;
+    heat=Math.min(1,heat+.12+.16*early);
+    if(draft>=1.2&&now>slingUntil+5000){ slingUntil=now+1300; draft=0; pop("SLINGSHOT!",650,"go"); Sound.tone(300,.35,"sawtooth",.05,600); }
     Sound.tone(620+Math.min(8,streak%10)*40,.07,"square",.035);
     if(streak%10===0){ P.boostUntil=now+2200; shakeAmt=5; pop("NITRO!",700,"go"); Sound.tone(220,.5,"sawtooth",.05,500); }
-    gpUI(true); }
+    gpUI(true);
+  }
+  function wonDuel(rv){ rv.duel=null; duelsWon++; rv.knockT=now; rv.knockDir=Math.sign(rv.x-P.x)||1; rv.v*=.5; rv.stunUntil=now+1800; P.swipeT=now; P.swipeDir=rv.knockDir;
+    shakeAmt=9; bursts.push({x:CX+rv.knockDir*W*.24,y:H*.6,t:0,dir:rv.knockDir}); pop("SWIPE!",600,"go"); Sound.noise(.12,.35); Sound.tone(160,.15,"square",.06,-80); say(rv,["Ouch!","Hey!!","Not fair!"]); heat=Math.min(1,heat+.08); }
   function gpJudge(h,final,last){
     if(phase!=="race") return 0;
     if(!h||FILLER.has(h)) return 1;
-    const pend=pendingSigns(); if(!pend.length) return 1;
-    for(const sg of pend){
-      if(isMatch(h,sg.key)||(!final&&last&&sg.key.length>=5&&h.length>=Math.max(4,Math.ceil(sg.key.length*.6))&&sg.key.startsWith(h))){ gpHit(sg); return 1; } }
-    let lastOk=null; for(const s of signs) if(s.state===1) lastOk=s; if(lastOk&&sim(h,lastOk.key)>=.8) return 1; // re-saying the last word
+    const hit=k=>isMatch(h,k)||(!final&&last&&k.length>=5&&h.length>=Math.max(4,Math.ceil(k.length*.6))&&k.startsWith(h));
+    const du=rivals.find(v=>v.duel); if(du&&hit(du.duel.key)){ wonDuel(du); return 1; }
+    const r=curRow(); if(!r) return 1;
+    for(let i=0;i<3;i++) if(hit(r.keys[i])){ chooseLane(r,i); return 1; }
+    let lastOk=null; for(const x of rows) if(x.state===1) lastOk=x; if(lastOk&&lastOk.chosen>=0&&sim(h,lastOk.keys[lastOk.chosen])>=.8) return 1; // repeating the last word
     if(!final) return 0;
-    gpWrong++; attemptCount++; heat=Math.max(0,heat-.12); streak=0; trouble.add(signs.indexOf(pend[0]));
+    gpWrong++; attemptCount++; heat=Math.max(0,heat-.12); streak=0;
     P.state="skid"; P.until=now+420; shakeAmt=6; pop("WRONG!",450); Sound.tone(300,.18,"triangle",.05,-120);
     return 1;
   }
   function updateGP(dt){
-    const L=GP.lg[league];
+    const L=GP.lg[league], finalLap=lapIdx>=gpLaps-1;
     if(phase==="race"||phase==="done") now=performance.now()-t0;
     if(phase==="race"){
-      if(autopilot){ const pend=pendingSigns(); if(pend[0]&&now>=apNext&&pend[0].z-P.z<GP.SIGN_GAP*SEG*1.3){ if(Math.random()<.06) gpJudge("zzzz",true,false); else gpHit(pend[0]); apNext=now+(60000/apWpm)*(.75+Math.random()*.5); } }
-      heat=Math.max(0,heat-.03*dt);
-      let tv=L.vMin+(L.vMax-L.vMin)*heat; if(P.boostUntil>now) tv*=1.3;
+      // demo rider: picks the best lane like a good player would
+      if(autopilot){ const r=curRow(); if(r&&now>=apNext){ const score=i=>(r.content[i]==="nitro"?3:r.content[i]==="traffic"?-9:1)-(rivals.some(v=>v.lane===i&&v.z>P.z&&v.z<r.z+3000)?1.5:0)+Math.random()*.5;
+          if(Math.random()<.05) gpJudge("zzzz",true,false); else { let b=0; for(let i=1;i<3;i++) if(score(i)>score(b)) b=i; chooseLane(r,b); } apNext=now+(60000/apWpm)*(.8+Math.random()*.5); }
+        const du=rivals.find(v=>v.duel); if(du&&now-du.duel.t0>800&&Math.random()<dt*2) wonDuel(du); }
+      heat=Math.max(0,heat-.028*dt);
+      let tv=L.vMin+(L.vMax-L.vMin)*heat; if(P.boostUntil>now) tv*=1.3; if(slingUntil>now) tv*=1.12;
       if(P.state==="skid"){ if(now<P.until) tv*=.55; else P.state="ride"; }
-      P.v+=(tv-P.v)*Math.min(1,dt*(tv>P.v?1.8:2.6)); P.z+=P.v*dt;
-      for(let i=0;i<signs.length;i++){ const sg=signs[i]; if(sg.z>P.z+80) break;
-        if(sg.state===0){ sg.state=-1; sg.t=now; gpMissed++; streak=0; heat=Math.max(0,heat-.2); trouble.add(i); pop("MISSED!",450,"small"); Sound.tone(180,.2,"sawtooth",.04,-60); } }
+      if(P.state==="crash"){ if(now<P.until) tv*=.25; else P.state="ride"; }
+      // stuck behind a rider in your lane: you can't ride through them, switch lanes to pass
+      let blockedBy=null, draftOn=false;
+      for(const rv of rivals){ if(rv.finishT!=null) continue; const dz=rv.z-P.z, same=Math.abs(rv.x-P.x)<.34;
+        if(same&&dz>0&&dz<1500) draftOn=true;
+        if(same&&dz>0&&dz<420&&rv.v<tv) blockedBy=rv; }
+      if(blockedBy){ tv=Math.min(tv,blockedBy.v*.98); if(now-blockedMsgT>2500){ blockedMsgT=now; pop("BLOCKED! READ ANOTHER LANE",900,"small"); say(blockedBy,["Ha ha!","My lane!","Go around!"]); } }
+      draft=draftOn&&now>slingUntil+5000?Math.min(1.2,draft+dt*.8):Math.max(0,draft-dt*.6);
+      P.v+=(tv-P.v)*Math.min(1,dt*(tv>P.v?1.8:2.8)); if(blockedBy) P.z=Math.min(P.z+P.v*dt,blockedBy.z-300); else P.z+=P.v*dt;
+      // gantry passed without reading: stay in your lane, lose speed
+      for(const r of rows){ if(r.z>P.z+80) break; if(r.state===0){ r.state=-1; r.t=now; gpMissed++; streak=0; heat=Math.max(0,heat-.22); r.words.forEach(w=>trouble.add(words.indexOf(w))); pop("MISSED!",450,"small"); Sound.tone(180,.2,"sawtooth",.04,-60); } }
+      const myLane=laneCenterOf(P.x);
+      for(const ob of gpObs){ if(ob.hit) continue; const dz=ob.z-P.z; if(dz<-300) { ob.hit=true; continue; }
+        if(dz<160&&dz>-120&&Math.abs(P.x-LANE_X[ob.lane])<.3){ ob.hit=true; crashes++; P.state="crash"; P.until=now+900; P.crashT=now; P.v*=.35; heat=Math.max(0,heat-.25); streak=0; shakeAmt=16; pop("BONK!",650); Sound.noise(.35,.32); sparks(24,CX,H-12); } }
+      for(const nz of gpNitro){ if(nz.taken) continue; const dz=nz.z-P.z; if(dz<-300){ nz.taken=true; continue; }
+        if(dz<200&&dz>-150&&Math.abs(P.x-LANE_X[nz.lane])<.32){ nz.taken=true; P.boostUntil=now+2400; heat=Math.min(1,heat+.1); shakeAmt=4; pop("NITRO!",600,"go"); Sound.tone(260,.45,"sawtooth",.05,520); } }
       const d=P.z-GP.START, lapNow=Math.floor(d/GP.LAP_LEN);
       while(lapNow>lapIdx&&lapIdx<gpLaps){ splits.push(Math.round(now)); lapIdx++;
         if(lapIdx<gpLaps){ pop(lapIdx===gpLaps-1?"FINAL LAP! TOUGHEST WORDS":"LAP "+(lapIdx+1)+" · TOUGHER WORDS",1400,"go lap"); Sound.tone(880,.2,"square",.05); } }
       if(d>=gpLaps*GP.LAP_LEN&&finishT==null){ finishT=Math.round(now); finish(false); }
       setText("timeChip",(now/1000).toFixed(1)+"s");
       const mins=now/60000; setText("wpmChip",(mins>.05?Math.round(correctCount/mins):0)+" wpm");
-    } else if(phase==="done"){ P.v+=(L.vMin*.8-P.v)*Math.min(1,dt*.8); P.z+=P.v*dt; }
+      // duels: a rider alongside shows a word; read it first or get swatted
+      const du=rivals.find(v=>v.duel);
+      if(du){ if(now>du.duel.until){ const dir=Math.sign(P.x-du.x)||1; du.duel=null; du.swipeT=now; duelsLost++; P.state="skid"; P.until=now+600; P.v*=.7; heat=Math.max(0,heat-.15); shakeAmt=10;
+          bursts.push({x:CX,y:H*.62,t:0,dir}); pop("SWIPED!",650); Sound.noise(.15,.35); say(du,["Gotcha!","Too slow!","Ha!"]); } }
+      else if(now-duelT>9000&&now>6000){ const r=curRow(); const room=!r||(r.z-P.z)>GP.ROW_GAP*SEG*.45;
+        const rv=rivals.find(v=>v.finishT==null&&now>v.knockT+3000&&Math.abs(v.z-P.z)<380&&Math.abs(v.x-P.x)>.4&&Math.abs(v.x-P.x)<1);
+        if(rv&&room){ duelT=now; const pool=WORDPOOL[league][Math.max(0,Math.min(2,lapIdx))]; const w=pool[Math.floor(Math.random()*pool.length)];
+          rv.duel={word:w,key:norm(w),until:now+2600,t0:now}; say(rv,["Duel!","Fight!","Try me!"]); Sound.tone(520,.1,"square",.05); } }
+    } else if(phase==="done"){ const stopZ=FINZ+60*SEG, room=stopZ-P.z; P.v+=((room>0?Math.min(L.vMin*.8,room*1.2):0)-P.v)*Math.min(1,dt*1.5); P.z=Math.min(stopZ,P.z+P.v*dt); }
     if(phase==="race"||phase==="done"){
-      ghosts.forEach(g=>{ g.dist=ghostDist(g,now); const fade=Math.max(0,1-g.dist/(GP.LAP_LEN*.25)); g.z=GP.START+g.off*fade+g.dist;
-        if(g.finishT==null&&g.dist>=gpLaps*GP.LAP_LEN) g.finishT=g.splits[g.splits.length-1];
-        let want=g.lane; if(Math.abs(g.z-P.z)<900&&Math.abs(g.lane-P.x)<.42) want=P.x+(g.lane>=P.x?.55:-.55);
-        const px=g.x; g.x+=(want-g.x)*Math.min(1,dt*2.2); g.lean=Math.max(-.35,Math.min(.35,(g.x-px)/Math.max(dt,.001)*.5)); });
-      if(phase==="race"){ const pl=gpPlace(); setText("posTxt",ord(pl)+" / 12"); if(pl<lastPlace&&now>2500) Sound.tone(990,.06,"square",.03); lastPlace=pl; }
+      for(const rv of rivals){
+        const vs=L.vMin+(L.vMax-L.vMin)*rv.skill;
+        let vt;
+        if(phase==="done"){ vt=vs; }
+        else if(finalLap){ const err=(P.z+rv.base*.6)-rv.z, band=Math.max(-.15*L.vMax,Math.min(.15*L.vMax,err*.25)); vt=vs*(rv.style==="closer"?1.06:1)*.7+(P.v+band)*.3; }
+        else { const off=rv.base+(rv.pack?650*Math.sin(now/6500+rv.ph):1200*Math.sin(now/9000+rv.ph));
+          const err=(P.z+off)-rv.z, band=Math.max(-.4*L.vMax,Math.min(.4*L.vMax,err*(rv.pack?.9:.45)));
+          vt=(P.v+band)*.78+vs*.22; if(rv.style==="sprinter"&&lapIdx===0) vt*=1.04; }
+        if(now<(rv.stunUntil||0)) vt*=.55;
+        // riders can't pass through you either: stuck behind you in your lane
+        if(Math.abs(rv.x-P.x)<.34&&P.z-rv.z>0&&P.z-rv.z<380&&vt>P.v) vt=P.v*.98;
+        const lead=rivals.find(o=>o!==rv&&o.lane===rv.lane&&o.z>rv.z&&o.z-rv.z<300);
+        if(lead){ const free=[0,1,2].filter(i=>i!==rv.lane&&!rivals.some(o=>o!==rv&&o.lane===i&&Math.abs(o.z-rv.z)<320)&&!gpObs.some(ob=>ob.lane===i&&ob.z>rv.z&&ob.z-rv.z<1400));
+          if(free.length&&Math.random()<dt*3) rv.lane=free[Math.floor(Math.random()*free.length)]; else vt=Math.min(vt,lead.v); }
+        rv.v+=(Math.max(L.vMin*.5,vt)-rv.v)*Math.min(1,dt*1.6); rv.z=Math.min(FINZ+70*SEG,rv.z+rv.v*dt);
+        if(lead&&rv.lane===lead.lane&&rv.z>lead.z-260) rv.z=lead.z-260;
+        if(rv.finishT==null&&rv.z-GP.START>=gpLaps*GP.LAP_LEN) rv.finishT=Math.round(now);
+        // lane choice at each gantry: dodge traffic, like nitro, blockers cut in front of you
+        const ri=rows.findIndex(r=>r.z>rv.z); const rowIdx=ri<0?rows.length:ri;
+        if(rowIdx!==rv.lastRow){ rv.lastRow=rowIdx; const r=rows[rowIdx]; if(r){ const sc=i=>(r.content[i]==="traffic"?-9:r.content[i]==="nitro"?1.2:0)+Math.random()*1.4;
+            let b=rv.lane; for(let i=0;i<3;i++) if(sc(i)>sc(b)) b=i;
+            if(rv.style==="blocker"&&rv.z>P.z&&rv.z-P.z<1600&&r.content[P.lane]!=="traffic") b=P.lane;
+            rv.lane=b; } }
+        // traffic sitting in its lane: riders swerve around it
+        for(const ob of gpObs){ const dz=ob.z-rv.z; if(dz>0&&dz<1200&&ob.lane===rv.lane){ rv.lane=[0,1,2].find(i=>i!==ob.lane&&!gpObs.some(o=>o.lane===i&&Math.abs(o.z-ob.z)<200))??rv.lane; } }
+        const px=rv.x; rv.x+=(LANE_X[rv.lane]-rv.x)*Math.min(1,dt*2.4); rv.lean=Math.max(-.35,Math.min(.35,(rv.x-px)/Math.max(dt,.001)*.5));
+        // overtakes trigger taunts
+        const side=Math.sign(rv.z-P.z); if(phase==="race"&&rv.side&&side!==rv.side&&Math.abs(rv.z-P.z)<1500){ if(side>0) say(rv,SAY_PASS); else { say(rv,SAY_LOSE); Sound.noise(.08,.06); } }
+        rv.side=side; if(rv.say&&now-rv.sayT>1300) rv.say=null;
+      }
+      if(phase==="race"){ const pl=gpPlace(); setText("posTxt",ord(pl)+" / 12");
+        if(pl!==posCand.p){ posCand={p:pl,t:now}; }
+        else if(pl!==lastPlace&&now-posCand.t>450&&now>2500){ posFlash={txt:`P${lastPlace} → P${pl}`,good:pl<lastPlace,t:now}; Sound.tone(pl<lastPlace?990:330,.07,"square",.035); lastPlace=pl; } }
     }
     gpUI();
   }
-  function drawSign(x,y,w,S,sg,isNow,isNext){
-    const ht=S*1300*W/2; if(ht<4) return;
-    const pw=Math.max(1.5,w*.035), bh=ht*.27, bw=w*2.3, top=y-ht;
-    ctx.fillStyle="#2b2a33"; ctx.fillRect(x-w*1.15-pw/2,top,pw,ht); ctx.fillRect(x+w*1.15-pw/2,top,pw,ht);
-    const col=sg.state===1?"#36b862":sg.state===-1?"#e0392b":isNow?"#ffd23f":isNext?"#fff4e2":"#c9c3b6";
-    ctx.fillStyle="#1b1b22"; rr(ctx,x-bw/2-3,top-3,bw+6,bh+6,6); ctx.fill();
-    ctx.fillStyle=col; rr(ctx,x-bw/2,top,bw,bh,5); ctx.fill();
-    const txt=sg.state===1?"✓ "+sg.word:sg.state===-1?"✗ "+sg.word:sg.word;
-    let fs=bh*.62; ctx.font=`bold ${fs}px 'Atkinson Hyperlegible', Verdana, sans-serif`; const tw=ctx.measureText(txt).width; if(tw>bw*.9){ fs*=bw*.9/tw; ctx.font=`bold ${fs}px 'Atkinson Hyperlegible', Verdana, sans-serif`; }
-    if(fs<5) return;
-    ctx.fillStyle=sg.state!==0?"#fff":"#1b1b22"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText(txt,x,top+bh*.54);
-    if(isNow&&bh>14){ ctx.strokeStyle="#ffd23f"; ctx.lineWidth=3; rr(ctx,x-bw/2-7,top-7,bw+14,bh+14,9); ctx.stroke(); }
+  function drawRow(x,y,w,S,r,isNow){
+    const ht=S*1350*W/2; if(ht<4) return;
+    const pw=Math.max(1.5,w*.03), top=y-ht, bh=ht*.24;
+    ctx.fillStyle="#2b2a33"; ctx.fillRect(x-w*1.2-pw/2,top,pw,ht); ctx.fillRect(x+w*1.2-pw/2,top,pw,ht); ctx.fillRect(x-w*1.2,top-bh*.18,w*2.4,bh*.18);
+    for(let i=0;i<3;i++){
+      const cx=x+LANE_X[i]*w, bw=w*.6;
+      const chosen=r.state===1&&r.chosen===i, faded=r.state===1&&!chosen, missed=r.state===-1;
+      const col=chosen?"#36b862":missed?"#e0392b":faded?"#8f8a96":isNow?"#fff4e2":"#d8d2c6";
+      ctx.fillStyle="#1b1b22"; rr(ctx,cx-bw/2-2,top-2,bw+4,bh+4,5); ctx.fill();
+      ctx.fillStyle=col; rr(ctx,cx-bw/2,top,bw,bh,4); ctx.fill();
+      const tg=r.content[i]; if(isNow&&bh>10){ ctx.fillStyle=tg==="nitro"?"#ffd23f":tg==="traffic"?"#e0392b":"#3ec1d3"; ctx.fillRect(cx-bw/2,top+bh-bh*.14,bw,bh*.14); }
+      const txt=(chosen?"✓ ":"")+r.words[i];
+      let fs=bh*.56; ctx.font=`bold ${fs}px 'Atkinson Hyperlegible', Verdana, sans-serif`; const tw=ctx.measureText(txt).width; if(tw>bw*.92){ fs*=bw*.92/tw; ctx.font=`bold ${fs}px 'Atkinson Hyperlegible', Verdana, sans-serif`; }
+      if(fs>=4){ ctx.fillStyle=chosen||missed?"#fff":faded?"#d8d2c6":"#1b1b22"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText(txt,cx,top+bh*.47); }
+      if(isNow&&i===P.lane&&bh>12){ ctx.strokeStyle="#ffd23f"; ctx.lineWidth=3; rr(ctx,cx-bw/2-6,top-6,bw+12,bh+12,8); ctx.stroke(); }
+    }
+  }
+  function bubble(x,y,txt,h){ const fs=Math.max(11,Math.min(18,h*.13)); ctx.font=`bold ${fs}px 'Atkinson Hyperlegible', Verdana, sans-serif`; const tw=ctx.measureText(txt).width+14;
+    x=Math.max(tw/2+4,Math.min(W-tw/2-4,x)); ctx.fillStyle="#fff"; ctx.strokeStyle="#1b1b22"; ctx.lineWidth=2; rr(ctx,x-tw/2,y-fs*1.7,tw,fs*1.7,8); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x-5,y); ctx.lineTo(x+5,y); ctx.lineTo(x,y+7); ctx.closePath(); ctx.fill(); ctx.fillStyle="#1b1b22"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText(txt,x,y-fs*.85); }
+  function drawGPHud(){
+    // gaps to the riders around you
+    const ahead=rivals.filter(r=>r.z>P.z&&r.finishT==null).sort((a,b)=>a.z-b.z)[0], behind=rivals.filter(r=>r.z<=P.z&&r.finishT==null).sort((a,b)=>b.z-a.z)[0];
+    const v=Math.max(P.v,1500); const fs=Math.round(Math.max(12,Math.min(16,W*.018)));
+    ctx.font=`bold ${fs}px 'Atkinson Hyperlegible', Verdana, sans-serif`; ctx.textBaseline="middle";
+    const cy=W<600?36+Math.round(Math.max(28,W*.05))+34:34;
+    const chip=(txt,x,col,align)=>{ const tw=ctx.measureText(txt).width+16; const x0=align==="right"?x-tw:x; ctx.fillStyle="rgba(15,13,20,.72)"; rr(ctx,x0,cy,tw,fs+12,8); ctx.fill(); ctx.fillStyle=col; ctx.textAlign="left"; ctx.fillText(txt,x0+8,cy+(fs+12)/2); };
+    const gapTxt=dz=>{ const t=dz/v; return t<.1?"side by side":t.toFixed(1)+"s"; };
+    if(phase==="race"){ if(ahead) chip(`▲ ${ahead.name} ${gapTxt(ahead.z-P.z)}`,W/2+6,"#ffd23f","left"); if(behind) chip(`▼ ${behind.name} ${gapTxt(P.z-behind.z)}`,W/2-6,"#fff4e2","right"); }
+    if(draft>.5&&phase==="race"){ const t=draft>=1.2?"SLIPSTREAM READY · READ TO SLINGSHOT":"IN THE SLIPSTREAM…"; const tw=ctx.measureText(t).width+16; ctx.fillStyle=draft>=1.2?"#3ec1d3":"rgba(15,13,20,.72)"; rr(ctx,W/2-tw/2,cy+fs+18,tw,fs+10,8); ctx.fill(); ctx.fillStyle=draft>=1.2?"#1b1b22":"#9fe6ef"; ctx.textAlign="center"; ctx.fillText(t,W/2,cy+fs+18+(fs+10)/2); }
+    if(posFlash&&now-posFlash.t<1100){ const k=(now-posFlash.t)/1100; ctx.globalAlpha=1-k*k; ctx.font=`italic ${Math.round(Math.max(22,W*.034))}px 'Racing Sans One','Arial Black',sans-serif`; ctx.textAlign="left"; ctx.textBaseline="top";
+      const yy=W<600?cy+fs+20:36+Math.round(Math.max(28,W*.05))+6; ctx.lineWidth=5; ctx.strokeStyle="#1b1b22"; ctx.strokeText(posFlash.txt,16,yy); ctx.fillStyle=posFlash.good?"#3cff6a":"#ff6a5a"; ctx.fillText(posFlash.txt,16,yy); ctx.globalAlpha=1; }
   }
 
   /* ---------- text + UI ---------- */
@@ -570,9 +664,11 @@ function create(o){
     if(phase==="done") return;
     phase="done"; if(!stopped&&finishT!=null) P.target=FINZ+3000;
     if(gp){ gpUI(true); const tot=finishT??Math.round(now), lapTimes=splits.map((t,i)=>t-(i?splits[i-1]:0)), place=finishT!=null?gpPlace():null;
-      const res={mode:"gp",stopped:!!stopped,place,timeMs:tot,splits:splits.slice(),lapTimes,best:lapTimes.length?Math.min(...lapTimes):null,signs:signs.length,correct:correctCount,wrong:gpWrong,missed:gpMissed,
-        acc:signs.length?Math.round(correctCount/signs.length*100):0,wpm:Math.round(correctCount/(tot/60000)||0),trouble:[...new Set(words.filter((w,i)=>trouble.has(i)))],league,laps:gpLaps,
-        podium:[{name:"YOU",t:finishT,me:true},...ghosts.map(g=>({name:g.name,t:g.splits[g.splits.length-1],ghost:g.ghost}))].sort((a,b)=>(a.t??1e12)-(b.t??1e12))};
+      const missedRows=rows.filter(r=>r.state===-1), signsN=rows.length;
+      const res={mode:"gp",stopped:!!stopped,place,timeMs:tot,splits:splits.slice(),lapTimes,best:lapTimes.length?Math.min(...lapTimes):null,signs:signsN,correct:correctCount,wrong:gpWrong,missed:gpMissed,
+        crashes,duelsWon,duelsLost,acc:signsN?Math.round(correctCount/signsN*100):0,wpm:Math.round(correctCount/(tot/60000)||0),
+        trouble:[...new Set(missedRows.map(r=>r.words[r.content.indexOf("nitro")>=0?r.content.indexOf("nitro"):1]))].slice(0,12),league,laps:gpLaps,
+        podium:[{name:"YOU",t:finishT,me:true},...rivals.map(r=>({name:r.name,t:r.finishT??(Math.round(now)+Math.round((GP.START+gpLaps*GP.LAP_LEN-r.z)/Math.max(r.v,1)*1000))}))].sort((a,b)=>(a.t??1e12)-(b.t??1e12))};
       if(place&&place<=3) [523,659,784,1046].forEach((f,i)=>setTimeout(()=>Sound.tone(f,.18,"square",.06),i*110));
       setTimeout(()=>Sound.engineOff(),1500); emit("finish",res); return; }
     const secs=(finishT??now)/1000, place=finishT!=null?placeOf():null;
@@ -625,7 +721,7 @@ function create(o){
       P.v=Math.max(0,P.v-P.v*dt*.8); if(P.z<FINZ+2500) P.z+=Math.max(600,P.v)*dt;
     } else if(phase==="countdown"||phase==="idle"){ now=0; }
     if(gp&&(phase==="countdown"||phase==="idle")) now=0;
-    let tx=0; obstacles.forEach(ob=>{ const d=ob.z-P.z; if(ob.cleared&&d<1500&&d>-500) tx=ob.side; });
+    let tx=gp?LANE_X[P.lane]:0; obstacles.forEach(ob=>{ const d=ob.z-P.z; if(ob.cleared&&d<1500&&d>-500) tx=ob.side; });
     const px=P.x; P.x+=(tx-P.x)*Math.min(1,dt*5);
     const s=segAt(P.z), sp=P.v/VREF;
     P.lean=Math.max(-.5,Math.min(.5,(P.x-px)/Math.max(dt,.001)*.6+s.curve*sp*.07));
@@ -682,7 +778,7 @@ function create(o){
   let maxyRoad=0;
   function drawRoad(){
     const camZ=P.z-playerZ, camY=CAMH+roadY(P.z), camXw=P.x*RW;
-    const base=Math.floor(camZ/SEG), pct=(camZ%SEG)/SEG; let dx=-(segs[base].curve*pct), x=0, maxy=H;
+    const base=Math.max(0,Math.min(segs.length-DRAW-1,Math.floor(camZ/SEG))), pct=(camZ%SEG)/SEG; let dx=-(segs[base].curve*pct), x=0, maxy=H;
     const L0=-W*.5, R0=W*1.5;
     for(let n=0;n<DRAW;n++){ const s=segs[base+n]; if(!s) break;
       project(s.p1,camXw-x,camY,camZ); project(s.p2,camXw-x-dx,camY,camZ); x+=dx; dx+=s.curve; s.clip=maxy;
@@ -716,7 +812,11 @@ function create(o){
     const put=(z,d)=>{ const i=Math.floor(z/SEG); (dyn[i]=dyn[i]||[]).push(Object.assign(d,{pct:(z%SEG)/SEG})); };
     obstacles.forEach(ob=>put(ob.z,{t:ob.type,ob}));
     riders.forEach(r=>put(r.z,{t:"rider",r}));
-    if(gp){ const pend=pendingSigns(); signs.forEach(sg=>{ if(sg.z>P.z-400&&sg.z<P.z+DRAW*SEG) put(sg.z,{t:"sign",sg,isNow:sg===pend[0],isNext:sg===pend[1]}); }); ghosts.forEach(g=>{ if(g.z>P.z-600&&g.z<P.z+DRAW*SEG) put(g.z,{t:"ghost",g}); }); }
+    if(gp){ const cr=nextPending(), crOpen=cr&&cr===curRow(), far=P.z+DRAW*SEG, near=P.z-500;
+      rows.forEach(r=>{ if(r.z>near&&r.z<far) put(r.z,{t:"row",r,isNow:r===cr&&crOpen}); });
+      gpObs.forEach(ob=>{ if(ob.z>near&&ob.z<far) put(ob.z,{t:ob.type,gob:ob}); });
+      gpNitro.forEach(nz=>{ if(!nz.taken&&nz.z>near&&nz.z<far) put(nz.z,{t:"nitro",nz}); });
+      rivals.forEach(rv=>{ if(rv.z>P.z-700&&rv.z<far) put(rv.z,{t:"rival",rv}); }); }
     for(let n=DRAW-1;n>=1;n--){ const s=segs[base+n]; if(!s||s.p1.cz<=camDepth) continue;
       const sc=s.p1.s, far=n/DRAW, alpha=far>.7?1-(far-.7)/.3*.8:1;
       if(alpha<1) ctx.globalAlpha=alpha;
@@ -733,8 +833,15 @@ function create(o){
       const list=dyn[s.i]; if(list) for(const d of list){
         const X0=s.p1.x+(s.p2.x-s.p1.x)*d.pct, Y=s.p1.y+(s.p2.y-s.p1.y)*d.pct, S=s.p1.s+(s.p2.s-s.p1.s)*d.pct, wpx=S*RW*W/2;
         const clip=Y>s.clip; if(clip) clipBelow(s.clip);
-        if(d.t==="sign"){ drawSign(X0,Y,wpx,S,d.sg,d.isNow,d.isNext); }
-        else if(d.t==="ghost"){ const g=d.g, h=S*WH.bike*W/2; if(h>2){ if(g.ghost) ctx.globalAlpha*=.72; drawRider(X0+g.x*wpx,Y,h,g.kit,0,{name:g.name,lean:g.lean||0}); if(g.ghost) ctx.globalAlpha/=.72; } }
+        if(d.t==="row"){ drawRow(X0,Y,wpx,S,d.r,d.isNow); }
+        else if(d.gob||d.nz){ const lx=d.gob?d.gob.lane:d.nz.lane, h=S*WH[d.t]*W/2; if(h>=1.5){ const Sp=getSprite(d.t,{}), w=h*Sp.aspect, xx=X0+LANE_X[lx]*wpx;
+            if(d.nz){ const pulse=1+.08*Math.sin(performance.now()/120); glow(xx,Y-h*.5,h*1.1*pulse,"rgba(62,193,211,.45)"); }
+            ctx.drawImage(Sp.c,xx-w/2,Y-h,w,h); } }
+        else if(d.t==="rival"){ const rv=d.rv, h=S*WH.bike*W/2; if(h>2){ let rot=0; const kt=now-rv.knockT;
+            if(kt<1000){ rot=Math.sin(kt/1000*Math.PI/2)*1.1*rv.knockDir; } else if(kt<1700){ rot=(1-(kt-1000)/700)*1.1*rv.knockDir; }
+            const sk=now-rv.swipeT, sw=sk<380?Math.sin(sk/380*Math.PI):0, xx=X0+rv.x*wpx;
+            drawRider(xx,Y,h,rv.kit,rot,{name:rv.name,lean:rv.lean||0,knock:kt<1700,word:rv.duel&&phase==="race"?rv.duel.word:null,swipe:sw,sdir:Math.sign(P.x-rv.x)||1});
+            if(rv.say&&!rv.duel&&h>26) bubble(xx,Y-h*1.28,rv.say,h); } }
         else if(d.t==="rider"){ const r=d.r; let xo=r.x, rot=0; const kt=now-r.knockT;
           if(kt<1000){ const k=Math.sin(kt/1000*Math.PI/2); xo=r.x+k*.24*r.knockDir; rot=k*1.25*r.knockDir; }
           else if(kt<1700){ const k=1-(kt-1000)/700; xo=r.x+k*.24*r.knockDir; rot=k*1.25*r.knockDir; }
@@ -823,7 +930,7 @@ function create(o){
     for(let i=0;i<3;i++) for(let j=0;j<2;j++){ ctx.fillStyle=(i+j)%2?"#1b1b22":"#fff4e2"; ctx.fillRect(x1-12+i*4,y-4+j*4,4,4); }
     const px=z=>x0+Math.max(0,Math.min(1,(z-HUD0)/HUDLEN))*(x1-x0-14);
     riders.forEach(r=>{ ctx.fillStyle="#111"; ctx.beginPath(); ctx.arc(px(r.z),y,6.5,0,7); ctx.fill(); ctx.fillStyle=r.jacket; ctx.beginPath(); ctx.arc(px(r.z),y,4.6,0,7); ctx.fill(); });
-    if(gp) ghosts.forEach(g=>{ ctx.fillStyle="#111"; ctx.beginPath(); ctx.arc(px(g.z),y,5,0,7); ctx.fill(); ctx.fillStyle=g.kit.jacket; ctx.beginPath(); ctx.arc(px(g.z),y,3.4,0,7); ctx.fill(); });
+    if(gp) rivals.forEach(g=>{ ctx.fillStyle="#111"; ctx.beginPath(); ctx.arc(px(g.z),y,5,0,7); ctx.fill(); ctx.fillStyle=g.kit.jacket; ctx.beginPath(); ctx.arc(px(g.z),y,3.4,0,7); ctx.fill(); });
     if(gp) for(let L=1;L<gpLaps;L++){ ctx.fillStyle="rgba(255,244,226,.7)"; ctx.fillRect(px(GP.START+L*GP.LAP_LEN)-1,y-6,2,12); }
     ctx.fillStyle="#111"; ctx.beginPath(); ctx.arc(px(P.z),y,8.5,0,7); ctx.fill(); ctx.fillStyle="#ff6a1a"; ctx.beginPath(); ctx.arc(px(P.z),y,6.5,0,7); ctx.fill();
     if(phase==="race"||phase==="done"){ const p=gp?gpPlace():placeOf(), fs=Math.round(Math.max(28,W*.05));
@@ -843,7 +950,7 @@ function create(o){
     drawSky(); const base=drawRoad(); drawSprites(base); drawPlayer(); drawFX();
     ctx.restore();
     ctx.drawImage(vignC,0,0,W,H);
-    drawHUD();
+    drawHUD(); if(gp&&o.hud!==false) drawGPHud();
     raf=requestAnimationFrame(loop);
   }
   function resume(){ if(running&&raf) return; running=true; last=performance.now(); if(phase==="race") t0=performance.now()-now; raf=requestAnimationFrame(loop); }
@@ -860,7 +967,7 @@ function create(o){
     setAutopilot:(on,wpm)=>{ autopilot=on; if(wpm) apWpm=wpm; },
     on:(k,f)=>{ (listeners[k]=listeners[k]||[]).push(f); },
     pause, resume, resize,
-    state:()=>({gp:gp?{signs:signs.map(s=>({w:s.word,st:s.state,tier:s.tier,lap:s.lap})),lap:lapIdx,place:gpPlace(),heat,missed:gpMissed,wrong:gpWrong,v:P.v,z:P.z}:null,phase,idx,total:words.length,P:{...P},place:placeOf(),swipes,dodges,ema,quality,acts:acts.map(a=>a?a.type:null),riders:riders.map(r=>({name:r.name,z:Math.round(r.z),bound:r.bound})),words:[...words]}),
+    state:()=>({gp:gp?{rows:rows.map(r=>({words:r.words,content:r.content,st:r.state,chosen:r.chosen,lap:r.lap,z:r.z})),lane:P.lane,lap:lapIdx,place:gpPlace(),heat,missed:gpMissed,wrong:gpWrong,crashes,duelsWon,duelsLost,v:P.v,z:P.z,draft,duel:(rivals.find(v=>v.duel)||{}).duel||null,rivals:rivals.map(r=>({n:r.name,z:Math.round(r.z),lane:r.lane}))}:null,phase,idx,total:words.length,P:{...P},place:placeOf(),swipes,dodges,ema,quality,acts:acts.map(a=>a?a.type:null),riders:riders.map(r=>({name:r.name,z:Math.round(r.z),bound:r.bound})),words:[...words]}),
     judgeWord:(w,final=true,last=false)=>judge(norm(w),null,final,last)
   };
 }
