@@ -56,9 +56,9 @@
 }
 
 /* panels */
-.overlay{position:fixed;inset:0;background:rgba(10,8,14,.8);display:flex;align-items:center;justify-content:center;z-index:30;
+.overlay{position:fixed;inset:60px 0 0 0;background:rgba(10,8,14,.8);display:flex;align-items:center;justify-content:center;z-index:30;
   padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
-.panel{background:var(--paper);color:var(--ink);border-radius:22px;padding:clamp(18px,4vw,30px);max-width:640px;width:100%;display:flex;flex-direction:column;gap:16px;box-shadow:0 8px 0 var(--ink);max-height:100%;overflow:auto}
+.panel{position:relative;background:var(--paper);color:var(--ink);border-radius:22px;padding:clamp(18px,4vw,30px);max-width:640px;width:100%;display:flex;flex-direction:column;gap:16px;box-shadow:0 8px 0 var(--ink);max-height:100%;overflow:auto}
 .panel h2{font-size:clamp(32px,7vw,50px)}
 .panel h2 span{color:var(--heat)}
 .panel p{margin:0}
@@ -106,6 +106,9 @@
 .post .nm{font-family:var(--display);font-style:italic;font-size:20px;flex:1;min-width:140px}
 .post .linkbtn{color:var(--sun)}
 .row{display:flex;gap:10px;flex-wrap:wrap}.row .btn{flex:1}
+.x{position:absolute;top:12px;right:12px;width:40px;height:40px;border-radius:50%;border:2px solid var(--ink);background:#fff;color:var(--ink);font-size:20px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;text-decoration:none;z-index:2}
+.x:hover{background:var(--sun)}
+.exit{background:var(--bad);color:#fff;font-weight:700}
 .demo-chip{background:var(--cool);color:var(--ink);font-weight:700}
 </style>
 </head>
@@ -131,7 +134,7 @@
     </div>
     <div class="left">
       <button class="chip" id="sndBtn" aria-pressed="true">Sound on</button>
-      <button class="quit" id="quitBtn" hidden>Stop race</button>
+      <button class="chip exit" id="quitBtn" hidden>✕ Exit race</button>
     </div>
   </div>
 
@@ -167,6 +170,7 @@
 <!-- 1. pick a race -->
 <div class="overlay" id="pickScreen">
   <div class="panel">
+    <a class="x" href="index.html" aria-label="Close and go home">✕</a>
     <div>
       <p class="kicker" style="color:#b14a12">World 1 · Konkan Coast</p>
       <h2 style="margin-top:6px">Pick your <span>race.</span></h2>
@@ -186,6 +190,7 @@
 <!-- 2. voice not available here -->
 <div class="overlay" id="gateScreen" hidden>
   <div class="panel">
+    <a class="x" href="index.html" aria-label="Close and go home">✕</a>
     <h2>Voice racing needs <span>Chrome.</span></h2>
     <p id="gateMsg">ReadRash runs on your voice. Open this page in Chrome or Edge on a laptop or Android phone, allow the microphone, and you're riding.</p>
     <div class="row">
@@ -199,6 +204,7 @@
 <!-- 3. mic check + say GO -->
 <div class="overlay" id="micScreen" hidden>
   <div class="panel" style="align-items:center;text-align:center">
+    <a class="x" href="index.html" aria-label="Close and go home">✕</a>
     <p class="kicker" style="color:#b14a12" id="micStep">Mic check</p>
     <div class="big-say" id="sayWord">Say <span>READY</span></div>
     <div class="mic" id="micState"><i></i><span id="micLabel">Starting microphone…</span></div>
@@ -211,6 +217,7 @@
 <!-- 4. results -->
 <div class="overlay" id="endScreen" hidden>
   <div class="panel">
+    <a class="x" href="index.html" aria-label="Close and go home">✕</a>
     <h2 id="endTitle"></h2>
     <div class="starsbig" id="starsBig" aria-label="Stars earned"><i>★</i><i>★</i><i>★</i></div>
     <div class="starsgrid" id="starsGrid"><span>Finish</span><span>Win</span><span>95% accuracy</span></div>
@@ -243,7 +250,7 @@
 const RR = window.ReadRash, $ = id => document.getElementById(id);
 const show = id => ["pickScreen","gateScreen","micScreen","endScreen"].forEach(s => $(s).hidden = s !== id);
 let league = RR.Store.get("league", "pro"); if (!RR.LEAGUES[league]) league = "pro";
-let race = 0, demo = false, lastRes = null, firstGo = true;
+let race = 0, demo = false, lastRes = null, firstGo = true, exiting = false;
 
 const ctl = RR.create({ canvas: $("road"), league, race,
   ui: { para:$("para"), heard:$("heard"), kmh:$("kmh"), arc:$("arc"), nitroBar:$("nitroBar"), nitroWrap:$("nitroWrap"), streakTxt:$("streakTxt"), posTxt:$("posTxt"), pop:$("pop"), timeChip:$("timeChip"), wpmChip:$("wpmChip") } });
@@ -311,6 +318,7 @@ $("micBack").onclick = () => { RR.Voice.stop(); show("pickScreen"); renderPick()
 /* ---- results ---- */
 ctl.on("finish", res => {
   lastRes = res; RR.Voice.stop(); $("quitBtn").hidden = true;
+  if (exiting) { exiting = false; demo = false; setModeChip(); ctl.setAutopilot(false); ctl.load(league, race); show("pickScreen"); renderPick(); return; }
   setTimeout(() => showResults(res), res.stopped ? 150 : 1600);
 });
 function showResults(res){
@@ -343,7 +351,7 @@ $("postBtn").onclick = async () => {
 $("nextBtn").onclick = () => { race++; if (demo) { $("demoBtn").click(); return; } startMic(); };
 $("againBtn").onclick = () => { if (demo) { $("demoBtn").click(); return; } startMic(); };
 $("pickBtn").onclick = () => { demo = false; setModeChip(); ctl.setAutopilot(false); ctl.load(league, race); show("pickScreen"); renderPick(); };
-$("quitBtn").onclick = () => { ctl.finish(); };
+$("quitBtn").onclick = () => { exiting = true; RR.Voice.stop(); ctl.finish(); };
 
 renderPick(); raceLabel(); setModeChip(); show("pickScreen");
 window.__rr = ctl;
