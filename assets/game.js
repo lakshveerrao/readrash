@@ -193,25 +193,39 @@ function riderOnly(o,look=0){
 // ---- painted rider sprites, 4 base kits. Frames: 0 upright, 1 tuck, 2 lean right, 3 lean left, 4 arm out right, 5 crashed bike, 6 (unused body crop),
 //      7 look left, 8 look right, 9 rider tumbling, 10 rider sliding, 11 arm out left, 12 fist pump
 const RIDER_META={"orange":[{"x":0,"y":0,"w":217,"h":360,"ax":106.7,"ay":360.0},{"x":219,"y":0,"w":190,"h":308,"ax":89.0,"ay":308.0},{"x":411,"y":0,"w":242,"h":323,"ax":62.9,"ay":323.0},{"x":655,"y":0,"w":228,"h":323,"ax":154.6,"ay":323.0},{"x":885,"y":0,"w":321,"h":360,"ax":105.8,"ay":360.0,"hx":320,"hy":67},{"x":1208,"y":0,"w":268,"h":196,"ax":134.0,"ay":196.0},{"x":1478,"y":0,"w":148,"h":133,"ax":74.0,"ay":106.4},{"x":1628,"y":0,"w":213,"h":360,"ax":104.4,"ay":360.0},{"x":1843,"y":0,"w":190,"h":360,"ax":87.1,"ay":360.0},{"x":2035,"y":0,"w":311,"h":296,"ax":155.5,"ay":183.5},{"x":2348,"y":0,"w":248,"h":178,"ax":124.0,"ay":160.2},{"x":2598,"y":0,"w":285,"h":344,"ax":182.7,"ay":344.0,"hx":0,"hy":37},{"x":2885,"y":0,"w":190,"h":392,"ax":97.7,"ay":392.0}],"teal":[{"x":0,"y":0,"w":218,"h":360,"ax":103.7,"ay":360.0},{"x":220,"y":0,"w":203,"h":314,"ax":95.0,"ay":314.0},{"x":425,"y":0,"w":233,"h":304,"ax":61.7,"ay":304.0},{"x":660,"y":0,"w":233,"h":305,"ax":161.5,"ay":305.0},{"x":895,"y":0,"w":300,"h":363,"ax":99.7,"ay":363.0,"hx":299,"hy":91},{"x":1197,"y":0,"w":289,"h":163,"ax":144.5,"ay":163.0},{"x":1488,"y":0,"w":149,"h":133,"ax":74.5,"ay":106.4},{"x":1639,"y":0,"w":211,"h":360,"ax":101.2,"ay":360.0},{"x":1852,"y":0,"w":208,"h":359,"ax":97.8,"ay":359.0},{"x":2062,"y":0,"w":298,"h":288,"ax":149.0,"ay":178.6},{"x":2362,"y":0,"w":253,"h":208,"ax":126.5,"ay":187.2},{"x":2617,"y":0,"w":287,"h":352,"ax":179.2,"ay":352.0,"hx":0,"hy":64},{"x":2906,"y":0,"w":206,"h":406,"ax":100.8,"ay":406.0}],"blue":[{"x":0,"y":0,"w":211,"h":360,"ax":103.8,"ay":360.0},{"x":213,"y":0,"w":213,"h":317,"ax":104.3,"ay":317.0},{"x":428,"y":0,"w":228,"h":309,"ax":66.8,"ay":309.0},{"x":658,"y":0,"w":221,"h":309,"ax":143.0,"ay":309.0},{"x":881,"y":0,"w":290,"h":360,"ax":104.5,"ay":360.0,"hx":289,"hy":100},{"x":1173,"y":0,"w":298,"h":183,"ax":149.0,"ay":183.0},{"x":1473,"y":0,"w":144,"h":133,"ax":72.0,"ay":106.4},{"x":1619,"y":0,"w":211,"h":360,"ax":104.0,"ay":360.0},{"x":1832,"y":0,"w":209,"h":360,"ax":101.7,"ay":360.0},{"x":2043,"y":0,"w":294,"h":314,"ax":147.0,"ay":194.7},{"x":2339,"y":0,"w":285,"h":192,"ax":142.5,"ay":172.8},{"x":2626,"y":0,"w":294,"h":358,"ax":188.9,"ay":358.0,"hx":0,"hy":57},{"x":2922,"y":0,"w":206,"h":400,"ax":103.0,"ay":400.0}],"red":[{"x":0,"y":0,"w":218,"h":360,"ax":107.8,"ay":360.0},{"x":220,"y":0,"w":189,"h":308,"ax":92.8,"ay":308.0},{"x":411,"y":0,"w":263,"h":319,"ax":74.7,"ay":319.0},{"x":676,"y":0,"w":239,"h":319,"ax":162.2,"ay":319.0},{"x":917,"y":0,"w":325,"h":360,"ax":106.9,"ay":360.0,"hx":324,"hy":70},{"x":1244,"y":0,"w":299,"h":207,"ax":149.5,"ay":207.0},{"x":1545,"y":0,"w":149,"h":133,"ax":74.5,"ay":106.4},{"x":1696,"y":0,"w":217,"h":360,"ax":106.9,"ay":360.0},{"x":1915,"y":0,"w":212,"h":359,"ax":103.1,"ay":359.0},{"x":2129,"y":0,"w":331,"h":330,"ax":165.5,"ay":204.6},{"x":2462,"y":0,"w":282,"h":211,"ax":141.0,"ay":189.9},{"x":2746,"y":0,"w":297,"h":357,"ax":185.1,"ay":357.0,"hx":0,"hy":55},{"x":3045,"y":0,"w":209,"h":415,"ax":102.9,"ay":415.0}]};
-const RIDER_V="20261024c", RIDER_IMG={}, SKIN_CACHE={};
+const RIDER_V="20261024d", RIDER_FULL={"orange":[3077,392],"teal":[3114,406],"blue":[3130,400],"red":[3256,415]}, RIDER_IMG={}, SKIN_CACHE={}, KEEP={};
 const SKINS={ME:["orange",0,1],ZIPPY:["blue",-18,1],TARA:["blue",110,1],BABLU:["teal",-45,1],MEENA:["blue",40,1],CHOTU:["teal",-145,1],
   RAJU:["teal",0,1],PINKY:["teal",145,1],SONU:["blue",0,1],GUDDU:["teal",-95,1],BUNTY:["red",0,1],MOTU:["blue",0,.18]};
 function skinFor(ro){ if(ro===ME||ro.me) return SKINS.ME; if(ro.skin) return ro.skin; return SKINS[ro.name]||["blue",0,.18]; }
-function riderImg(base){ let im=RIDER_IMG[base]; if(!im){ if(typeof Image==="undefined") return null; im=new Image(); im.decoding="async"; im.onload=()=>{ for(const k in SKINS) if(SKINS[k][0]===base) setTimeout(()=>skinCanvas(SKINS[k]),0); }; im.src="assets/riders/"+base+".webp?v="+RIDER_V; RIDER_IMG[base]=im; } return im.complete&&im.naturalWidth?im:null; }
+// phones get a half-size set (~110 KB a kit); your own orange kit loads first
+function riderSmall(){ try{ return Math.min(window.innerWidth,1200)*Math.min(1.75,window.devicePixelRatio||1)<1150; }catch(e){ return false; } }
+function riderImg(base){ let im=RIDER_IMG[base]; if(!im){ if(typeof Image==="undefined") return null; im=new Image(); im._fh=RIDER_FULL[base][1]; im.decoding="async"; if(base==="orange") try{ im.fetchPriority="high"; }catch(e){}
+    im.onload=()=>{ let d=0; for(const k in SKINS) if(SKINS[k][0]===base&&(SKINS[k][1]||SKINS[k][2]!==1)) setTimeout(()=>tintSkin(SKINS[k]),40+(d++)*30); };
+    im.src="assets/riders/"+base+(riderSmall()?"-s":"")+".webp?v="+RIDER_V; RIDER_IMG[base]=im; }
+  return im.complete&&im.naturalWidth?im:null; }
+// pixels that keep their colour whatever the tint: the red tail light and the gold suspension
+function keepMask(base,im){ if(KEEP[base]) return KEEP[base]; const cv=document.createElement("canvas"); cv.width=im.naturalWidth; cv.height=im.naturalHeight; const g=cv.getContext("2d",{willReadFrequently:true}); g.drawImage(im,0,0);
+  const d=g.getImageData(0,0,cv.width,cv.height), p=d.data;
+  for(let i=0;i<p.length;i+=4){ if(!p[i+3]) continue; const r=p[i], gg=p[i+1], b=p[i+2], mx=Math.max(r,gg,b), mn=Math.min(r,gg,b); let keep=false;
+    if(mx===r&&mx-mn>28){ const hh=60*(gg-b)/(mx-mn); keep=(mx-mn>60&&Math.abs(hh)<11)||(gg>b&&hh>27&&hh<64); }
+    if(!keep) p[i+3]=0; }
+  g.putImageData(d,0,0); return KEEP[base]=cv; }
 function hueMat(deg){ const a=deg*Math.PI/180, c=Math.cos(a), s=Math.sin(a);
   return [.213+c*.787-s*.213,.715-c*.715-s*.715,.072-c*.072+s*.928,.213-c*.213+s*.143,.715+c*.285+s*.140,.072-c*.072-s*.283,.213-c*.213-s*.787,.715-c*.715+s*.715,.072+c*.928+s*.072]; }
-function skinCanvas(sk){ const key=sk.join("|"); if(SKIN_CACHE[key]) return SKIN_CACHE[key]; const im=riderImg(sk[0]); if(!im) return null;
-  const cv=document.createElement("canvas"); cv.width=im.naturalWidth; cv.height=im.naturalHeight; const g=cv.getContext("2d"); g.drawImage(im,0,0);
-  if(sk[1]||sk[2]!==1){ try{ const d=g.getImageData(0,0,cv.width,cv.height), p=d.data, m=hueMat(sk[1]), sat=sk[2];
-    for(let i=0;i<p.length;i+=4){ if(!p[i+3]) continue; const r=p[i], gg=p[i+1], b=p[i+2], mx=Math.max(r,gg,b), mn=Math.min(r,gg,b);
-      if(mx===r&&mx-mn>60&&Math.abs(60*(gg-b)/(mx-mn))<11) continue; // keep the red tail light red
-      if(mx-mn>28&&mx===r&&gg>b){ const hh=60*(gg-b)/(mx-mn); if(hh>27&&hh<64) continue; } // and the gold suspension gold
-      let R=m[0]*r+m[1]*gg+m[2]*b, G=m[3]*r+m[4]*gg+m[5]*b, B=m[6]*r+m[7]*gg+m[8]*b;
-      if(sat!==1){ const L=.2126*R+.7152*G+.0722*B; R=L+(R-L)*sat; G=L+(G-L)*sat; B=L+(B-L)*sat; }
-      p[i]=R; p[i+1]=G; p[i+2]=B; }
-    g.putImageData(d,0,0); }catch(e){} }
-  return SKIN_CACHE[key]=cv; }
-function preloadRiders(){ for(const b in RIDER_META) riderImg(b); }
+function tintSkin(sk){ const key=sk.join("|"); if(SKIN_CACHE[key]) return; const im=riderImg(sk[0]); if(!im) return;
+  try{ const cv=document.createElement("canvas"); cv.width=im.naturalWidth; cv.height=im.naturalHeight; cv._fh=im._fh; const g=cv.getContext("2d"), f=`hue-rotate(${sk[1]}deg) saturate(${sk[2]})`;
+    g.filter=f;
+    if(g.filter===f){ g.drawImage(im,0,0); g.filter="none"; }   // GPU path (Chrome, Edge, Firefox)
+    else { g.drawImage(im,0,0); const d=g.getImageData(0,0,cv.width,cv.height), p=d.data, m=hueMat(sk[1]), sat=sk[2];   // pixel path elsewhere
+      for(let i=0;i<p.length;i+=4){ if(!p[i+3]) continue; const r=p[i], gg=p[i+1], b=p[i+2];
+        let R=m[0]*r+m[1]*gg+m[2]*b, G=m[3]*r+m[4]*gg+m[5]*b, B=m[6]*r+m[7]*gg+m[8]*b;
+        if(sat!==1){ const Lm=.2126*R+.7152*G+.0722*B; R=Lm+(R-Lm)*sat; G=Lm+(G-Lm)*sat; B=Lm+(B-Lm)*sat; } p[i]=R; p[i+1]=G; p[i+2]=B; }
+      g.putImageData(d,0,0); }
+    g.drawImage(keepMask(sk[0],im),0,0); SKIN_CACHE[key]=cv; }catch(e){ SKIN_CACHE[key]=im; } }
+// what to draw for a kit right now: its tinted sheet, or the plain sheet for a moment while the tint is made
+function skinCanvas(sk){ const key=sk.join("|"), c=SKIN_CACHE[key]; if(c) return c; const im=riderImg(sk[0]); if(!im) return null;
+  if(!sk[1]&&sk[2]===1) return SKIN_CACHE[key]=im; tintSkin(sk); return SKIN_CACHE[key]||im; }
+function preloadRiders(){ riderImg("orange"); setTimeout(()=>{ for(const b in RIDER_META) riderImg(b); },60); }
 function drawWeapon(c,type,u){ // drawn in hand space: hand at 0,0, weapon points along +x
   if(type==="book"){ c.fillStyle="#1d2f5a"; rr(c,-4*u,-11*u,26*u,22*u,2*u); c.fill(); c.fillStyle="#f3ead6"; c.fillRect(20*u,-9*u,3*u,18*u); c.fillStyle="#d9a520"; c.fillRect(2*u,-11*u,3*u,22*u); c.fillRect(8*u,-3*u,9*u,2.5*u); }
   else if(type==="coconut"){ c.fillStyle="#6b4423"; c.beginPath(); c.arc(6*u,0,8.5*u,0,7); c.fill(); c.strokeStyle="#4a2e16"; c.lineWidth=1.2*u; for(let i=0;i<5;i++){ c.beginPath(); c.moveTo(1*u,(-6+i*3)*u); c.lineTo(11*u,(-5+i*3)*u); c.stroke(); } }
@@ -1072,7 +1086,7 @@ function create(o){
     ctx.beginPath(); ctx.ellipse(0,-66*u,54*u,74*u,0,0,7); ctx.stroke();
     ctx.fillStyle=`rgba(62,193,211,${.04+opt.shield*.03+fl*.25})`; ctx.fill();
     ctx.strokeStyle=`rgba(255,255,255,${.25+fl*.5})`; ctx.lineWidth=1.2*u; ctx.beginPath(); ctx.ellipse(0,-66*u,54*u,74*u,0,Math.PI*1.1+((tn/600)%(Math.PI*2)),Math.PI*1.45+((tn/600)%(Math.PI*2))); ctx.stroke(); }
-  function blit(SC,f,sc,dy){ ctx.drawImage(SC,f.x,f.y,f.w,f.h,-f.ax*sc,-f.ay*sc+(dy||0),f.w*sc,f.h*sc); }
+  function blit(SC,f,sc,dy){ const k=(SC.naturalHeight||SC.height)/SC._fh; ctx.drawImage(SC,f.x*k,f.y*k,f.w*k,f.h*k,-f.ax*sc,-f.ay*sc+(dy||0),f.w*sc,f.h*sc); }
   function bodyImg(x,y,h,rot,opt,base,SC,tn){
     const M=RIDER_META[base], u=h/130, sc=125*u/360, bob=(opt.bob||0)*u*.6;
     const sd=opt.sdir||1, sw=opt.swing||0, wu=opt.windup||0, ln=(opt.lean||0)+rot;
