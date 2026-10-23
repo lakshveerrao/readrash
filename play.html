@@ -12,15 +12,15 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Racing+Sans+One&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
-<link rel="stylesheet" href="assets/site.css?v=20261024d">
-<link rel="stylesheet" href="assets/game.css?v=20261024d">
+<link rel="stylesheet" href="assets/site.css?v=20261024f">
+<link rel="stylesheet" href="assets/game.css?v=20261024f">
 </head>
 <body>
 <header class="nav gut">
   <div class="inner">
     <a class="logo" href="index.html">READ<span>RASH</span></a>
     <nav class="links" aria-label="Main">
-      <a class="opt" href="index.html#how">How to play</a>
+      <a class="opt" href="index.html#how">How it works</a>
       <a href="gp.html">Rash GP</a>
       <a class="opt" href="leaderboard.html">Leaderboard</a>
     </nav>
@@ -110,7 +110,7 @@
   <div class="panel" style="align-items:center;text-align:center">
     <a class="x" href="index.html" aria-label="Close and go home">✕</a>
     <p class="kicker" style="color:#b14a12" id="micStep">Mic check</p>
-    <div class="big-say" id="sayWord">Say <span>READY</span></div>
+    <div class="big-say" id="sayWord">Say <span>LET'S GO!</span></div>
     <div class="mic" id="micState"><i></i><span id="micLabel">Starting microphone…</span></div>
     <div class="heardbox" id="micHeard"></div>
     <p class="err" id="micErr" hidden></p>
@@ -147,8 +147,8 @@
   </div>
 </div>
 
-<script src="assets/game.js?v=20261024d"></script>
-<script src="assets/board.js?v=20261024d"></script>
+<script src="assets/game.js?v=20261024f"></script>
+<script src="assets/board.js?v=20261024f"></script>
 <script>
 (() => {
 const RR = window.ReadRash, $ = id => document.getElementById(id);
@@ -194,26 +194,21 @@ let micStage = "ready";
 function startMic(){
   ctl.setAutopilot(false); ctl.load(league, race); raceLabel();
   show("micScreen"); $("micErr").hidden = true; $("micHeard").textContent = "";
-  micStage = firstGo ? "ready" : "go"; paintMic();
+  micStage = "go"; paintMic(); armHint();
   RR.Voice.onDenied = () => { $("micErr").hidden = false; $("micErr").textContent = "Microphone is blocked. Click the lock icon next to the address, allow the microphone, then come back to races and try again."; $("micLabel").textContent = "No microphone"; };
   RR.Voice.start(micHandler);
 }
-function paintMic(){
-  $("micStep").textContent = micStage === "ready" ? "Mic check" : `${RR.LEAGUES[league].name} · ${RR.RACES[race].t}`;
-  $("sayWord").innerHTML = micStage === "ready" ? "Say <span>READY</span>" : "Say <span>LET'S GO!</span>";
-}
+function paintMic(){ $("micStep").textContent = `${RR.LEAGUES[league].name} · ${RR.RACES[race].t}`; $("sayWord").innerHTML = "Say <span>LET'S GO!</span>"; $("micHeard").textContent = "Say it out loud. The lights drop and the race starts."; }
+let hintT = 0, heardAny = false;
+function armHint(){ heardAny = false; clearTimeout(hintT); hintT = setTimeout(() => { if (micStage === "go" && !heardAny) $("micHeard").textContent = "Can't hear you yet. Check the mic is allowed and speak a little louder: LET'S GO!"; }, 7000); }
 function micHandler(e){
   if (e.reset) return;
   let txt = ""; for (let r = e.resultIndex; r < e.results.length; r++) txt += " " + e.results[r][0].transcript;
-  txt = txt.trim(); if (!txt) return;
+  txt = txt.trim(); if (!txt) return; heardAny = true;
   $("micHeard").textContent = "Heard: " + txt;
   const toks = txt.split(/\s+/).map(RR.norm).filter(Boolean);
-  if (micStage === "ready" && toks.some(t => RR.sim(t, "ready") >= .6 || t.startsWith("read") || t === "redi" || t === "reddy")) {
-    micStage = "go"; firstGo = false; paintMic(); $("micHeard").textContent = "Mic works! Now say LET'S GO.";
-    RR.Sound.tone(660, .12, "square", .05); return;
-  }
-  if (micStage === "go" && toks.some(t => GO.has(t) || (t.length <= 4 && "gk".includes(t[0]) && RR.sim(t, "go") >= .5))) {
-    micStage = "off"; show(null); $("quitBtn").hidden = false;
+  if (micStage === "go" && (toks.join("").includes("letsgo") || toks.some(t => GO.has(t) || RR.sim(t, "ready") >= .7 || (t.length <= 4 && "gk".includes(t[0]) && RR.sim(t, "go") >= .5)))) {
+    clearTimeout(hintT); RR.Sound.tone(880, .12, "square", .05); micStage = "off"; show(null); $("quitBtn").hidden = false;
     ctl.listen(); ctl.countdown();
   }
 }
@@ -240,18 +235,21 @@ function showResults(res){
   $("sTime").textContent = (res.timeMs/1000).toFixed(1) + "s"; $("sWpm").textContent = res.wpm; $("sAcc").textContent = res.acc + "%"; $("sSwipe").textContent = res.swipes;
   $("practice").innerHTML = ""; res.trouble.forEach(m => { const s = document.createElement("span"); s.textContent = m; $("practice").appendChild(s); }); $("practiceWrap").hidden = !res.trouble.length || demo;
   const canPost = !demo && !res.stopped;
-  $("postBox").hidden = !canPost; $("postName").textContent = RR.nickname(); $("postMsg").textContent = "Score " + Math.round(res.wpm * res.acc / 100) + " · posts to the " + RR.LEAGUES[league].name + " board"; $("postBtn").disabled = false; $("postBtn").textContent = "Post score";
+  $("postBox").hidden = !canPost; $("postName").textContent = RR.nickname(); $("postMsg").textContent = "Score " + Math.round(res.wpm * res.acc / 100) + " · posts to the " + RR.LEAGUES[league].name + " board"; $("postBtn").disabled = true; $("postBtn").textContent = "Posting…"; posted = false;
   const st = RR.stars(league); const nextOpen = race < RR.RACES.length - 1 && st[race] > 0;
   $("nextBtn").hidden = !nextOpen || demo;
   show("endScreen");
+  if (canPost && !RR.IN_VIEWER) postRun();
 }
-$("postReroll").onclick = () => { RR.Store.set("name", RR.randomName()); $("postName").textContent = RR.nickname(); };
-$("postBtn").onclick = async () => {
-  if (!lastRes) return; $("postBtn").disabled = true; $("postMsg").textContent = "Posting…";
+$("postReroll").onclick = () => { RR.Store.set("name", RR.randomName()); $("postName").textContent = RR.nickname(); if (posted) $("postMsg").textContent = "New name saved. Your next race posts under it."; };
+let posted = false;
+async function postRun(){
+  if (!lastRes) return; if (posted) { location.href = "leaderboard.html#story"; return; } $("postBtn").disabled = true; $("postBtn").textContent = "Posting…"; $("postMsg").textContent = "Posting your score to the board…";
   try { const j = await Board.submit({ name: RR.nickname(), league, race, words: lastRes.words, correct: lastRes.correct, attempts: lastRes.attempts, timeMs: lastRes.timeMs });
-    $("postBtn").textContent = "Posted"; $("postMsg").textContent = j.rank ? `You're #${j.rank} on today's ${RR.LEAGUES[league].name} board.` : "Posted to the board.";
-  } catch (e) { $("postBtn").disabled = false; $("postMsg").textContent = "Couldn't reach the leaderboard. Check your connection and try again."; }
-};
+    posted = true; $("postBtn").disabled = false; $("postBtn").textContent = "See the board"; $("postMsg").textContent = j.rank ? `Posted ✓ You're #${j.rank} on today's ${RR.LEAGUES[league].name} board.` : "Posted ✓";
+  } catch (e) { $("postBtn").disabled = false; $("postBtn").textContent = "Try again"; $("postMsg").textContent = "Couldn't reach the leaderboard. Check your connection and tap Try again."; }
+}
+$("postBtn").onclick = postRun;
 $("nextBtn").onclick = () => { race++; if (demo) { $("demoBtn").click(); return; } startMic(); };
 $("againBtn").onclick = () => { if (demo) { $("demoBtn").click(); return; } startMic(); };
 $("pickBtn").onclick = () => { demo = false; setModeChip(); ctl.setAutopilot(false); ctl.load(league, race); show("pickScreen"); renderPick(); };

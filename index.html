@@ -15,86 +15,106 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Racing+Sans+One&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
-<link rel="stylesheet" href="assets/site.css?v=20261024d">
+<link rel="stylesheet" href="assets/site.css?v=20261024f">
 <style>
-/* Layout: full-bleed live race hero → three-step how-to → world strip → leagues → live board → closing CTA */
-.hero{position:relative;height:clamp(520px,80vh,760px);overflow:hidden;background:#3d9be0}
+/* Layout: live Rash GP hero with a reading console → how it works (4 steps) → your kit → two ways to race → levels → board → closer */
+.hero{position:relative;height:clamp(600px,88vh,820px);overflow:hidden;background:#3d9be0}
 .hero canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
-.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(10,9,14,.82) 0%,rgba(10,9,14,.55) 38%,rgba(10,9,14,0) 66%),linear-gradient(0deg,rgba(18,16,22,1) 0%,rgba(18,16,22,0) 22%);pointer-events:none}
-.hero-copy{position:absolute;inset:0;z-index:2;display:flex;align-items:center}
-.hero-copy .inner{width:100%}
-.hero h1{font-size:clamp(64px,12vw,140px);letter-spacing:-.01em;max-width:8ch;text-shadow:0 4px 0 rgba(0,0,0,.35)}
-.hero h1 em{font-style:inherit;color:var(--heat);display:block}
-.hero .lede{margin-top:18px;color:#f1eadf;max-width:40ch;text-shadow:0 1px 8px rgba(0,0,0,.5)}
-.ctas{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
-.meta{margin-top:18px;display:flex;gap:10px;flex-wrap:wrap}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(10,9,14,.93) 0%,rgba(10,9,14,.8) 36%,rgba(10,9,14,0) 60%),linear-gradient(0deg,rgba(18,16,22,1) 0%,rgba(18,16,22,0) 18%);pointer-events:none}
+.hero-copy{position:absolute;inset:0;z-index:2;display:flex;align-items:center;pointer-events:none;padding-top:36px}
+.hero-copy .inner{width:100%}.hero-copy .col{max-width:500px;pointer-events:auto}
+.hero h1{font-size:clamp(52px,7vw,100px);letter-spacing:-.01em;text-shadow:0 4px 0 rgba(0,0,0,.35);line-height:.95}
+.hero h1 em{font-style:inherit;color:var(--heat)}
+.hero .lede{margin-top:16px;color:#f1eadf;max-width:40ch;text-shadow:0 1px 8px rgba(0,0,0,.5)}
+.ctas{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}
+.meta{margin-top:16px;display:flex;gap:8px;flex-wrap:wrap}
 .meta span{font-size:13px;font-weight:700;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.14);padding:6px 11px;border-radius:999px}
-.demo-tag{position:absolute;right:max(16px,env(safe-area-inset-right,0px));bottom:26px;z-index:3;font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;background:rgba(0,0,0,.55);padding:6px 10px;border-radius:8px;display:flex;gap:8px;align-items:center}
-.demo-tag i{width:8px;height:8px;border-radius:50%;background:#ff3b3b;animation:pulse 1s infinite}
-@media (max-width:700px){
-  .hero{height:auto;display:flex;flex-direction:column}
-  .hero canvas{position:relative;height:300px;order:2}
-  .hero::after{background:linear-gradient(0deg,rgba(18,16,22,1) 0%,rgba(18,16,22,0) 30%);top:auto;height:300px}
-  .hero-copy{position:relative;order:1;padding-block:34px 22px;background:var(--asphalt)}
-  .demo-tag{bottom:14px}
+/* reading console: the same three words that hang over the road */
+.console{margin-top:22px;background:rgba(18,16,22,.78);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:12px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.console .cap{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--muted);margin:0 2px 10px}
+.console .cap i{display:inline-block;width:8px;height:8px;border-radius:50%;background:#ff3b3b;margin-right:7px;animation:pulse 1s infinite}
+.voice{display:flex;align-items:center;gap:10px;background:#0c0b10;border-radius:12px;padding:9px 12px;margin-bottom:10px;min-height:44px;font-size:16px}
+.voice .mic{width:26px;height:26px;border-radius:50%;background:var(--heat);flex:none;position:relative;display:grid;place-items:center}
+.voice .mic::before{content:"";width:8px;height:12px;border-radius:5px;background:#fff}
+.voice.hot .mic{box-shadow:0 0 0 6px rgba(255,106,26,.25)}
+.voice b{font-family:var(--display);font-style:italic;font-weight:400;font-size:22px;color:var(--sun)}
+.voice small{color:var(--muted);font-size:14px}
+.l3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.lc{background:var(--paper);color:var(--ink);border-radius:12px;padding:8px 6px 9px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px;transition:transform .18s,background .18s,opacity .25s;min-width:0}
+.lc small{font-size:10px;letter-spacing:.14em;font-weight:700;color:#8a8392}
+.lc b{font-size:clamp(15px,1.6vw,20px);line-height:1.1;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lc em{font-style:normal;font-size:10px;font-weight:700;letter-spacing:.06em;padding:2px 7px;border-radius:6px}
+.lc.wait{opacity:.55}
+.lc.pick{background:#36b862;color:#fff;transform:translateY(-3px) scale(1.04)}.lc.pick small{color:#e6ffe9}
+.lc.off{opacity:.35}
+.tag-n{background:var(--sun);color:var(--ink)}.tag-t{background:var(--bad);color:#fff}.tag-c{background:#d6f3f7;color:#11606b}.tag-r{background:#ffd9ec;color:#9b1d5b}.tag-w{background:#e9dcff;color:#5b23a8}
+@media (max-width:760px){
+  .hero{height:auto;display:flex;flex-direction:column;background:var(--asphalt)}
+  .hero canvas{position:relative;height:min(62vw,330px);min-height:250px;order:2}
+  .hero::after{display:none}
+  .hero-copy{position:relative;order:1;padding-block:28px 18px}
+  .hero-copy .col{max-width:none}
+  .hero-copy .console{display:none}
+  .console.m{order:3;margin:-2px 16px 0;border-radius:0 0 18px 18px}
+  .col .ctas,.col .meta{display:none}
+  .ctam{order:4;padding:20px 16px 34px}
 }
+@media (min-width:761px){.console.m,.ctam{display:none}}
+.nav .btn.sm{white-space:nowrap}
 section.blk{padding-block:clamp(56px,9vw,104px)}
-.head{display:flex;flex-direction:column;gap:12px;margin-bottom:34px}
+.head{display:flex;flex-direction:column;gap:12px;margin-bottom:30px}
 
-/* how to play */
-.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-.step{background:var(--asphalt-2);border-radius:20px;padding:22px;display:flex;flex-direction:column;gap:14px;min-width:0}
-.step h3{font-size:30px}
-.step p{margin:0;color:#d4cdc1}
-.vis{height:150px;border-radius:14px;background:linear-gradient(180deg,#9fd6f4,#e6f6fa 55%,#86b84a 55%);position:relative;overflow:hidden;display:flex;align-items:flex-end;justify-content:center}
-.vis canvas{display:block;height:120px;width:auto}
-.say{position:absolute;top:14px;left:50%;transform:translateX(-50%);font-family:var(--display);font-style:italic;font-size:38px;color:var(--ink);background:var(--sun);border:3px solid var(--ink);border-radius:14px;padding:4px 16px;box-shadow:0 4px 0 var(--ink);white-space:nowrap}
-.lights{position:absolute;bottom:22px;display:flex;gap:10px;background:#1b1b22;padding:8px 12px;border-radius:12px}
-.lights i{width:22px;height:22px;border-radius:50%;background:#ff2d2d;box-shadow:0 0 12px #ff2d2d}
+/* how it works */
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.step{background:var(--asphalt-2);border-radius:20px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.step h3{font-size:26px;line-height:1.05}
+.step p{margin:0;color:#d4cdc1;font-size:15px}
+.vis{height:170px;border-radius:14px;background:linear-gradient(180deg,#6fb8ea,#dff3fa 52%,#5a5962 52%);position:relative;overflow:hidden}
+.vis canvas{position:absolute;bottom:0;left:50%;transform:translateX(-50%);height:118px;width:auto}
+.say{position:absolute;top:16px;left:50%;transform:translateX(-50%);font-family:var(--display);font-style:italic;font-size:30px;color:var(--ink);background:var(--sun);border:3px solid var(--ink);border-radius:14px;padding:2px 14px;box-shadow:0 4px 0 var(--ink);white-space:nowrap}
+.lights{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:9px;background:#1b1b22;padding:8px 11px;border-radius:12px}
+.lights i{width:20px;height:20px;border-radius:50%;background:#ff2d2d;box-shadow:0 0 12px #ff2d2d}
 .lights i:last-child{background:#3cff6a;box-shadow:0 0 14px #3cff6a}
-.readline{position:absolute;inset:auto 12px 14px;background:var(--paper);color:var(--ink);border-radius:10px;padding:10px 12px;font-size:17px;line-height:1.5}
-.readline .d{color:#a19ca8}.readline .c{background:var(--sun);border-radius:5px;padding:0 3px;box-shadow:0 2px 0 var(--ink)}
-.vis .sign{position:absolute;font-weight:700;font-size:15px;border:3px solid var(--ink);border-radius:8px;padding:2px 8px}
-@media (max-width:820px){.steps{grid-template-columns:1fr}}
+.gant{position:absolute;top:12px;left:8px;right:8px;display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+.gant span{background:#fff4e2;color:var(--ink);border:2px solid var(--ink);border-radius:7px;font-weight:700;font-size:13px;text-align:center;padding:2px 0}
+.gant span.ok{background:#36b862;color:#fff}
+.chips{position:absolute;inset:14px 12px auto;display:flex;flex-direction:column;gap:7px}
+.chips div{display:flex;align-items:center;gap:8px;background:rgba(255,248,236,.94);color:var(--ink);border-radius:9px;padding:4px 8px;font-size:13px;font-weight:700}
+.chips em{font-style:normal;font-size:10px;letter-spacing:.06em;padding:2px 6px;border-radius:5px;flex:none;min-width:64px;text-align:center}
+.atk{position:absolute;top:14px;right:12px;background:var(--heat);color:#fff;font-weight:700;border:2px solid var(--ink);border-radius:8px;padding:2px 9px;font-size:15px;box-shadow:0 3px 0 var(--ink)}
+.pips{position:absolute;top:16px;left:12px;display:flex;gap:6px;background:rgba(18,16,22,.8);padding:6px 8px;border-radius:9px}
+.pips i{width:14px;height:14px;border-radius:4px;border:2px solid var(--cool);transform:rotate(45deg) scale(.8)}.pips i.on{background:var(--cool);box-shadow:0 0 8px var(--cool)}
+@media (max-width:980px){.steps{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:560px){.steps{grid-template-columns:1fr}}
 
-/* worlds */
-.worlds{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(250px,1fr);gap:14px;overflow-x:auto;padding-bottom:10px;scroll-snap-type:x mandatory}
-.world{scroll-snap-align:start;border-radius:18px;overflow:hidden;background:var(--asphalt-2);position:relative;min-width:0}
-.world canvas{display:block;width:100%;height:170px}
-.world .wi{padding:14px 16px 18px;display:flex;flex-direction:column;gap:4px}
-.world h3{font-size:24px}
-.world p{margin:0;font-size:14px;color:var(--muted)}
-.world .lock{position:absolute;top:12px;right:12px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:rgba(0,0,0,.65);padding:5px 9px;border-radius:8px}
-.world.open .lock{background:var(--heat);color:#fff}
-.world:not(.open) canvas{filter:saturate(.75) brightness(.8)}
+/* kit */
+.kit{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.kit div{background:var(--asphalt-2);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:6px;border-top:4px solid var(--c)}
+.kit h3{font-size:22px;color:var(--c)}.kit p{margin:0;font-size:14px;color:#d4cdc1}
+@media (max-width:860px){.kit{grid-template-columns:repeat(2,1fr)}}
+
+/* two ways */
+.ways{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.way{background:var(--asphalt-2);border-radius:22px;overflow:hidden;display:flex;flex-direction:column}
+.way .art{height:230px;position:relative;background:linear-gradient(180deg,#3d9be0,#cdeefa 55%,#57565f 55%)}
+.way .art canvas{position:absolute;bottom:0;height:100%;width:auto}
+.way .wi{padding:18px 20px 22px;display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+.way h3{font-size:34px}.way h3 em{font-style:inherit;color:var(--heat)}
+.way p{margin:0;color:#d4cdc1}
+.facts{display:flex;gap:8px;flex-wrap:wrap}.facts span{background:rgba(255,255,255,.06);border-radius:9px;padding:6px 10px;font-size:13px;color:#d9d2c6}
+@media (max-width:820px){.ways{grid-template-columns:1fr}}
 
 /* leagues */
 .leagues{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
 .lg{border-radius:20px;padding:22px;background:var(--asphalt-2);border-top:6px solid var(--c);display:flex;flex-direction:column;gap:8px}
 .lg h3{font-size:34px;color:var(--c)}
 .lg p{margin:0;color:#d4cdc1}
-.lg .spd{font-family:var(--display);font-size:15px;color:var(--muted);letter-spacing:.04em}
+.lg .spd{font-size:14px;color:var(--muted)}.lg .spd b{color:var(--chalk);font-weight:700}
 @media (max-width:820px){.leagues{grid-template-columns:1fr}}
 
 /* board */
 .boardwrap{background:var(--asphalt-2);border-radius:20px;padding:18px clamp(12px,3vw,26px) 22px;overflow-x:auto}
 .bhead{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
-
-/* rash gp band */
-.gpband{display:grid;grid-template-columns:1.05fr 1fr;gap:28px;align-items:center;background:linear-gradient(135deg,#1d1a22,#2a1a12);border-radius:24px;padding:clamp(20px,4vw,40px);border:1px solid rgba(255,106,26,.25)}
-.gpcopy{display:flex;flex-direction:column;gap:16px;align-items:flex-start;min-width:0}
-.gpfacts{display:flex;gap:10px;flex-wrap:wrap}
-.gpfacts span{background:rgba(255,255,255,.06);border-radius:10px;padding:8px 12px;font-size:14px;color:#d9d2c6}
-.gpfacts b{font-family:var(--display);font-style:italic;font-weight:400;font-size:20px;color:var(--sun);margin-right:4px}
-.gpart{position:relative;height:320px;border-radius:18px;overflow:hidden;background:linear-gradient(180deg,#3d9be0,#9fd6f4 45%,#86b84a 45%);min-width:0}
-.groad{position:absolute;left:50%;bottom:0;width:120%;height:55%;transform:translateX(-50%);background:#57565f;clip-path:polygon(46% 0,54% 0,100% 100%,0 100%)}
-.gsign{position:absolute;left:50%;transform:translateX(-50%);font-weight:700;border:3px solid var(--ink);border-radius:8px;background:#fff4e2;color:var(--ink);white-space:nowrap;z-index:2;box-shadow:0 3px 0 var(--ink)}
-.gsign.far{top:46%;font-size:12px;padding:1px 10px;opacity:.85}
-.gsign.mid{top:31%;font-size:18px;padding:3px 18px;background:#36b862;color:#fff}
-.gsign.near{top:5%;font-size:34px;padding:6px 34px;background:var(--sun);outline:3px solid var(--sun);outline-offset:4px}
-.glap,.gpos{position:absolute;bottom:14px;font-family:var(--display);font-style:italic;font-size:26px;color:#fff;text-shadow:0 3px 0 var(--ink);z-index:2}
-.glap{right:16px}.gpos{left:16px;color:var(--sun)}.gpos small{font-size:15px;color:#fff}
-@media (max-width:820px){.gpband{grid-template-columns:1fr}.gpart{height:240px}.gsign.near{font-size:26px;padding:4px 22px}}
 
 /* closing */
 .closer{text-align:center;display:flex;flex-direction:column;align-items:center;gap:20px}
@@ -107,101 +127,122 @@ section.blk{padding-block:clamp(56px,9vw,104px)}
   <div class="inner">
     <a class="logo" href="index.html">READ<span>RASH</span></a>
     <nav class="links" aria-label="Main">
-      <a class="opt" href="#how">How to play</a>
-      <a href="gp.html">Rash GP</a>
-      <a class="opt" href="leaderboard.html">Leaderboard</a>
-      <a class="btn sm" href="play.html">Ride now</a>
+      <a class="opt" href="#how">How it works</a>
+      <a class="opt" href="play.html">Story races</a>
+      <a href="leaderboard.html">Leaderboard</a>
+      <a class="btn sm" href="gp.html">Race now</a>
     </nav>
   </div>
 </header>
 
-<section class="hero" aria-label="ReadRash live demo">
+<section class="hero" aria-label="ReadRash live demo race">
   <canvas id="heroCanvas" aria-hidden="true"></canvas>
   <div class="hero-copy gut">
-    <div class="inner">
-      <p class="kicker">Your voice is the throttle</p>
+    <div class="inner"><div class="col">
+      <p class="kicker">Voice-powered bike racing</p>
       <h1>Read to <em>ride.</em></h1>
-      <p class="lede">Read the words out loud and your bike speeds up. Read faster, ride faster. Miss a word and you wobble.</p>
+      <p class="lede">Three words hang over the road. Say one out loud and your bike swerves into that lane. Hard words hide nitro, easy ones hide traffic, and eleven rivals want you off your bike.</p>
+      <div class="console d" aria-hidden="true"></div>
       <div class="ctas">
-        <a class="btn" href="play.html">Ride now</a>
-        <a class="btn ghost" href="#how">How to play</a>
+        <a class="btn" href="gp.html">Race now</a>
+        <a class="btn ghost" href="#how">How it works</a>
       </div>
-      <div class="meta"><span>Free</span><span>No signup</span><span>Chrome &amp; Edge</span></div>
-    </div>
+      <div class="meta"><span>Free</span><span>No signup</span><span>Voice only</span><span>Chrome &amp; Edge</span></div>
+    </div></div>
   </div>
-  <div class="demo-tag"><i></i>Live demo ride</div>
+  <div class="console m" aria-hidden="true"></div>
+  <div class="ctam">
+    <div class="ctas" style="margin-top:0"><a class="btn" href="gp.html">Race now</a><a class="btn ghost" href="#how">How it works</a></div>
+    <div class="meta"><span>Free</span><span>No signup</span><span>Voice only</span><span>Chrome &amp; Edge</span></div>
+  </div>
 </section>
 
 <section class="blk gut" id="how">
   <div class="inner">
     <div class="head">
-      <p class="kicker">How to play</p>
-      <h2 class="sec-h">Three things. <em>That's it.</em></h2>
+      <p class="kicker">How it works</p>
+      <h2 class="sec-h">Your voice <em>steers.</em></h2>
+      <p class="lede">No keys, no taps. Everything happens by reading out loud.</p>
     </div>
     <div class="steps">
       <article class="step">
-        <div class="vis"><span class="say">“GO!”</span><div class="lights"><i></i><i></i><i></i><i></i></div></div>
-        <h3>1. Say GO</h3>
-        <p>Allow the mic, say “ready”, then shout “let’s go!” The lights drop and the paragraph appears.</p>
+        <div class="vis"><span class="say">“Let’s go!”</span><div class="lights"><i></i><i></i><i></i><i></i></div></div>
+        <h3>1. Say “Let’s go!”</h3>
+        <p>Allow the mic, then shout it. The lights drop and twelve bikes launch.</p>
       </article>
       <article class="step">
-        <div class="vis"><div class="readline"><span class="d">The sun is up. The</span> <span class="c">sea</span> is blue. A small boat goes out…</div></div>
-        <h3>2. Read to ride</h3>
-        <p>Every word you read pushes your bike forward. Read smoothly to speed up. Ten in a row fires nitro.</p>
+        <div class="vis"><div class="gant"><span>kite</span><span>lantern</span><span class="ok">✓ volcano</span></div><canvas id="vLean" width="300" height="240"></canvas></div>
+        <h3>2. Read a word, take its lane</h3>
+        <p>Each sign has a word over every lane. Read one and your bike swerves under it.</p>
       </article>
       <article class="step">
-        <div class="vis"><canvas id="v3a" width="150" height="240"></canvas><canvas id="v3b" width="160" height="240"></canvas>
-          <span class="sign" style="left:14%;top:16px;background:var(--heat);color:#fff">crab</span><span class="sign" style="right:14%;top:16px;background:var(--cool);color:var(--ink)">boat</span></div>
-        <h3>3. Swipe &amp; dodge</h3>
-        <p>Orange word on a rival? Read it to swat them off the road. Blue word on traffic? Read it to swerve past.</p>
+        <div class="vis" style="background:linear-gradient(180deg,#2a2630,#1d1a22)"><div class="chips">
+          <div><em class="tag-n">NITRO</em>Hard word: speed boost</div>
+          <div><em class="tag-c">CLEAR</em>Safe lane</div>
+          <div><em class="tag-t">TRAFFIC</em>Easy word: crash ahead</div></div></div>
+        <h3>3. Pick your lane</h3>
+        <p>Under every word is a tag. Brave the long word for nitro, or play it safe.</p>
+      </article>
+      <article class="step">
+        <div class="vis"><span class="pips"><i class="on"></i><i class="on"></i><i></i></span><span class="atk">pirate</span><canvas id="vHit" width="420" height="240"></canvas></div>
+        <h3>4. Hit, or be hit</h3>
+        <p>An orange word on a rider? Read it to knock them over. Every 2 words you read right adds a shield bar, and each bar blocks one hit.</p>
       </article>
     </div>
   </div>
 </section>
 
-<section class="blk gut" id="gp" style="padding-top:0">
-  <div class="inner">
-    <div class="gpband">
-      <div class="gpcopy">
-        <p class="kicker">New mode</p>
-        <h2 class="sec-h">Rash <em>GP.</em></h2>
-        <p class="lede">Twelve riders. Lap after lap. Words flash up on signs over the road, and you read each one before you ride under it. Right word: faster. Wrong or missed: slower. Every lap, the words get tougher.</p>
-        <div class="gpfacts"><span><b>12</b> riders</span><span><b>2 · 3 · 5</b> laps</span><span><b>Ghosts</b> of real players</span></div>
-        <a class="btn" href="gp.html">Race Rash GP</a>
-      </div>
-      <div class="gpart" aria-hidden="true">
-        <div class="gsign far">compass</div>
-        <div class="gsign mid ok">✓ rocket</div>
-        <div class="gsign near now">butterfly</div>
-        <div class="groad"></div>
-        <div class="glap">LAP 2/3</div><div class="gpos">3rd <small>/ 12</small></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="blk gut" id="worlds" style="padding-top:0">
+<section class="blk gut" id="kit" style="padding-top:0">
   <div class="inner">
     <div class="head">
-      <p class="kicker">World tour</p>
-      <h2 class="sec-h">Six roads. <em>One coast open.</em></h2>
-      <p class="lede">Win stars on every race to unlock the next road. The Konkan Coast is open now.</p>
+      <p class="kicker">Your kit</p>
+      <h2 class="sec-h">Four things <em>to know.</em></h2>
     </div>
-    <div class="worlds" id="worldList"></div>
+    <div class="kit">
+      <div style="--c:var(--cool)"><h3>Shield</h3><p>2 words read right = 1 bar, up to 3. A bar blocks one hit. A missed or wrong word cracks one.</p></div>
+      <div style="--c:var(--sun)"><h3>Nitro</h3><p>Ride a NITRO lane or read 10 in a row. Your bike rockets forward.</p></div>
+      <div style="--c:#b48cff"><h3>Dictionary</h3><p>Heavy weapon. Your hits knock riders clean off their bikes.</p></div>
+      <div style="--c:#c98a4b"><h3>Coconut</h3><p>Throw it at the rider ahead. Read their word, watch it fly.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="blk gut" id="modes" style="padding-top:0">
+  <div class="inner">
+    <div class="head">
+      <p class="kicker">Two ways to race</p>
+      <h2 class="sec-h">Pick your <em>race.</em></h2>
+    </div>
+    <div class="ways">
+      <article class="way">
+        <div class="art"><canvas id="wGP1" width="300" height="400" style="left:6%"></canvas><canvas id="wGP2" width="300" height="400" style="right:10%;height:78%"></canvas><canvas id="wGP3" width="300" height="400" style="left:38%;height:64%"></canvas></div>
+        <div class="wi"><h3>Rash <em>GP</em></h3>
+          <p>Twelve riders, lap after lap. Read signs to pick lanes, grab nitro and fight for first.</p>
+          <div class="facts"><span>12 riders</span><span>2, 3 or 5 laps</span><span>Fight &amp; shield</span></div>
+          <a class="btn" href="gp.html">Race Rash GP</a></div>
+      </article>
+      <article class="way">
+        <div class="art"><canvas id="wStory" width="560" height="300" style="width:100%;height:100%"></canvas><canvas id="wSt1" width="300" height="400" style="left:50%;transform:translateX(-50%);height:70%"></canvas></div>
+        <div class="wi"><h3>Story <em>races</em></h3>
+          <p>Read a short story out loud. Every word pushes you forward. Win stars to unlock the next race.</p>
+          <div class="facts"><span>Konkan Coast</span><span>5 races</span><span>Stars &amp; unlocks</span></div>
+          <a class="btn ghost" href="play.html">Ride a story</a></div>
+      </article>
+    </div>
   </div>
 </section>
 
 <section class="blk gut" id="leagues" style="padding-top:0">
   <div class="inner">
     <div class="head">
-      <p class="kicker">Pick your league</p>
+      <p class="kicker">Pick your level</p>
       <h2 class="sec-h">Ride at <em>your</em> level.</h2>
-      <p class="lede">Leagues set how hard the text is and how fast the rivals ride. Switch any time. Each league has its own leaderboard.</p>
+      <p class="lede">You choose. Switch any time. Every level has its own leaderboard.</p>
     </div>
     <div class="leagues">
-      <div class="lg" style="--c:#7bd88f"><h3>Rookie</h3><p>Short words, short sentences. Rivals cruise.</p><span class="spd">RIVALS 34–50 WPM</span></div>
-      <div class="lg" style="--c:var(--sun)"><h3>Pro</h3><p>Longer lines, real stories. Rivals push hard.</p><span class="spd">RIVALS 60–84 WPM</span></div>
-      <div class="lg" style="--c:var(--heat)"><h3>Legend</h3><p>Big words, long passages. Rivals go full rash.</p><span class="spd">RIVALS 90–118 WPM</span></div>
+      <div class="lg" style="--c:#7bd88f"><h3>Rookie</h3><p>Short, everyday words. Rivals cruise.</p><span class="spd">Words like <b>kite</b>, <b>rocket</b>, <b>garden</b></span></div>
+      <div class="lg" style="--c:var(--sun)"><h3>Pro</h3><p>Longer words. Rivals push hard.</p><span class="spd">Words like <b>lantern</b>, <b>waterfall</b>, <b>alligator</b></span></div>
+      <div class="lg" style="--c:var(--heat)"><h3>Legend</h3><p>Big, tricky words. Rivals go full rash.</p><span class="spd">Words like <b>magnificent</b>, <b>encyclopedia</b></span></div>
     </div>
   </div>
 </section>
@@ -209,28 +250,33 @@ section.blk{padding-block:clamp(56px,9vw,104px)}
 <section class="blk gut" id="board" style="padding-top:0">
   <div class="inner">
     <div class="head">
-      <p class="kicker">Today's fastest</p>
+      <p class="kicker">Rash GP</p>
       <h2 class="sec-h">The <em>board.</em></h2>
     </div>
     <div class="boardwrap">
       <div class="bhead">
-        <div class="tabs" role="tablist" aria-label="League">
+        <div class="tabs" role="tablist" aria-label="Level" id="hLg">
           <button class="tab" role="tab" data-lg="rookie" aria-selected="false">Rookie</button>
           <button class="tab" role="tab" data-lg="pro" aria-selected="true">Pro</button>
           <button class="tab" role="tab" data-lg="legend" aria-selected="false">Legend</button>
         </div>
-        <a class="note" href="leaderboard.html">Full leaderboard →</a>
+        <div class="tabs small" role="tablist" aria-label="Laps" id="hL">
+          <button class="tab" role="tab" data-l="2" aria-selected="false">2 laps</button>
+          <button class="tab" role="tab" data-l="3" aria-selected="true">3 laps</button>
+          <button class="tab" role="tab" data-l="5" aria-selected="false">5 laps</button>
+        </div>
       </div>
-      <table class="board"><thead><tr><th>#</th><th>Rider</th><th class="r">Score</th><th class="r">WPM</th><th class="r">Acc</th></tr></thead><tbody id="boardBody"></tbody></table>
+      <table class="board"><thead><tr><th>#</th><th>Rider</th><th class="r">Race time</th><th class="r">Best lap</th><th class="r">Acc</th></tr></thead><tbody id="boardBody"></tbody></table>
       <p class="note" id="boardNote" style="margin:12px 0 0"></p>
+      <a class="note" href="leaderboard.html" style="display:inline-block;margin-top:8px">Full leaderboard →</a>
     </div>
   </div>
 </section>
 
 <section class="blk gut" style="padding-top:0">
   <div class="inner closer">
-    <h2>Ready? <em>Say GO.</em></h2>
-    <a class="btn" href="play.html">Ride the Konkan Coast</a>
+    <h2>Ready? <em>Say “Let’s go!”</em></h2>
+    <a class="btn" href="gp.html">Race now</a>
     <p class="note">Works in Chrome and Edge on laptops and Android phones. Needs your microphone.</p>
   </div>
 </section>
@@ -239,62 +285,60 @@ section.blk{padding-block:clamp(56px,9vw,104px)}
   <div class="inner"><span class="logo" style="font-size:22px">READ<span>RASH</span></span><span>Read fast. Ride rash. © 2026 ReadRash</span></div>
 </footer>
 
-<script src="assets/game.js?v=20261024d"></script>
-<script src="assets/board.js?v=20261024d"></script>
+<script src="assets/game.js?v=20261024f"></script>
+<script src="assets/board.js?v=20261024f"></script>
 <script>
 (() => {
-  const RRk = window.ReadRash;
-  /* live hero: the real engine on autopilot, paused when off-screen */
-  const hero = RRk.create({ canvas: document.getElementById("heroCanvas"), attract: true, fill: true, hud: false, league: "pro", race: 0, horizon: .44, cx: .66 });
-  if ("IntersectionObserver" in window) new IntersectionObserver(es => es.forEach(e => e.isIntersecting ? hero.resume() : hero.pause())).observe(document.getElementById("heroCanvas"));
+  const RRk = window.ReadRash, $ = id => document.getElementById(id);
+  const small = matchMedia("(max-width:760px)");
+
+  /* live hero: a real Rash GP race on autopilot, paused when off-screen */
+  const hero = RRk.create({ canvas: $("heroCanvas"), mode: "gp", laps: 2, attract: true, fill: true, hud: false, league: "pro", horizon: .44, cx: small.matches ? .5 : .68 });
+  if ("IntersectionObserver" in window) new IntersectionObserver(es => es.forEach(e => e.isIntersecting ? hero.resume() : hero.pause())).observe($("heroCanvas"));
   document.addEventListener("visibilitychange", () => document.hidden ? hero.pause() : hero.resume());
 
-  RRk.paintSprite(document.getElementById("v3a"), "bike", { rider: { jacket: "#2f9bf0", helmet: "#0d4f96", paint: "#ffd23f" } });
-  RRk.paintSprite(document.getElementById("v3b"), "auto");
+  /* reading console: mirrors the sign coming up and lights the word the demo rider reads */
+  const SIDES = ["LEFT", "MIDDLE", "RIGHT"], consoles = [...document.querySelectorAll(".console")];
+  consoles.forEach(c => c.innerHTML = `<div class="cap"><span><i></i>Live demo</span><span>Next sign</span></div>
+    <div class="voice"><span class="mic"></span><span class="vt"><small>Listening…</small></span></div>
+    <div class="l3">${SIDES.map(s => `<div class="lc wait"><small>${s}</small><b>·</b><em class="tag-c">–</em></div>`).join("")}</div>`);
+  let shownId = null, holdUntil = 0;
+  const esc = t => String(t).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  function paintRow(r){ consoles.forEach(c => c.querySelectorAll(".lc").forEach((el, i) => {
+    el.className = "lc" + (r.open ? "" : " wait"); el.querySelector("b").textContent = r.w[i];
+    const em = el.querySelector("em"); em.className = "tag-" + r.tags[i][1]; em.textContent = r.tags[i][0]; })); }
+  hero.on("read", e => { holdUntil = performance.now() + 1100;
+    consoles.forEach(c => { c.querySelectorAll(".lc").forEach((el, i) => el.className = "lc " + (i === e.lane ? "pick" : "off"));
+      const v = c.querySelector(".voice"); v.classList.add("hot");
+      v.querySelector(".vt").innerHTML = `<b>“${esc(e.word)}”</b> <small>→ ${SIDES[e.lane].toLowerCase()} lane${e.kind === "nitro" ? " · nitro!" : ""}</small>`;
+      setTimeout(() => v.classList.remove("hot"), 500); }); });
+  setInterval(() => { if (performance.now() < holdUntil) return; const r = hero.row(); if (!r) return;
+    const key = r.id + (r.open ? "o" : "w"); if (key !== shownId) { shownId = key; paintRow(r);
+      if (r.open) consoles.forEach(c => c.querySelector(".vt").innerHTML = "<small>Reading the sign…</small>"); } }, 120);
 
-  /* world postcards */
-  const W6 = [
-    { n: "Konkan Coast", d: "Sea, palms, backwater bridges", open: true, sky: ["#3d9be0", "#e6f6fa"], sun: "#fffbe6", sunY: .3, ridge: "#6f9e74", ground: "#86b84a", sea: true, prop: "palm" },
-    { n: "Rajasthan Desert", d: "Forts, camels, dust storms", sky: ["#e8743b", "#fbd598"], sun: "#fff1cc", sunY: .62, ridge: "#b5704f", ground: "#e2b866", prop: "fort" },
-    { n: "Western Ghats", d: "Monsoon hairpins, waterfalls", sky: ["#5d7682", "#c9d6d2"], sun: "#eef3f0", sunY: .2, ridge: "#3f6b4a", ground: "#4f8a3c", prop: "fall", rain: true },
-    { n: "Mumbai Night", d: "Neon, flyovers, red buses", sky: ["#0b1026", "#3a2a6a"], sun: "#f4f1e0", sunY: .22, ridge: "#1f1a3d", ground: "#2b2735", prop: "city", night: true },
-    { n: "Ladakh Pass", d: "Snow walls, prayer flags", sky: ["#2f6fd6", "#cfe6ff"], sun: "#ffffff", sunY: .25, ridge: "#e9eef6", ground: "#c7b79a", prop: "flags" },
-    { n: "Golden Expressway", d: "The final night chase", sky: ["#05081a", "#2c2a5c"], sun: "#f4f1e0", sunY: .2, ridge: "#141229", ground: "#1c1a24", prop: "toll", night: true }
-  ];
-  const list = document.getElementById("worldList");
-  W6.forEach((w, i) => {
-    const el = document.createElement("article"); el.className = "world" + (w.open ? " open" : "");
-    el.innerHTML = `<canvas width="560" height="340"></canvas><span class="lock">${w.open ? "Open now" : "Locked"}</span><div class="wi"><h3></h3><p></p></div>`;
-    el.querySelector("h3").textContent = w.n; el.querySelector("p").textContent = w.d;
-    list.appendChild(el); postcard(el.querySelector("canvas"), w);
-  });
-  function postcard(c, w) {
+  /* painted riders for the explainers */
+  RRk.paintRider($("vLean"), "ME", 2);
+  RRk.paintRider($("vHit"), "ME", 4, { fill: .9 });
+  RRk.paintRider($("wGP1"), "TARA", 3); RRk.paintRider($("wGP2"), "ME", 12); RRk.paintRider($("wGP3"), "GUDDU", 0);
+  RRk.paintRider($("wSt1"), "ME", 1);
+  (function postcard(c) {
     const g = c.getContext("2d"), W = c.width, H = c.height, HY = H * .5;
-    const sg = g.createLinearGradient(0, 0, 0, HY); sg.addColorStop(0, w.sky[0]); sg.addColorStop(1, w.sky[1]); g.fillStyle = sg; g.fillRect(0, 0, W, HY);
-    if (w.night) for (let i = 0; i < 70; i++) { g.fillStyle = `rgba(255,255,240,${.3 + Math.random() * .7})`; g.fillRect(Math.random() * W, Math.random() * HY * .8, 1.6, 1.6); }
-    g.fillStyle = w.sun; g.beginPath(); g.arc(W * .74, HY * w.sunY + 20, 26, 0, 7); g.fill();
-    if (w.night) { g.fillStyle = w.sky[0]; g.beginPath(); g.arc(W * .74 + 11, HY * w.sunY + 14, 22, 0, 7); g.fill(); }
-    g.fillStyle = w.ridge; g.beginPath(); g.moveTo(w.sea ? W * .45 : 0, HY);
-    for (let x = w.sea ? W * .45 : 0; x <= W; x += 20) g.lineTo(x, HY - 30 - Math.sin(x * .02) * 26 - Math.sin(x * .053) * 14);
-    g.lineTo(W, HY); g.fill();
-    if (w.sea) { g.fillStyle = "#2a8dbd"; g.fillRect(0, HY - 3, W * .45, 4); }
-    g.fillStyle = w.ground; g.fillRect(0, HY, W, H - HY);
-    if (w.sea) { g.fillStyle = "#2a8dbd"; g.beginPath(); g.moveTo(0, HY); g.lineTo(W * .42, HY); g.lineTo(0, H * .78); g.fill(); g.fillStyle = "#ecd9a8"; g.beginPath(); g.moveTo(W * .42, HY); g.lineTo(W * .47, HY); g.lineTo(0, H * .98); g.lineTo(0, H * .78); g.fill(); }
-    g.fillStyle = w.night ? "#3a3742" : "#5a5962"; g.beginPath(); g.moveTo(W * .48, HY); g.lineTo(W * .52, HY); g.lineTo(W * .92, H); g.lineTo(W * .08, H); g.fill();
-    g.fillStyle = "#f7f2e6"; for (let k = 0; k < 6; k++) { const t = k / 6, y = HY + (H - HY) * t * t, h = 6 + t * 26, ww = 2 + t * 6; g.fillRect(W * .5 - ww / 2, y, ww, h); }
-    g.fillStyle = "#1b1b22";
-    if (w.prop === "fort") { g.fillStyle = "#9c4f34"; g.fillRect(W * .62, HY - 70, 120, 70); for (let x = 0; x < 120; x += 16) g.fillRect(W * .62 + x, HY - 80, 10, 10); g.fillStyle = "#6b3424"; g.fillRect(W * .62 + 50, HY - 36, 20, 36); }
-    if (w.prop === "fall") { g.fillStyle = "rgba(240,250,255,.9)"; g.fillRect(W * .72, HY - 74, 14, 80); g.fillRect(W * .69, HY + 4, 40, 6); }
-    if (w.prop === "city") { for (let x = W * .56; x < W; x += 34) { const h = 50 + Math.sin(x) * 30 + 40; g.fillStyle = "#151231"; g.fillRect(x, HY - h, 28, h); g.fillStyle = "#ffcf7a"; for (let y = HY - h + 8; y < HY - 6; y += 12) for (let xx = 4; xx < 24; xx += 9) if (Math.sin(x * y + xx) > -.2) g.fillRect(x + xx, y, 4, 5); } g.fillStyle = "rgba(255,80,160,.8)"; g.fillRect(W * .6, HY - 120, 70, 6); }
-    if (w.prop === "flags") { g.strokeStyle = "#4b3b2a"; g.lineWidth = 2; g.beginPath(); g.moveTo(W * .58, HY - 50); g.quadraticCurveTo(W * .75, HY - 20, W * .95, HY - 56); g.stroke(); ["#2f6fd6", "#fff", "#e0392b", "#36b862", "#ffd23f"].forEach((c, k) => { for (let j = 0; j < 3; j++) { const t = (k + j * 5) / 15, x = W * .58 + t * W * .37, y = HY - 50 + Math.sin(t * Math.PI) * 26 - t * 6; g.fillStyle = c; g.fillRect(x, y, 10, 12); } }); }
-    if (w.prop === "toll") { g.fillStyle = "#2b2a33"; g.fillRect(W * .3, HY - 60, W * .4, 16); g.fillRect(W * .3, HY - 60, 8, 60); g.fillRect(W * .7 - 8, HY - 60, 8, 60); g.fillStyle = "#ffd23f"; g.fillRect(W * .34, HY - 56, W * .32, 8); }
-    if (w.prop === "palm") { const palm = (x, s) => { g.strokeStyle = "#7a5532"; g.lineWidth = 4 * s; g.beginPath(); g.moveTo(x, HY + 30 * s); g.quadraticCurveTo(x + 10 * s, HY - 30 * s, x + 2 * s, HY - 70 * s); g.stroke(); g.fillStyle = "#2f6b2f"; for (let a = -2.9; a < .6; a += .55) { g.save(); g.translate(x + 2 * s, HY - 70 * s); g.rotate(a); g.beginPath(); g.ellipse(18 * s, 0, 20 * s, 5 * s, .3, 0, 7); g.fill(); g.restore(); } }; palm(W * .2, 1.4); palm(W * .82, 1.6); palm(W * .66, .8); }
-    if (w.rain) { g.strokeStyle = "rgba(230,240,255,.5)"; g.lineWidth = 1; for (let i = 0; i < 90; i++) { const x = Math.random() * W, y = Math.random() * H; g.beginPath(); g.moveTo(x, y); g.lineTo(x - 4, y + 12); g.stroke(); } }
-    if (w.night) { const hl = g.createLinearGradient(0, H, 0, HY); hl.addColorStop(0, "rgba(255,240,200,.3)"); hl.addColorStop(1, "rgba(255,240,200,0)"); g.fillStyle = hl; g.beginPath(); g.moveTo(W * .3, H); g.lineTo(W * .47, HY + 20); g.lineTo(W * .53, HY + 20); g.lineTo(W * .7, H); g.fill(); }
-  }
+    const sg = g.createLinearGradient(0, 0, 0, HY); sg.addColorStop(0, "#3d9be0"); sg.addColorStop(1, "#e6f6fa"); g.fillStyle = sg; g.fillRect(0, 0, W, HY);
+    g.fillStyle = "#fffbe6"; g.beginPath(); g.arc(W * .78, HY * .3 + 20, 24, 0, 7); g.fill();
+    g.fillStyle = "#6f9e74"; g.beginPath(); g.moveTo(W * .45, HY); for (let x = W * .45; x <= W; x += 20) g.lineTo(x, HY - 26 - Math.sin(x * .02) * 22 - Math.sin(x * .053) * 12); g.lineTo(W, HY); g.fill();
+    g.fillStyle = "#86b84a"; g.fillRect(0, HY, W, H - HY);
+    g.fillStyle = "#2a8dbd"; g.beginPath(); g.moveTo(0, HY); g.lineTo(W * .42, HY); g.lineTo(0, H * .78); g.fill();
+    g.fillStyle = "#ecd9a8"; g.beginPath(); g.moveTo(W * .42, HY); g.lineTo(W * .47, HY); g.lineTo(0, H * .98); g.lineTo(0, H * .78); g.fill();
+    g.fillStyle = "#5a5962"; g.beginPath(); g.moveTo(W * .48, HY); g.lineTo(W * .52, HY); g.lineTo(W * .92, H); g.lineTo(W * .08, H); g.fill();
+    g.fillStyle = "#f7f2e6"; for (let k = 0; k < 6; k++) { const t = k / 6, y = HY + (H - HY) * t * t; g.fillRect(W * .5 - (2 + t * 6) / 2, y, 2 + t * 6, 6 + t * 26); }
+    const palm = (x, s) => { g.strokeStyle = "#7a5532"; g.lineWidth = 4 * s; g.beginPath(); g.moveTo(x, HY + 30 * s); g.quadraticCurveTo(x + 10 * s, HY - 30 * s, x + 2 * s, HY - 70 * s); g.stroke(); g.fillStyle = "#2f6b2f"; for (let a = -2.9; a < .6; a += .55) { g.save(); g.translate(x + 2 * s, HY - 70 * s); g.rotate(a); g.beginPath(); g.ellipse(18 * s, 0, 20 * s, 5 * s, .3, 0, 7); g.fill(); g.restore(); } };
+    palm(W * .18, 1.3); palm(W * .84, 1.5);
+    g.fillStyle = "rgba(255,248,236,.95)"; g.fillRect(W * .08, 18, W * .84, 44); g.fillStyle = "#1b1b22"; g.font = "bold 20px Verdana"; g.textAlign = "left"; g.textBaseline = "middle";
+    g.fillStyle = "#a19ca8"; g.fillText("The fishing boats leave the", W * .11, 40); g.fillStyle = "#1b1b22"; g.fillText("harbour", W * .11 + g.measureText("The fishing boats leave the ").width, 40);
+  })($("wStory"));
 
-  /* leaderboard preview */
-  Board.mount({ body: document.getElementById("boardBody"), note: document.getElementById("boardNote"), tabs: document.querySelectorAll("#board .tab"), period: "today", limit: 8 });
+  /* Rash GP board preview */
+  Board.mountGP({ body: $("boardBody"), note: $("boardNote"), lgTabs: document.querySelectorAll("#hLg .tab"), lapTabs: document.querySelectorAll("#hL .tab"), league: "pro", laps: 3, period: "today", limit: 8 });
 })();
 </script>
 </body>

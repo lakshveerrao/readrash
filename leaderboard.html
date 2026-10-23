@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Racing+Sans+One&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
-<link rel="stylesheet" href="assets/site.css?v=20261024d">
+<link rel="stylesheet" href="assets/site.css?v=20261024f">
 <style>
 /* Layout: title band, league + period switches, one wide table */
 .top{padding-block:48px 24px;display:flex;flex-direction:column;gap:12px}
@@ -29,21 +29,21 @@
   <div class="inner">
     <a class="logo" href="index.html">READ<span>RASH</span></a>
     <nav class="links" aria-label="Main">
-      <a class="opt" href="index.html#how">How to play</a>
-      <a href="gp.html">Rash GP</a>
-      <a class="opt" href="leaderboard.html" aria-current="page">Leaderboard</a>
-      <a class="btn sm" href="play.html">Ride now</a>
+      <a class="opt" href="index.html#how">How it works</a>
+      <a class="opt" href="play.html">Story races</a>
+      <a href="leaderboard.html" aria-current="page">Leaderboard</a>
+      <a class="btn sm" href="gp.html">Race now</a>
     </nav>
   </div>
 </header>
 <main class="gut">
   <div class="inner">
     <div class="top">
-      <p class="kicker">Konkan Coast</p>
+      <p class="kicker">Leaderboard</p>
       <h1>Fastest <em>readers.</em></h1>
       <div class="tabs" role="tablist" aria-label="Game" id="modeTabs" style="margin-top:8px;align-self:flex-start">
-        <button class="tab" role="tab" data-m="story" aria-selected="true">Story races</button>
-        <button class="tab" role="tab" data-m="gp" aria-selected="false">Rash GP</button>
+        <button class="tab" role="tab" data-m="gp" aria-selected="true">Rash GP</button>
+        <button class="tab" role="tab" data-m="story" aria-selected="false">Story races</button>
       </div>
     </div>
 
@@ -68,7 +68,7 @@
     </section>
 
     <section id="gpBoard" hidden>
-      <p class="lede" style="margin-bottom:16px">Fastest total race time wins. Pick the level and the number of laps. Each rider's best race counts.</p>
+      <p class="lede" style="margin-bottom:16px">Fastest race time wins. Pick the level and the number of laps. Every finished race posts itself, and each rider's best race counts.</p>
       <div class="controls">
         <div class="tabs" role="tablist" aria-label="Level" id="gLg">
           <button class="tab" role="tab" data-lg="rookie" aria-selected="false">Rookie</button>
@@ -96,8 +96,8 @@
 <footer class="foot gut">
   <div class="inner"><span class="logo" style="font-size:22px">READ<span>RASH</span></span><span>Read fast. Ride rash. © 2026 ReadRash</span></div>
 </footer>
-<script src="assets/game.js?v=20261024d"></script>
-<script src="assets/board.js?v=20261024d"></script>
+<script src="assets/game.js?v=20261024f"></script>
+<script src="assets/board.js?v=20261024f"></script>
 <script>
 (() => {
 const $ = id => document.getElementById(id), RR = window.ReadRash;
@@ -108,28 +108,13 @@ sel("sLg","lg",lg0); sel("gLg","lg",lg0);
 Board.mount({ body: $("boardBody"), note: $("boardNote"), tabs: tabs("sLg"), periodTabs: tabs("sP"), league: lg0, period: "today", limit: 50 });
 
 /* Rash GP board */
-let g = { lg: lg0, laps: (RR && RR.Store.get("gpLaps",3)) || 3, p: "today" }; sel("gL","l",g.laps);
-const esc = t => String(t).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const fmt = ms => (ms/1000).toFixed(1) + "s";
-const me = RR && RR.Store.get("name", null);
-async function renderGP(){
-  $("gpBody").innerHTML = '<tr><td colspan="5" class="note">Loading…</td></tr>';
-  let rows = [], live = true;
-  try { const r = await fetch(`/api/gp?league=${g.lg}&laps=${g.laps}&period=${g.p}&limit=50`); const ct = r.headers.get("content-type") || ""; if (!r.ok || !ct.includes("json")) throw 0; rows = (await r.json()).rows || []; }
-  catch (e) { live = false; }
-  if (!live) { $("gpBody").innerHTML = `<tr><td colspan="5" class="note">${RR && RR.IN_VIEWER ? "The Rash GP board is switched off in this preview. It's live on readrash.com." : "Couldn't load the board. Try again in a moment."}</td></tr>`; $("gpNote").textContent = ""; return; }
-  $("gpBody").innerHTML = rows.length ? rows.map((r, i) => `<tr class="${me && r.name === me ? "me" : ""}"><td class="rk">${i+1}</td><td class="nm">${esc(r.name)}</td><td class="r sc">${fmt(r.total_ms)}</td><td class="r">${fmt(r.best_lap_ms)}</td><td class="r">${r.acc|0}%</td></tr>`).join("")
-    : '<tr><td colspan="5" class="note">No races yet here. Be the first: your run becomes a ghost others race against.</td></tr>';
-  $("gpNote").textContent = "Lower time is better. Best race per rider.";
-}
-tabs("gLg").forEach(t => t.onclick = () => { g.lg = t.dataset.lg; sel("gLg","lg",g.lg); renderGP(); });
-tabs("gL").forEach(t => t.onclick = () => { g.laps = +t.dataset.l; sel("gL","l",g.laps); renderGP(); });
-tabs("gP").forEach(t => t.onclick = () => { g.p = t.dataset.p; sel("gP","p",g.p); renderGP(); });
+const gpB = { r: null };
+const mountGP = () => gpB.r || (gpB.r = Board.mountGP({ body: $("gpBody"), note: $("gpNote"), lgTabs: tabs("gLg"), lapTabs: tabs("gL"), periodTabs: tabs("gP"), league: lg0, laps: (RR && RR.Store.get("gpLaps",3)) || 3, period: "today", limit: 50 }));
 
 /* switch between the two boards (#gp opens Rash GP) */
-function mode(m){ sel("modeTabs","m",m); $("storyBoard").hidden = m !== "story"; $("gpBoard").hidden = m !== "gp"; if (m === "gp") renderGP(); }
+function mode(m){ sel("modeTabs","m",m); $("storyBoard").hidden = m !== "story"; $("gpBoard").hidden = m !== "gp"; if (m === "gp") mountGP(); }
 tabs("modeTabs").forEach(t => t.onclick = () => mode(t.dataset.m));
-mode(location.hash === "#gp" ? "gp" : "story");
+mode(location.hash === "#story" ? "story" : "gp");
 })();
 </script>
 </body>
