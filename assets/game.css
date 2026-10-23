@@ -100,3 +100,5 @@
 .demo-chip{background:var(--cool);color:var(--ink);font-weight:700}
 
 .panel > div:first-of-type{padding-right:46px}
+
+@media (max-width:600px){.pop{font-size:clamp(26px,9vw,40px)}.pop.lap{font-size:22px}}
