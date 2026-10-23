@@ -13,8 +13,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Racing+Sans+One&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
-<link rel="stylesheet" href="assets/site.css?v=20261024f">
-<link rel="stylesheet" href="assets/game.css?v=20261024f">
+<link rel="stylesheet" href="assets/site.css?v=20261024g">
+<link rel="stylesheet" href="assets/game.css?v=20261024g">
 <style>
 /* Rash GP: same race view; the text card shows the three lane words of the next gantry, with what waits in each lane */
 .lanecard{display:flex;flex-direction:column;gap:10px;justify-content:center;min-height:150px}
@@ -175,6 +175,7 @@
     <div class="mic" id="micState"><i></i><span id="micLabel">Starting microphone…</span></div>
     <div class="heardbox" id="micHeard"></div>
     <p class="err" id="micErr" hidden></p>
+    <button class="btn sm" id="micFix" hidden>Restart mic</button>
     <button class="linkbtn" id="micBack">Back</button>
   </div>
 </div>
@@ -206,8 +207,8 @@
   </div>
 </div>
 
-<script src="assets/game.js?v=20261024f"></script>
-<script src="assets/board.js?v=20261024f"></script>
+<script src="assets/game.js?v=20261024g"></script>
+<script src="assets/board.js?v=20261024g"></script>
 <script>
 (() => {
 const RR = window.ReadRash, $ = id => document.getElementById(id);
@@ -221,7 +222,7 @@ const ctl = RR.create({ canvas: $("road"), mode: "gp", league, laps,
         timeChip:$("timeChip"), wpmChip:$("wpmChip"), lanes:$("lanes"), signBar:$("signBar"), shield:$("shield"), shieldNext:$("shieldNext"), weaponTxt:$("weaponTxt"), lapTxt:$("lapTxt") } });
 
 $("sndBtn").onclick = () => { RR.Sound.setOn(!RR.Sound.on); $("sndBtn").textContent = RR.Sound.on ? "Sound on" : "Sound off"; $("sndBtn").setAttribute("aria-pressed", RR.Sound.on); };
-RR.Voice.onState = on => { $("micDot").classList.toggle("on", on); $("micState").classList.toggle("on", on); if (on) $("micLabel").textContent = "Listening"; };
+RR.bindMic({ dot: $("micDot"), state: $("micState"), label: $("micLabel"), err: $("micErr"), fix: $("micFix"), heard: $("heard"), chip: $("modeTxt"), isDemo: () => demo });
 function setModeChip(){ const c = $("modeTxt").parentElement; c.classList.toggle("demo-chip", demo); $("modeTxt").textContent = demo ? "Demo race" : "Voice"; }
 function label(){ $("raceChip").textContent = `Rash GP · Sprint · ${RR.LEAGUES[league].name} · ${laps} laps`; }
 
@@ -245,9 +246,8 @@ if (RR.IN_VIEWER) $("gateMsg").textContent = "ReadRash runs on your voice, and m
 const GO = new Set(["go","goes","gone","goal","gold","ko","goh","gooo","goo","lets","letsgo","start","race","ride"]);
 let micStage = "ready";
 function startMic(){
-  ctl.setAutopilot(false); show("micScreen"); $("micErr").hidden = true; $("micHeard").textContent = "";
+  ctl.setAutopilot(false); show("micScreen"); $("micHeard").textContent = "";
   micStage = "go"; paintMic(); armHint();
-  RR.Voice.onDenied = () => { $("micErr").hidden = false; $("micErr").textContent = "Microphone is blocked. Click the lock icon next to the address, allow the microphone, then try again."; $("micLabel").textContent = "No microphone"; };
   RR.Voice.start(micHandler);
 }
 function paintMic(){ $("micStep").textContent = `Rash GP · ${laps} laps`; $("sayWord").innerHTML = "Say <span>LET'S GO!</span>"; $("micHeard").textContent = "Say it out loud. The lights drop and the race starts."; }

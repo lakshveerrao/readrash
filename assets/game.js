@@ -68,21 +68,71 @@ const OK=.7, UNCLEAR=.4;
 function isMatch(h,w){ if(sim(h,w)>=OK) return true; return w.length<=4&&h[0]===w[0]&&lev(h,w)<=1&&h.length>1; }
 
 /* ================= voice (one recogniser for the whole page) ================= */
+/* Voice: one recogniser that heals itself. Chrome ends sessions on silence, network blips, tab switches and
+   sometimes just stalls; every one of those paths leads back to listening. States: off|starting|listening|retry|blocked|nomic|offline */
 const Voice = {
-  ok: VOICE_OK, rec:null, handler:null, want:false, onDenied:null, onState:null, live:false,
-  _setup(){
-    if(this.rec) return;
+  ok: VOICE_OK, rec:null, handler:null, want:false, live:false, starting:false, startedAt:0, lastEvt:0, lastRes:0, speechAt:0, fails:0, netFails:0, timer:0, dog:0,
+  status:"off", onDenied:null, onState:null, onStatus:null,
+  _set(st,info){ if(this.status===st&&!info) return; this.status=st; this.onStatus&&this.onStatus(st,info); },
+  _new(){
+    if(this.rec){ const o=this.rec; o.onstart=o.onend=o.onerror=o.onresult=o.onaudiostart=o.onsoundstart=o.onspeechstart=null; try{ o.abort(); }catch(e){} }
     const r=new SR(); r.lang="en-IN"; r.continuous=true; r.interimResults=true; r.maxAlternatives=1;
-    r.onstart=()=>{ this.live=true; this.onState&&this.onState(true); this.handler&&this.handler({reset:true}); };
-    r.onend=()=>{ this.live=false; this.onState&&this.onState(false); if(this.want){ try{ r.start(); }catch(e){} } };
-    r.onerror=e=>{ if(["not-allowed","service-not-allowed","audio-capture"].includes(e.error)){ this.want=false; this.onDenied&&this.onDenied(e.error); } };
-    r.onresult=e=>{ this.handler&&this.handler(e); };
+    const touch=()=>{ this.lastEvt=performance.now(); };
+    r.onaudiostart=r.onsoundstart=touch; r.onspeechstart=()=>{ touch(); this.speechAt=performance.now(); };
+    r.onstart=()=>{ if(this.rec!==r) return; touch(); this.live=true; this.starting=false; this.fails=0; this._set("listening"); this.onState&&this.onState(true); this.handler&&this.handler({reset:true}); };
+    r.onresult=e=>{ if(this.rec!==r) return; touch(); this.lastRes=performance.now(); this.netFails=0; this.handler&&this.handler(e); };
+    r.onerror=e=>{ if(this.rec!==r) return; const er=e.error;
+      if(er==="not-allowed"||er==="service-not-allowed"){ this.want=false; this._set("blocked"); this.onDenied&&this.onDenied(er); }
+      else if(er==="audio-capture"){ this.fails++; this._set("nomic"); }
+      else if(er==="network"){ this.netFails++; this.fails++; this._set("offline"); }
+      /* no-speech, aborted: normal, onend restarts */ };
+    r.onend=()=>{ if(this.rec!==r) return; this.live=false; this.starting=false; this.onState&&this.onState(false);
+      if(this.want){ if(this.status==="listening") this._set("retry"); this._later(150); } else if(this.status!=="blocked") this._set("off"); };
     this.rec=r;
   },
-  start(handler){ if(!this.ok) return; this._setup(); this.handler=handler; this.want=true; if(!this.live){ try{ this.rec.start(); }catch(e){} } else handler({reset:true}); },
+  _later(ms){ clearTimeout(this.timer); this.timer=setTimeout(()=>this._kick(), ms+Math.min(this.fails,6)*300); },
+  _kick(){
+    if(!this.ok||!this.want||this.live||this.starting) return;
+    if(!this.rec) this._new();
+    this.starting=true; this.startedAt=performance.now();
+    try{ this.rec.start(); }
+    catch(e){ this.starting=false; this.fails++; this._new(); this._later(250); }
+  },
+  _watch(){
+    if(this.dog) return;
+    this.dog=setInterval(()=>{ if(!this.want) return; const t=performance.now();
+      if(this.starting&&t-this.startedAt>2500){ this.starting=false; this.fails++; this._new(); this._kick(); }      // start never came back
+      else if(!this.live&&!this.starting) this._kick();                                                           // ended and not restarted
+      else if(this.live&&(t-this.lastEvt>10000||(this.speechAt>this.lastRes&&t-this.speechAt>4000))){ this.lastEvt=t; this.speechAt=0; try{ this.rec.abort(); }catch(e){ this._new(); this.live=false; this._kick(); } } // stalled: recycle
+    },1000);
+    document.addEventListener("visibilitychange",()=>{ if(!document.hidden&&this.want){ this.fails=0; this._kick(); } });
+    window.addEventListener("online",()=>{ if(this.want){ this.fails=0; this._kick(); } });
+  },
+  start(handler){ if(!this.ok) return; this.handler=handler; this.want=true; this._watch();
+    if(this.live){ handler({reset:true}); return; }
+    if(this.status!=="blocked") this._set("starting"); this._kick(); },
+  // called from a tap: a fresh recogniser inside a user gesture clears most stuck states
+  restart(){ if(!this.ok) return; this.want=true; this.fails=0; this.netFails=0; this.live=false; this.starting=false; this._watch(); this._set("starting"); this._new(); this._kick(); },
   use(handler){ this.handler=handler; if(this.live&&handler) handler({reset:true}); },
-  stop(){ this.want=false; if(this.rec){ try{ this.rec.stop(); }catch(e){} } }
+  stop(){ this.want=false; clearTimeout(this.timer); if(this.rec){ try{ this.rec.stop(); }catch(e){} } }
 };
+
+/* mic status on screen: label, error text, a Restart button, and the little dot/chip in the race toolbar */
+const MIC_MSG={ starting:"Starting microphone…", listening:"Listening", retry:"Reconnecting…", off:"Microphone off",
+  blocked:"Microphone is blocked. Click the icon at the left of the address bar, set Microphone to Allow, then tap Restart mic.",
+  nomic:"No microphone found. Plug one in or pick it in your sound settings, then tap Restart mic.",
+  offline:"Can't reach the speech service. Check your internet. Brave and some browsers block it, so use Chrome or Edge." };
+function bindMic(el){ let slowT=0;
+  const paint=st=>{ const on=st==="listening", bad=st==="blocked"||st==="nomic"||st==="offline";
+    if(el.dot) el.dot.classList.toggle("on",on); if(el.state) el.state.classList.toggle("on",on);
+    if(el.label) el.label.textContent=bad?"Mic problem":MIC_MSG[st]||"";
+    if(el.err){ el.err.hidden=!bad; if(bad) el.err.textContent=MIC_MSG[st]; }
+    if(el.heard&&Voice.want&&(st==="retry"||st==="starting")&&!(el.isDemo&&el.isDemo())) el.heard.textContent="Mic reconnecting… say it again";
+    if(el.chip&&!(el.isDemo&&el.isDemo())) el.chip.textContent=on?"Voice":st==="retry"||st==="starting"?"Mic…":bad?"Mic off":"Voice";
+    clearTimeout(slowT); if(el.fix){ el.fix.hidden=!bad; if(!on&&!bad) slowT=setTimeout(()=>{ if(Voice.status!=="listening"&&Voice.want) el.fix.hidden=false; },3500); } };
+  Voice.onStatus=paint; Voice.onState=null;
+  if(el.fix) el.fix.onclick=()=>{ el.fix.hidden=true; Voice.restart(); };
+  paint(Voice.status); }
 
 /* ================= sound ================= */
 const Sound = { ac:null, on:true, eng:null,
@@ -1242,7 +1292,7 @@ function stars(lg){ const s=Store.get("stars."+lg,null); return Array.isArray(s)
 function saveStars(lg,ri,n){ const s=stars(lg); if(n>s[ri]){ s[ri]=n; Store.set("stars."+lg,s); } return s; }
 function nickname(){ let n=Store.get("name",null); if(!n||!/^[A-Za-z]+\d{2}$/.test(n)){ n=randomName(); Store.set("name",n); } return n; }
 
-window.ReadRash = { create, Voice, Sound, LEAGUES, RACES, ADJ, NOUN, randomName, VOICE_OK, IN_VIEWER, Store, stars, saveStars, nickname, norm, sim, ord,
+window.ReadRash = { create, Voice, bindMic, Sound, LEAGUES, RACES, ADJ, NOUN, randomName, VOICE_OK, IN_VIEWER, Store, stars, saveStars, nickname, norm, sim, ord,
   paintRider:(c,w,f,o)=>{ preloadRiders(); paintRider(c,w,f,o); },
   paintSprite(canvas,t,opt={}){ const g=canvas.getContext("2d"), h=canvas.height; g.clearRect(0,0,canvas.width,canvas.height); const list=t==="bike"?[bikeOnly(opt.rider||ME),riderOnly(opt.rider||ME)]:[getSprite(t,opt)]; for(const S of list){ const w=h*S.aspect; g.drawImage(S.c,(canvas.width-w)/2,0,w,h); } } };
 })();
