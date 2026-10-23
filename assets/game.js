@@ -122,71 +122,68 @@ function tools(g,u){
   };
 }
 // sport bike and rider are separate sprites so a crash can throw the rider off the bike. Same frame: origin at the rear tyre's contact point, 130 units tall
+// Sport bike seen from behind and a rider in a racing tuck. Separate sprites (crashes throw the rider off), one frame:
+// origin at the rear tyre's contact patch, 130 units tall, everything kept inside it.
 function bikeOnly(o){
-  return sprite("bk2"+o.paint+(o.accent||""),1.05,300,(g,u0)=>{
+  return sprite("bk3"+o.paint+(o.accent||""),1.05,300,(g,u0)=>{
     const u=u0*100/130, {P,R,E,L}=tools(g,u), paint=o.paint, acc=o.accent||"#fff4e2";
-    // rear tyre with a soft round profile
-    const tg=g.createLinearGradient(-12*u,0,12*u,0); tg.addColorStop(0,"#050506"); tg.addColorStop(.35,"#2c2c33"); tg.addColorStop(.6,"#3a3a42"); tg.addColorStop(1,"#050506");
-    g.fillStyle=tg; rr(g,-12*u,-40*u,24*u,40*u,10*u); g.fill();
-    for(let i=0;i<6;i++) R(-9,-37+i*6,18,1.4,"rgba(255,255,255,.05)");
-    // swingarm, chain and sprocket
-    P([[-14,-14],[-10,-14],[-17,-46],[-22,-46]],"#26262c"); P([[14,-14],[10,-14],[17,-46],[22,-46]],"#26262c");
-    L([[-13,-19],[-21,-46]],"#4a4a52",2.2); E(-13,-19,5.5,5.5,"#5c5c66"); E(-13,-19,2.6,2.6,"#1a1a1f");
-    // hugger over the tyre
-    P([[-15,-38],[15,-38],[12,-46],[-12,-46]],shade(paint,-.5));
-    // rear shock
-    R(-2.5,-62,5,18,"#2a2a30"); for(let i=0;i<5;i++) R(-6,-60+i*3.4,12,1.7,"#ffb000");
-    // exhaust (chrome can with heat shield)
-    g.save(); g.translate(21*u,-33*u); g.rotate(-.22);
-    const eg=g.createLinearGradient(-7*u,0,8*u,0); eg.addColorStop(0,"#5d636c"); eg.addColorStop(.45,"#f4f6f9"); eg.addColorStop(1,"#6b717a");
-    g.fillStyle=eg; rr(g,-7*u,-16*u,15*u,32*u,6*u); g.fill(); g.fillStyle="#1b1b22"; g.beginPath(); g.ellipse(.5*u,16*u,6*u,3*u,0,0,7); g.fill();
-    g.fillStyle="rgba(0,0,0,.35)"; g.fillRect(-7*u,-4*u,15*u,2*u); g.restore();
-    // side fairings / tank visible past the rider's knees
-    P([[-31,-66],[31,-66],[25,-88],[-25,-88]],shade(paint,-.15)); P([[-31,-66],[-24,-66],[-19,-88],[-25,-88]],shade(paint,-.4)); P([[24,-66],[31,-66],[25,-88],[19,-88]],shade(paint,.2));
-    // tail section with livery stripe
-    P([[-21,-50],[21,-50],[15,-68],[-15,-68]],paint); P([[-21,-50],[-13,-50],[-9,-68],[-15,-68]],shade(paint,-.3)); P([[16,-50],[21,-50],[15,-68],[12,-68]],shade(paint,.3));
-    P([[-4,-50],[4,-50],[3,-68],[-3,-68]],acc);
-    g.save(); g.shadowColor="#ff2020"; g.shadowBlur=9*u; R(-11,-60,22,4.5,"#ff3030",2); g.restore(); R(-8,-59,16,1.5,"#ffc0b0",1);
-    E(-24,-53,3.4,2.2,"#ffb000"); E(24,-53,3.4,2.2,"#ffb000");
-    R(-9,-49,18,7,"#ffd23f",1); g.fillStyle="#1b1b22"; g.font=`bold ${3.6*u}px Verdana`; g.textAlign="center"; g.textBaseline="middle"; g.fillText("MH 07",0,-45.4*u);
-    // seat
-    R(-14,-72,28,6,"#141418",3);
-    // clip-ons and mirrors
-    L([[-26,-84],[-37,-82]],"#1b1b22",3.2); L([[26,-84],[37,-82]],"#1b1b22",3.2);
-    L([[-33,-83],[-38,-95]],"#1b1b22",1.6); L([[33,-83],[38,-95]],"#1b1b22",1.6);
-    E(-39,-97,5.5,3.6,"#1b1b22"); E(39,-97,5.5,3.6,"#1b1b22"); E(-40,-98,2.2,1.1,"rgba(255,255,255,.55)"); E(38,-98,2.2,1.1,"rgba(255,255,255,.55)");
+    // swingarm arms and the chain run (behind the tyre)
+    P([[-15,-26],[-11,-26],[-15,-42],[-19,-42]],"#2a2a31"); P([[15,-26],[11,-26],[15,-42],[19,-42]],"#33333b");
+    // fat rear tyre (rounded profile), contact patch flat on the road
+    const tg=g.createLinearGradient(-16*u,0,16*u,0); tg.addColorStop(0,"#040405"); tg.addColorStop(.3,"#25252b"); tg.addColorStop(.55,"#3b3b43"); tg.addColorStop(.8,"#1c1c21"); tg.addColorStop(1,"#040405");
+    g.fillStyle=tg; rr(g,-14.5*u,-42*u,29*u,42*u,12*u); g.fill();
+    g.fillStyle="rgba(255,255,255,.07)"; rr(g,-6*u,-40*u,4*u,38*u,2*u); g.fill();
+    // hugger
+    P([[-17,-38],[17,-38],[14,-46],[-14,-46]],shade(paint,-.55));
+    // underslung exhaust can, angled up on the right
+    g.save(); g.translate(17*u,-44*u); g.rotate(-.45); g.scale(.72,.72);
+    const eg=g.createLinearGradient(0,-6*u,0,6*u); eg.addColorStop(0,"#6b717a"); eg.addColorStop(.45,"#f4f6f9"); eg.addColorStop(1,"#4d525a");
+    g.fillStyle=eg; rr(g,-4*u,-6*u,26*u,12*u,5*u); g.fill(); g.fillStyle="#141418"; g.beginPath(); g.ellipse(22*u,0,3*u,5.5*u,0,0,7); g.fill(); g.restore();
+    // number-plate hanger with indicators
+    R(-2,-60,4,12,"#1b1b22"); R(-10,-52,20,7,"#ffd23f",1); g.fillStyle="#1b1b22"; g.font=`bold ${3.4*u}px Verdana`; g.textAlign="center"; g.textBaseline="middle"; g.fillText("MH 07",0,-48.4*u);
+    L([[-9,-55],[-17,-56]],"#1b1b22",1.6); L([[9,-55],[17,-56]],"#1b1b22",1.6); E(-18,-56,2.8,2,"#ffb000"); E(18,-56,2.8,2,"#ffb000");
+    // side fairings either side of the rider's knees
+    P([[-34,-60],[-22,-60],[-19,-90],[-28,-92]],shade(paint,-.35)); P([[22,-60],[34,-60],[28,-92],[19,-90]],shade(paint,.12));
+    P([[-34,-66],[-30,-66],[-26,-86],[-29,-86]],acc);
+    // high, narrow tail with the LED light underneath
+    P([[-15,-60],[15,-60],[11,-76],[-11,-76]],paint); P([[-15,-60],[-9,-60],[-7,-76],[-11,-76]],shade(paint,-.3)); P([[10,-60],[15,-60],[11,-76],[8,-76]],shade(paint,.3));
+    P([[-3,-60],[3,-60],[2,-76],[-2,-76]],acc);
+    g.save(); g.shadowColor="#ff2020"; g.shadowBlur=9*u; R(-10,-63,20,3.6,"#ff3030",2); g.restore(); R(-7,-62.4,14,1.2,"#ffc0b0",1);
+    // wing mirrors on the fairing and a sliver of screen
+    E(-37,-96,6,3.2,"#1b1b22"); E(37,-96,6,3.2,"#1b1b22"); E(-38,-97,2.6,1,"rgba(255,255,255,.55)"); E(36,-97,2.6,1,"rgba(255,255,255,.55)");
+    L([[-30,-93],[-34,-95]],"#1b1b22",1.8); L([[30,-93],[34,-95]],"#1b1b22",1.8);
+    g.fillStyle="rgba(40,60,80,.55)"; g.beginPath(); g.ellipse(0,-100*u,20*u,7*u,0,Math.PI,0); g.fill();
   });
 }
 function riderOnly(o){
-  return sprite("rd2"+o.jacket+o.helmet+(o.num||""),1.05,300,(g,u0)=>{
-    const u=u0*100/130, {P,R,E}=tools(g,u), jk=o.jacket, leg="#1f2638";
-    // boots on the pegs
-    R(-35,-50,12,9,"#0d0d10",2); R(23,-50,12,9,"#0d0d10",2); R(-35,-43,12,2,"#3a3a42"); R(23,-43,12,2,"#3a3a42");
-    // legs in leathers, knees out
-    P([[-15,-70],[-6,-70],[-15,-54],[-25,-48],[-31,-52],[-24,-63]],leg); P([[15,-70],[6,-70],[15,-54],[25,-48],[31,-52],[24,-63]],leg);
-    P([[-14,-69],[-10,-69],[-21,-52],[-25,-54]],shade(leg,.18)); P([[14,-69],[10,-69],[21,-52],[25,-54]],shade(leg,-.3));
-    E(-27,-53,3.6,3,"#e8e4dc"); E(27,-53,3.6,3,"#e8e4dc");
-    // hips
-    R(-17,-76,34,9,shade(leg,-.2),4);
-    // jacket back
-    const jg=g.createLinearGradient(-24*u,0,24*u,0); jg.addColorStop(0,shade(jk,-.38)); jg.addColorStop(.3,jk); jg.addColorStop(.65,shade(jk,.14)); jg.addColorStop(1,shade(jk,-.45));
-    g.fillStyle=jg; g.beginPath(); g.moveTo(-16*u,-73*u); g.lineTo(16*u,-73*u); g.lineTo(23*u,-99*u); g.quadraticCurveTo(22*u,-108*u,11*u,-109*u); g.lineTo(-11*u,-109*u); g.quadraticCurveTo(-22*u,-108*u,-23*u,-99*u); g.closePath(); g.fill();
-    g.strokeStyle="rgba(0,0,0,.6)"; g.lineWidth=1.2*u; g.stroke();
-    // back protector hump and seams
-    g.fillStyle=shade(jk,-.16); g.beginPath(); g.ellipse(0,-92*u,12*u,15*u,0,0,7); g.fill();
-    g.fillStyle="rgba(255,255,255,.12)"; g.beginPath(); g.ellipse(-4*u,-97*u,4*u,7*u,-.2,0,7); g.fill();
-    R(-16,-77,32,3,shade(jk,-.45));
-    // racing number on the back
-    R(-8,-97,16,12,"#fff4e2",3); g.fillStyle="#1b1b22"; g.font=`bold ${8.5*u}px 'Racing Sans One','Arial Black',sans-serif`; g.textAlign="center"; g.textBaseline="middle"; g.fillText(String(o.num||"7"),0,-90.6*u);
-    // shoulder armour
-    E(-20,-104,7,6,shade(jk,.2)); E(20,-104,7,6,shade(jk,-.1));
-    // neck and helmet
-    R(-5,-114,10,7,"#141418");
-    const hg=g.createRadialGradient(-6*u,-128*u,2*u,0,-121*u,17*u); hg.addColorStop(0,shade(o.helmet,.5)); hg.addColorStop(.55,o.helmet); hg.addColorStop(1,shade(o.helmet,-.5));
-    g.fillStyle=hg; g.beginPath(); g.arc(0,-121*u,14.5*u,0,7); g.fill(); g.strokeStyle="#111"; g.lineWidth=1.3*u; g.stroke();
-    g.save(); g.beginPath(); g.arc(0,-121*u,14.5*u,0,7); g.clip(); R(-3,-137,6,32,o.jacket===o.helmet?"#fff":jk); R(-15,-112,30,3,"#141418"); g.restore();
-    P([[-6,-133],[6,-133],[4,-138],[-4,-138]],shade(o.helmet,-.3));
-    g.strokeStyle="rgba(255,255,255,.6)"; g.lineWidth=1.8*u; g.beginPath(); g.arc(0,-121*u,10.5*u,Math.PI*1.15,Math.PI*1.45); g.stroke();
+  return sprite("rd3"+o.jacket+o.helmet+(o.num||""),1.05,300,(g,u0)=>{
+    const u=u0*100/130, {P,R,E}=tools(g,u), jk=o.jacket, leg="#1d2436";
+    // boots on high rear-sets: we see heels and soles
+    R(-31,-58,10,11,"#0c0c0f",3); R(21,-58,10,11,"#0c0c0f",3); R(-31,-49,10,2.4,"#3a3a42",1); R(21,-49,10,2.4,"#3a3a42",1);
+    // shins rise forward to knees tucked against the tank
+    P([[-29,-57],[-22,-57],[-24,-74],[-31,-73]],leg); P([[22,-57],[29,-57],[31,-73],[24,-74]],shade(leg,-.2));
+    E(-29,-71,3.4,3,"#e8e4dc"); E(29,-71,3.4,3,"#e8e4dc");
+    // thighs back to the hips (foreshortened), seat of the leathers on the tail
+    P([[-30,-76],[-14,-74],[-16,-82],[-28,-82]],shade(leg,.1)); P([[30,-76],[14,-74],[16,-82],[28,-82]],shade(leg,-.12));
+    g.fillStyle=shade(leg,-.05); g.beginPath(); g.ellipse(0,-79*u,17*u,7*u,0,0,7); g.fill();
+    R(-16,-80,4,7,jk); R(12,-80,4,7,jk);
+    // leaned-forward back: short and wide from behind
+    const jg=g.createLinearGradient(-26*u,0,26*u,0); jg.addColorStop(0,shade(jk,-.4)); jg.addColorStop(.3,jk); jg.addColorStop(.62,shade(jk,.16)); jg.addColorStop(1,shade(jk,-.45));
+    g.fillStyle=jg; g.beginPath(); g.moveTo(-17*u,-82*u); g.lineTo(17*u,-82*u); g.quadraticCurveTo(26*u,-90*u,25*u,-99*u); g.quadraticCurveTo(14*u,-104*u,0,-104*u); g.quadraticCurveTo(-14*u,-104*u,-25*u,-99*u); g.quadraticCurveTo(-26*u,-90*u,-17*u,-82*u); g.closePath(); g.fill();
+    g.strokeStyle="rgba(0,0,0,.55)"; g.lineWidth=1.1*u; g.stroke();
+    R(-17,-85,34,2.4,shade(jk,-.45));
+    // helmet tucked low between the shoulders: lower half hidden behind the back hump
+    const hy=-105;
+    const hg=g.createRadialGradient(-5*u,(hy-7)*u,2*u,0,hy*u,15*u); hg.addColorStop(0,shade(o.helmet,.5)); hg.addColorStop(.55,o.helmet); hg.addColorStop(1,shade(o.helmet,-.5));
+    g.fillStyle=hg; g.beginPath(); g.ellipse(0,hy*u,13*u,12*u,0,0,7); g.fill(); g.strokeStyle="#111"; g.lineWidth=1.2*u; g.stroke();
+    g.save(); g.beginPath(); g.ellipse(0,hy*u,13*u,12*u,0,0,7); g.clip(); R(-2.6,hy-14,5.2,28,o.jacket===o.helmet?"#fff":jk); g.restore();
+    P([[-5,hy-10],[5,hy-10],[3,hy-14],[-3,hy-14]],shade(o.helmet,-.35));
+    g.strokeStyle="rgba(255,255,255,.65)"; g.lineWidth=1.7*u; g.beginPath(); g.ellipse(0,hy*u,9.5*u,8.5*u,0,Math.PI*1.12,Math.PI*1.45); g.stroke();
+    // back protector hump in front of the helmet's lower half, shoulders, number
+    g.fillStyle=shade(jk,-.14); g.beginPath(); g.ellipse(0,-94*u,13*u,10*u,0,0,7); g.fill();
+    g.fillStyle="rgba(255,255,255,.12)"; g.beginPath(); g.ellipse(-4*u,-97*u,4.5*u,4*u,-.2,0,7); g.fill();
+    E(-21,-98,7.5,5.5,shade(jk,.22)); E(21,-98,7.5,5.5,shade(jk,-.12));
+    R(-7.5,-94,15,10,"#fff4e2",3); g.fillStyle="#1b1b22"; g.font=`bold ${7.5*u}px 'Racing Sans One','Arial Black',sans-serif`; g.textAlign="center"; g.textBaseline="middle"; g.fillText(String(o.num||"7"),0,-88.6*u);
   });
 }
 function drawWeapon(c,type,u){ // drawn in hand space: hand at 0,0, weapon points along +x
@@ -1003,22 +1000,22 @@ function create(o){
     const bob=(opt.bob||0)*u, tk=(opt.tuck||0)*6*u;
     ctx.drawImage(B.c,-w/2,-h+bob*.3,w,h);
     if(opt.spin){ ctx.save(); rr(ctx,-11.5*u,-39.5*u,23*u,39*u,9*u); ctx.clip(); ctx.fillStyle="rgba(0,0,0,.5)"; const off=(tn*opt.spin*.03)%7; for(let i=-1;i<7;i++) ctx.fillRect(-11.5*u,(-39+i*7+off)*u,23*u,2*u); ctx.restore(); }
-    ctx.drawImage(RD.c,-w/2,-h+tk+bob,w,h);
+    const ho=Math.max(-.5,Math.min(.5,opt.lean||0))*22*u; ctx.drawImage(RD.c,-w/2+ho,-h+tk+bob,w,h);
     // arms: both hands on the clip-ons unless winding up or swinging
-    const sy=(-104*u)+tk+bob, grip=-83*u+bob*.3;
-    const arm=(sx,ex,ey,mx,my)=>{ ctx.lineCap="round"; ctx.lineJoin="round"; ctx.strokeStyle="#111"; ctx.lineWidth=9.5*u; ctx.beginPath(); ctx.moveTo(sx*u,sy); ctx.lineTo(mx,my); ctx.lineTo(ex,ey); ctx.stroke();
+    const sy=(-98*u)+tk+bob, grip=-90*u+bob*.3;
+    const arm=(sx,ex,ey,mx,my)=>{ ctx.lineCap="round"; ctx.lineJoin="round"; ctx.strokeStyle="#111"; ctx.lineWidth=9.5*u; ctx.beginPath(); ctx.moveTo(sx*u+ho,sy); ctx.lineTo(mx+ho*.5,my); ctx.lineTo(ex,ey); ctx.stroke();
       ctx.strokeStyle=ro.jacket; ctx.lineWidth=7*u; ctx.stroke(); ctx.fillStyle="#141418"; ctx.beginPath(); ctx.arc(ex,ey,4.6*u,0,7); ctx.fill(); };
     const sd=opt.sdir||1, sw=opt.swing||0, wu=opt.windup||0, wpn=opt.weapon||"paper";
     if(sw>0||wu>0){
       // free arm stays on the bar
-      arm(-sd*20,-sd*33*u,grip,-sd*31*u,sy+16*u);
+      arm(-sd*22,-sd*29*u,grip,-sd*29*u,sy+7*u);
       let hx,hy,ang;
       if(sw>0){ const k=sw; hx=sd*(16+k*48)*u; hy=sy+(-26+k*30)*u; ang=sd>0?(-1.9+k*2.1):(Math.PI+1.9-k*2.1); }
       else { hx=sd*(12-wu*2)*u; hy=sy-(18+wu*10)*u; ang=sd>0?(-2.2-wu*.4):(Math.PI+2.2+wu*.4); }
       arm(sd*20,hx,hy,sd*30*u,(sy+hy)/2-4*u);
       ctx.save(); ctx.translate(hx,hy); ctx.rotate(ang); drawWeapon(ctx,wpn,u); ctx.restore();
       if(sw>.2&&sw<.9){ ctx.strokeStyle="rgba(255,255,255,.55)"; ctx.lineWidth=3*u; ctx.beginPath(); ctx.arc(sd*10*u,sy-6*u,44*u,sd>0?-1.6:Math.PI-0.6,sd>0?-1.6+sw*1.2:Math.PI-0.6+sw*1.2); ctx.stroke(); }
-    } else { arm(-20,-33*u,grip,-31*u,sy+16*u); arm(20,33*u,grip,31*u,sy+16*u); }
+    } else { arm(-22,-29*u,grip,-29*u,sy+7*u); arm(22,29*u,grip,29*u,sy+7*u); }
     if(opt.nitro){ const fl=8+Math.random()*14; const fx=26*u, fy=-17*u; const fg=ctx.createLinearGradient(fx,fy,fx,fy+fl*1.8*u); fg.addColorStop(0,"#fff6c0"); fg.addColorStop(.4,"#ffb020"); fg.addColorStop(1,"rgba(255,80,20,0)");
       ctx.fillStyle=fg; ctx.beginPath(); ctx.moveTo(fx-6*u,fy); ctx.lineTo(fx+6*u,fy); ctx.lineTo(fx+1*u,fy+fl*1.8*u); ctx.fill(); }
     if(opt.shield>0){ const fl=opt.shieldFlash||0, a=.18+opt.shield*.12+fl*.5;
