@@ -10,8 +10,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Racing+Sans+One&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
-<link rel="stylesheet" href="assets/site.css">
-<link rel="stylesheet" href="assets/game.css">
+<link rel="stylesheet" href="assets/site.css?v=20261023b">
+<link rel="stylesheet" href="assets/game.css?v=20261023b">
 <style>
 /* Rash GP: same race view; the text card shows the three lane words of the next gantry, with what waits in each lane */
 .lanecard{display:flex;flex-direction:column;gap:10px;justify-content:center;min-height:150px}
@@ -192,8 +192,8 @@
   </div>
 </div>
 
-<script src="assets/game.js"></script>
-<script src="assets/board.js"></script>
+<script src="assets/game.js?v=20261023b"></script>
+<script src="assets/board.js?v=20261023b"></script>
 <script>
 (() => {
 const RR = window.ReadRash, $ = id => document.getElementById(id);
@@ -228,7 +228,7 @@ $("demoBtn").onclick = async () => { RR.Sound.wake(); demo = true; setModeChip()
 if (RR.IN_VIEWER) $("gateMsg").textContent = "ReadRash runs on your voice, and microphones are switched off in this preview. On readrash.com in Chrome or Edge, you'll allow the mic and race with your voice.";
 
 /* ---- mic check: READY once, then GO ---- */
-const GO = new Set(["go","goes","gone","goal","gold","ko","goh","gooo","goo"]);
+const GO = new Set(["go","goes","gone","goal","gold","ko","goh","gooo","goo","lets","letsgo","start","race","ride"]);
 let micStage = "ready";
 function startMic(){
   ctl.setAutopilot(false); show("micScreen"); $("micErr").hidden = true; $("micHeard").textContent = "";
@@ -236,14 +236,14 @@ function startMic(){
   RR.Voice.onDenied = () => { $("micErr").hidden = false; $("micErr").textContent = "Microphone is blocked. Click the lock icon next to the address, allow the microphone, then try again."; $("micLabel").textContent = "No microphone"; };
   RR.Voice.start(micHandler);
 }
-function paintMic(){ $("micStep").textContent = micStage === "ready" ? "Mic check" : `Rash GP · ${laps} laps`; $("sayWord").innerHTML = micStage === "ready" ? "Say <span>READY</span>" : "Say <span>GO!</span>"; }
+function paintMic(){ $("micStep").textContent = micStage === "ready" ? "Mic check" : `Rash GP · ${laps} laps`; $("sayWord").innerHTML = micStage === "ready" ? "Say <span>READY</span>" : "Say <span>LET'S GO!</span>"; }
 function micHandler(e){
   if (e.reset) return;
   let txt = ""; for (let r = e.resultIndex; r < e.results.length; r++) txt += " " + e.results[r][0].transcript;
   txt = txt.trim(); if (!txt) return; $("micHeard").textContent = "Heard: " + txt;
   const toks = txt.split(/\s+/).map(RR.norm).filter(Boolean);
-  if (micStage === "ready" && toks.some(t => RR.sim(t, "ready") >= .6 || t.startsWith("read") || t === "reddy")) { micStage = "go"; firstGo = false; paintMic(); $("micHeard").textContent = "Mic works! Now say GO."; RR.Sound.tone(660,.12,"square",.05); return; }
-  if (micStage === "go" && toks.some(t => GO.has(t))) { micStage = "off"; show(null); $("quitBtn").hidden = false; ctl.listen(); ctl.countdown(); }
+  if (micStage === "ready" && toks.some(t => RR.sim(t, "ready") >= .6 || t.startsWith("read") || t === "reddy")) { micStage = "go"; firstGo = false; paintMic(); $("micHeard").textContent = "Mic works! Now say LET'S GO."; RR.Sound.tone(660,.12,"square",.05); return; }
+  if (micStage === "go" && toks.some(t => GO.has(t) || (t.length <= 4 && "gk".includes(t[0]) && RR.sim(t, "go") >= .5))) { micStage = "off"; show(null); $("quitBtn").hidden = false; ctl.listen(); ctl.countdown(); }
 }
 $("micBack").onclick = () => { RR.Voice.stop(); show("pickScreen"); renderPick(); };
 

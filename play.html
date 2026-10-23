@@ -9,8 +9,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Racing+Sans+One&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
-<link rel="stylesheet" href="assets/site.css">
-<link rel="stylesheet" href="assets/game.css">
+<link rel="stylesheet" href="assets/site.css?v=20261023b">
+<link rel="stylesheet" href="assets/game.css?v=20261023b">
 </head>
 <body>
 <header class="nav gut">
@@ -144,8 +144,8 @@
   </div>
 </div>
 
-<script src="assets/game.js"></script>
-<script src="assets/board.js"></script>
+<script src="assets/game.js?v=20261023b"></script>
+<script src="assets/board.js?v=20261023b"></script>
 <script>
 (() => {
 const RR = window.ReadRash, $ = id => document.getElementById(id);
@@ -186,7 +186,7 @@ if (RR.IN_VIEWER) $("gateMsg").textContent = "ReadRash runs on your voice, and m
 function raceLabel(){ $("raceChip").textContent = `${RR.LEAGUES[league].name} · ${RR.RACES[race].t}`; }
 
 /* ---- mic check: say READY (first time), then say GO ---- */
-const GO = new Set(["go","goes","gone","goal","gold","ko","goh","gooo","goo","ghost","coat"]);
+const GO = new Set(["go","goes","gone","goal","gold","ko","goh","gooo","goo","lets","letsgo","start","race","ride"]);
 let micStage = "ready";
 function startMic(){
   ctl.setAutopilot(false); ctl.load(league, race); raceLabel();
@@ -197,7 +197,7 @@ function startMic(){
 }
 function paintMic(){
   $("micStep").textContent = micStage === "ready" ? "Mic check" : `${RR.LEAGUES[league].name} · ${RR.RACES[race].t}`;
-  $("sayWord").innerHTML = micStage === "ready" ? "Say <span>READY</span>" : "Say <span>GO!</span>";
+  $("sayWord").innerHTML = micStage === "ready" ? "Say <span>READY</span>" : "Say <span>LET'S GO!</span>";
 }
 function micHandler(e){
   if (e.reset) return;
@@ -206,10 +206,10 @@ function micHandler(e){
   $("micHeard").textContent = "Heard: " + txt;
   const toks = txt.split(/\s+/).map(RR.norm).filter(Boolean);
   if (micStage === "ready" && toks.some(t => RR.sim(t, "ready") >= .6 || t.startsWith("read") || t === "redi" || t === "reddy")) {
-    micStage = "go"; firstGo = false; paintMic(); $("micHeard").textContent = "Mic works! Now say GO.";
+    micStage = "go"; firstGo = false; paintMic(); $("micHeard").textContent = "Mic works! Now say LET'S GO.";
     RR.Sound.tone(660, .12, "square", .05); return;
   }
-  if (micStage === "go" && toks.some(t => GO.has(t))) {
+  if (micStage === "go" && toks.some(t => GO.has(t) || (t.length <= 4 && "gk".includes(t[0]) && RR.sim(t, "go") >= .5))) {
     micStage = "off"; show(null); $("quitBtn").hidden = false;
     ctl.listen(); ctl.countdown();
   }
