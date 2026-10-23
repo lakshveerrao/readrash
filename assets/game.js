@@ -190,9 +190,10 @@ function riderOnly(o,look=0){
     R(-7.5,-94,15,10,"#fff4e2",3); g.fillStyle="#1b1b22"; g.font=`bold ${7.5*u}px 'Racing Sans One','Arial Black',sans-serif`; g.textAlign="center"; g.textBaseline="middle"; g.fillText(String(o.num||"7"),0,-88.6*u);
   });
 }
-// ---- painted rider sprites: 4 base kits x 7 frames (0 upright, 1 tuck, 2 lean right, 3 lean left, 4 arm out right, 5 crashed bike, 6 rider body)
-const RIDER_META={"orange":[{"x":0,"y":0,"w":217,"h":360,"ax":106.7,"ay":360.0},{"x":219,"y":0,"w":190,"h":308,"ax":89.0,"ay":308.0},{"x":411,"y":0,"w":242,"h":323,"ax":62.9,"ay":323.0},{"x":655,"y":0,"w":228,"h":323,"ax":154.6,"ay":323.0},{"x":885,"y":0,"w":321,"h":360,"ax":105.8,"ay":360.0,"hx":320,"hy":67},{"x":1208,"y":0,"w":268,"h":196,"ax":134.0,"ay":196.0},{"x":1478,"y":0,"w":148,"h":133,"ax":74.0,"ay":106.4}],"teal":[{"x":0,"y":0,"w":218,"h":360,"ax":103.7,"ay":360.0},{"x":220,"y":0,"w":203,"h":314,"ax":95.0,"ay":314.0},{"x":425,"y":0,"w":233,"h":304,"ax":61.7,"ay":304.0},{"x":660,"y":0,"w":233,"h":305,"ax":161.5,"ay":305.0},{"x":895,"y":0,"w":300,"h":363,"ax":99.7,"ay":363.0,"hx":299,"hy":91},{"x":1197,"y":0,"w":289,"h":163,"ax":144.5,"ay":163.0},{"x":1488,"y":0,"w":149,"h":133,"ax":74.5,"ay":106.4}],"blue":[{"x":0,"y":0,"w":211,"h":360,"ax":103.8,"ay":360.0},{"x":213,"y":0,"w":213,"h":317,"ax":104.3,"ay":317.0},{"x":428,"y":0,"w":228,"h":309,"ax":66.8,"ay":309.0},{"x":658,"y":0,"w":221,"h":309,"ax":143.0,"ay":309.0},{"x":881,"y":0,"w":290,"h":360,"ax":104.5,"ay":360.0,"hx":289,"hy":100},{"x":1173,"y":0,"w":298,"h":183,"ax":149.0,"ay":183.0},{"x":1473,"y":0,"w":144,"h":133,"ax":72.0,"ay":106.4}],"red":[{"x":0,"y":0,"w":218,"h":360,"ax":107.8,"ay":360.0},{"x":220,"y":0,"w":189,"h":308,"ax":92.8,"ay":308.0},{"x":411,"y":0,"w":263,"h":319,"ax":74.7,"ay":319.0},{"x":676,"y":0,"w":239,"h":319,"ax":162.2,"ay":319.0},{"x":917,"y":0,"w":325,"h":360,"ax":106.9,"ay":360.0,"hx":324,"hy":70},{"x":1244,"y":0,"w":299,"h":207,"ax":149.5,"ay":207.0},{"x":1545,"y":0,"w":149,"h":133,"ax":74.5,"ay":106.4}]};
-const RIDER_V="20261024b", RIDER_IMG={}, SKIN_CACHE={};
+// ---- painted rider sprites, 4 base kits. Frames: 0 upright, 1 tuck, 2 lean right, 3 lean left, 4 arm out right, 5 crashed bike, 6 (unused body crop),
+//      7 look left, 8 look right, 9 rider tumbling, 10 rider sliding, 11 arm out left, 12 fist pump
+const RIDER_META={"orange":[{"x":0,"y":0,"w":217,"h":360,"ax":106.7,"ay":360.0},{"x":219,"y":0,"w":190,"h":308,"ax":89.0,"ay":308.0},{"x":411,"y":0,"w":242,"h":323,"ax":62.9,"ay":323.0},{"x":655,"y":0,"w":228,"h":323,"ax":154.6,"ay":323.0},{"x":885,"y":0,"w":321,"h":360,"ax":105.8,"ay":360.0,"hx":320,"hy":67},{"x":1208,"y":0,"w":268,"h":196,"ax":134.0,"ay":196.0},{"x":1478,"y":0,"w":148,"h":133,"ax":74.0,"ay":106.4},{"x":1628,"y":0,"w":213,"h":360,"ax":104.4,"ay":360.0},{"x":1843,"y":0,"w":190,"h":360,"ax":87.1,"ay":360.0},{"x":2035,"y":0,"w":311,"h":296,"ax":155.5,"ay":183.5},{"x":2348,"y":0,"w":248,"h":178,"ax":124.0,"ay":160.2},{"x":2598,"y":0,"w":285,"h":344,"ax":182.7,"ay":344.0,"hx":0,"hy":37},{"x":2885,"y":0,"w":190,"h":392,"ax":97.7,"ay":392.0}],"teal":[{"x":0,"y":0,"w":218,"h":360,"ax":103.7,"ay":360.0},{"x":220,"y":0,"w":203,"h":314,"ax":95.0,"ay":314.0},{"x":425,"y":0,"w":233,"h":304,"ax":61.7,"ay":304.0},{"x":660,"y":0,"w":233,"h":305,"ax":161.5,"ay":305.0},{"x":895,"y":0,"w":300,"h":363,"ax":99.7,"ay":363.0,"hx":299,"hy":91},{"x":1197,"y":0,"w":289,"h":163,"ax":144.5,"ay":163.0},{"x":1488,"y":0,"w":149,"h":133,"ax":74.5,"ay":106.4},{"x":1639,"y":0,"w":211,"h":360,"ax":101.2,"ay":360.0},{"x":1852,"y":0,"w":208,"h":359,"ax":97.8,"ay":359.0},{"x":2062,"y":0,"w":298,"h":288,"ax":149.0,"ay":178.6},{"x":2362,"y":0,"w":253,"h":208,"ax":126.5,"ay":187.2},{"x":2617,"y":0,"w":287,"h":352,"ax":179.2,"ay":352.0,"hx":0,"hy":64},{"x":2906,"y":0,"w":206,"h":406,"ax":100.8,"ay":406.0}],"blue":[{"x":0,"y":0,"w":211,"h":360,"ax":103.8,"ay":360.0},{"x":213,"y":0,"w":213,"h":317,"ax":104.3,"ay":317.0},{"x":428,"y":0,"w":228,"h":309,"ax":66.8,"ay":309.0},{"x":658,"y":0,"w":221,"h":309,"ax":143.0,"ay":309.0},{"x":881,"y":0,"w":290,"h":360,"ax":104.5,"ay":360.0,"hx":289,"hy":100},{"x":1173,"y":0,"w":298,"h":183,"ax":149.0,"ay":183.0},{"x":1473,"y":0,"w":144,"h":133,"ax":72.0,"ay":106.4},{"x":1619,"y":0,"w":211,"h":360,"ax":104.0,"ay":360.0},{"x":1832,"y":0,"w":209,"h":360,"ax":101.7,"ay":360.0},{"x":2043,"y":0,"w":294,"h":314,"ax":147.0,"ay":194.7},{"x":2339,"y":0,"w":285,"h":192,"ax":142.5,"ay":172.8},{"x":2626,"y":0,"w":294,"h":358,"ax":188.9,"ay":358.0,"hx":0,"hy":57},{"x":2922,"y":0,"w":206,"h":400,"ax":103.0,"ay":400.0}],"red":[{"x":0,"y":0,"w":218,"h":360,"ax":107.8,"ay":360.0},{"x":220,"y":0,"w":189,"h":308,"ax":92.8,"ay":308.0},{"x":411,"y":0,"w":263,"h":319,"ax":74.7,"ay":319.0},{"x":676,"y":0,"w":239,"h":319,"ax":162.2,"ay":319.0},{"x":917,"y":0,"w":325,"h":360,"ax":106.9,"ay":360.0,"hx":324,"hy":70},{"x":1244,"y":0,"w":299,"h":207,"ax":149.5,"ay":207.0},{"x":1545,"y":0,"w":149,"h":133,"ax":74.5,"ay":106.4},{"x":1696,"y":0,"w":217,"h":360,"ax":106.9,"ay":360.0},{"x":1915,"y":0,"w":212,"h":359,"ax":103.1,"ay":359.0},{"x":2129,"y":0,"w":331,"h":330,"ax":165.5,"ay":204.6},{"x":2462,"y":0,"w":282,"h":211,"ax":141.0,"ay":189.9},{"x":2746,"y":0,"w":297,"h":357,"ax":185.1,"ay":357.0,"hx":0,"hy":55},{"x":3045,"y":0,"w":209,"h":415,"ax":102.9,"ay":415.0}]};
+const RIDER_V="20261024c", RIDER_IMG={}, SKIN_CACHE={};
 const SKINS={ME:["orange",0,1],ZIPPY:["blue",-18,1],TARA:["blue",110,1],BABLU:["teal",-45,1],MEENA:["blue",40,1],CHOTU:["teal",-145,1],
   RAJU:["teal",0,1],PINKY:["teal",145,1],SONU:["blue",0,1],GUDDU:["teal",-95,1],BUNTY:["red",0,1],MOTU:["blue",0,.18]};
 function skinFor(ro){ if(ro===ME||ro.me) return SKINS.ME; if(ro.skin) return ro.skin; return SKINS[ro.name]||["blue",0,.18]; }
@@ -986,7 +987,7 @@ function create(o){
             rv._sx=xx; rv._sy=Y-h*.6;
             const isTarget=rv===atkTarget&&rv.atkWord&&phase==="race";
             drawRider(xx,Y,h,rv.kit,rot,{name:rv.name,lean:rv.lean||0,word:isTarget?rv.atkWord:null,wordColor:P.weapon.type==="coconut"?"#a0632d":"#ff6a1a",swing,sdir,windup,weapon:rv.weapon,
-              spin:Math.min(2.4,rv.v/VREF*2),tuck:Math.min(1,rv.v/VREF*.9),bob:Math.sin(performance.now()/40+rv.ph)*1.2,down,shield:0,look:(rv.hunt||rv.attack)&&!windup?(Math.sign(P.x-rv.x)||0):0});
+              spin:Math.min(2.4,rv.v/VREF*2),tuck:Math.min(1,rv.v/VREF*.9),bob:Math.sin(performance.now()/40+rv.ph)*1.2,down,shield:0,fist:rv.finishT!=null&&now-rv.finishT<3000&&rivals.filter(o=>o.finishT!=null&&o.finishT<rv.finishT).length+(finishT!=null&&finishT<rv.finishT?1:0)<3,look:(rv.hunt||rv.attack)&&!windup?(Math.sign(P.x-rv.x)||0):0});
             if(rv.say&&!isTarget&&!windup&&h>(W<600?40:26)) bubble(xx,Y-h*1.32,rv.say,h); } }
         else if(d.t==="rider"){ const r=d.r; let xo=r.x, rot=0; const kt=now-r.knockT;
           if(kt<1000){ const k=Math.sin(kt/1000*Math.PI/2); xo=r.x+k*.24*r.knockDir; rot=k*1.25*r.knockDir; }
@@ -1077,17 +1078,20 @@ function create(o){
     const sd=opt.sdir||1, sw=opt.swing||0, wu=opt.windup||0, ln=(opt.lean||0)+rot;
     let fi=0, r2=rot+(opt.lean||0), flip=false;
     if(Math.abs(rot)>.8){ fi=5; r2=0; }
-    else if(sw>0||wu>0){ fi=4; flip=sd<0; }
+    else if(sw>0||wu>0){ fi=sd<0?11:4; }
+    else if(opt.fist){ fi=12; r2=0; }
     else if(ln>.1){ fi=2; r2=ln-.28; } else if(ln<-.1){ fi=3; r2=ln+.28; }
+    else if(opt.look) fi=opt.look<0?7:8;
     else if((opt.tuck||0)>.55) fi=1;
-    r2=Math.max(-.25,Math.min(.25,r2)); if(fi===0||fi===1||fi===4) r2=Math.max(-.12,Math.min(.12,r2));
+    r2=Math.max(-.25,Math.min(.25,r2)); if(fi<2||fi>3) r2=Math.max(-.12,Math.min(.12,r2));
     const f=M[fi];
     ctx.save(); ctx.translate(x,y); ctx.rotate(r2);
     ctx.save(); if(flip) ctx.scale(-1,1); blit(SC,f,sc,bob);
-    if(fi===4){ const hx=(f.hx-f.ax)*sc, hy=(f.hy-f.ay)*sc+bob, wpn=opt.weapon||"paper";
+    if(fi===4||fi===11){ const m=fi===4?1:-1, hx=(f.hx-f.ax)*sc, hy=(f.hy-f.ay)*sc+bob, wpn=opt.weapon||"paper";
       const ang=sw>0?(-1.9+sw*2.3):(-1.5-wu*.9);
-      ctx.save(); ctx.translate(hx-4*u,hy+2*u); ctx.rotate(ang); drawWeapon(ctx,wpn,u*1.15); ctx.restore();
-      if(sw>.2&&sw<.9){ ctx.strokeStyle="rgba(255,255,255,.6)"; ctx.lineWidth=3*u; ctx.beginPath(); ctx.arc(hx,hy,40*u,-1.9+sw*1.2,-1.9+sw*2.3); ctx.stroke(); } }
+      ctx.save(); ctx.translate(hx-m*4*u,hy+2*u); ctx.scale(m,1); ctx.rotate(ang); drawWeapon(ctx,wpn,u*1.15);
+      if(sw>.2&&sw<.9){ ctx.rotate(-ang); ctx.strokeStyle="rgba(255,255,255,.6)"; ctx.lineWidth=3*u; ctx.beginPath(); ctx.arc(0,0,40*u,-1.9+sw*1.2,-1.9+sw*2.3); ctx.stroke(); }
+      ctx.restore(); }
     ctx.restore();
     if(opt.nitro&&fi<2){ const fl=10+Math.random()*16, fx=19*u, fy=-40*u+bob; const fg=ctx.createRadialGradient(fx,fy,1,fx,fy,fl*u);
       fg.addColorStop(0,"rgba(255,250,210,.95)"); fg.addColorStop(.35,"rgba(255,170,40,.75)"); fg.addColorStop(1,"rgba(255,80,20,0)");
@@ -1098,9 +1102,10 @@ function create(o){
     const M=RIDER_META[base], u=h/130, sc=125*u/360, k=Math.max(0,Math.min(1,d.k)), dir=d.dir||1, tn=performance.now();
     if(k<.62){ const e=k/.62, bx=dir*(e*34)*u;
       ctx.save(); ctx.translate(x+bx,y); if(dir<0) ctx.scale(-1,1); blit(SC,M[5],sc*.95); ctx.restore();
-      const rx=dir*(30+e*100)*u, ry=-Math.sin(Math.min(1,e*1.4)*Math.PI)*40*u;
-      ctx.save(); ctx.translate(x+bx+rx,y+ry-18*u); ctx.rotate(dir*e*7); blit(SC,M[6],sc*.9); ctx.restore();
-      if(k<.5){ ctx.fillStyle="#ffd23f"; ctx.font=`${Math.max(10,16*u)}px sans-serif`; ctx.textAlign="center"; ctx.fillText("★ ★",x+bx+rx,y+ry-70*u); } }
+      const air=Math.min(1,e/.55), rx=dir*(30+(1-Math.pow(1-e,2))*110)*u;
+      if(e<.55){ const ry=-Math.sin(air*Math.PI)*46*u; ctx.save(); ctx.translate(x+bx+rx,y+ry-30*u); ctx.rotate(dir*(air*2.2-.4)); if(dir<0) ctx.scale(-1,1); blit(SC,M[9],sc*.85); ctx.restore(); }
+      else { ctx.save(); ctx.translate(x+bx+rx,y); ctx.rotate(dir*.08*Math.sin(tn/50)); blit(SC,M[10],sc*.85); ctx.restore(); }
+      if(k<.5){ ctx.fillStyle="#ffd23f"; ctx.font=`${Math.max(10,16*u)}px sans-serif`; ctx.textAlign="center"; ctx.fillText("★ ★",x+bx+rx,y-90*u); } }
     else { ctx.save(); ctx.globalAlpha=Math.floor(tn/90)%2?.35:1; ctx.translate(x,y); blit(SC,M[0],sc); ctx.restore(); } }
   // crash: the bike slides on its side, the rider tumbles away, then runs back and remounts
   function drawDown(x,y,h,ro,d){
@@ -1122,7 +1127,7 @@ function create(o){
     const down=P.state==="down"?{k:(now-P.downT)/2000,dir:P.downDir||1}:null;
     if(down&&down.k<.45&&Math.random()<.6) sparks(1,x+(P.downDir||1)*20,H-8);
     drawRider(x,y,h,ME,rot,{nitro:P.boostUntil>now&&phase==="race",swing,sdir:P.swipeDir,weapon:gp?P.weapon.type:"paper",
-      shield:gp&&phase==="race"?P.shield:0,shieldFlash:Math.max(0,1-(now-(P.shieldFlashT||-9999))/380),look:gp&&P.lookUntil>now&&!swing&&P.state==="ride"?P.lookDir:0,tuck:Math.min(1,sp*.9),spin:phase==="idle"||phase==="countdown"?0:sp*2,bob:P.bob||0,down});
+      shield:gp&&phase==="race"?P.shield:0,shieldFlash:Math.max(0,1-(now-(P.shieldFlashT||-9999))/380),look:gp&&P.lookUntil>now&&!swing&&P.state==="ride"?P.lookDir:0,fist:finishT!=null&&now-finishT<3500&&(gp?gpPlace():placeOf())<=3,tuck:Math.min(1,sp*.9),spin:phase==="idle"||phase==="countdown"?0:sp*2,bob:P.bob||0,down});
     if(P.state==="crash"){ ctx.fillStyle="#ffd23f"; ctx.font="22px sans-serif"; ctx.textAlign="center"; ctx.fillText("★  ★",x+Math.sin(now/120)*10,y-h*.9); }
     if(P.copUntil>now&&phase==="race"){ const cx=W*.84, ch=h*.95;
       drawRider(cx,H-6,ch,{jacket:"#26355a",helmet:"#fff4e2",paint:"#fff4e2"},Math.sin(now/200)*.05,{});
