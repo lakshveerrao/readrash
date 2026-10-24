@@ -22,8 +22,8 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preload" href="assets/fonts/racing-sans-one.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/site.css?v=20261024s">
-<link rel="stylesheet" href="assets/game.css?v=20261024s">
+<link rel="stylesheet" href="assets/site.css?v=20261024u">
+<link rel="stylesheet" href="assets/game.css?v=20261024u">
 <style>
 /* Rash GP: same race view; the text card shows the three lane words of the next gantry, with what waits in each lane */
 .lanecard{display:flex;flex-direction:column;gap:10px;justify-content:center;min-height:150px}
@@ -72,6 +72,25 @@
 .standings .g{font-size:10px;letter-spacing:.06em;text-transform:uppercase;background:#d6f3f7;border-radius:5px;padding:1px 5px;margin-left:4px;font-family:var(--read);font-style:normal}
 @media (max-width:520px){.standings{grid-template-columns:1fr}.pick{grid-template-columns:1fr 1fr 1fr}.choice small{display:none}}
 .readshield{display:flex;flex-direction:column;gap:4px;background:#e3f7fa;border:2px solid #3ec1d3;border-radius:14px;padding:10px 14px;color:var(--ink)}.readshield b{color:#11606b}.readshield em{font-style:normal;font-weight:700;color:#11606b}.readshield .tip{font-size:14px;color:#3f5f64}
+.facecam{position:absolute;left:12px;bottom:12px;width:clamp(78px,15%,168px);aspect-ratio:1;border-radius:50%;overflow:hidden;border:4px solid var(--heat);box-shadow:0 6px 18px rgba(0,0,0,.45);z-index:3;background:#1b1b22;transition:border-color .2s,box-shadow .2s}
+.facecam video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1);display:block}
+.facecam .visor{position:absolute;inset:0;width:100%;height:100%;display:none}.facecam.helmet .visor{display:block}
+.facecam.good{border-color:#7ff0ff;box-shadow:0 0 0 4px rgba(127,240,255,.35),0 0 28px rgba(127,240,255,.8)}
+.facecam.nitro{border-color:var(--sun);box-shadow:0 0 0 4px rgba(255,210,63,.35),0 0 30px rgba(255,170,40,.9)}
+.facecam.bad{border-color:var(--bad);animation:fcShake .35s}
+@keyframes fcShake{20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
+.chip.rec{background:#2a1416;color:#ff8a7a;font-weight:700;display:inline-flex;align-items:center;gap:6px}.chip.rec i{width:9px;height:9px;border-radius:50%;background:#ff3b3b;animation:pulse 1s infinite}
+.extras{display:flex;flex-direction:column;gap:8px;border-top:2px dashed #e6dccb;padding-top:12px}
+.ex{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.ex span{display:flex;flex-direction:column}.ex b{font-family:var(--display);font-style:italic;font-weight:400;font-size:19px}.ex small{color:#6b6476;font-size:13px}
+.seg{display:inline-flex;border:3px solid var(--ink);border-radius:12px;overflow:hidden;flex:none}
+.seg button{font:inherit;font-weight:700;font-size:14px;border:none;background:#fff;color:var(--ink);padding:6px 11px;cursor:pointer}
+.seg button+button{border-left:2px solid var(--ink)}.seg button[aria-pressed="true"]{background:var(--sun)}
+.tog{width:54px;height:30px;border-radius:999px;border:3px solid var(--ink);background:#e6dccb;position:relative;cursor:pointer;flex:none;padding:0}
+.tog i{position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;border:2px solid var(--ink);transition:left .15s}
+.tog[aria-checked="true"]{background:#ff6a1a}.tog[aria-checked="true"] i{left:26px}
+.clipbox{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#1b1b22;color:var(--chalk);border-radius:14px;padding:10px 14px}.clipbox b{flex:1;font-family:var(--display);font-style:italic;font-weight:400;font-size:20px}
+@media (max-width:520px){.ex small{display:none}.seg button{padding:6px 8px}.facecam{bottom:46px;left:8px}}
 </style>
 </head>
 <body>
@@ -97,6 +116,7 @@
     </div>
     <div class="left">
       <button class="chip" id="sndBtn" aria-pressed="true">Sound on</button>
+      <span class="chip rec" id="recChip" hidden><i></i>REC</span>
       <button class="chip exit" id="quitBtn" hidden>✕ Exit race</button>
     </div>
   </div>
@@ -104,6 +124,7 @@
   <div class="stage">
     <canvas id="road" aria-label="Rash GP race view: twelve riders on a lap circuit with word signs over the road"></canvas>
     <div class="pop" id="pop"></div>
+    <div class="facecam" id="faceCam" hidden><video id="faceVid" muted playsinline></video><svg class="visor" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="vz" x1="0" y1="0" x2="1" y2=".4"><stop offset="0" stop-color="#141e30" stop-opacity=".93"/><stop offset=".6" stop-color="#28466e" stop-opacity=".9"/><stop offset="1" stop-color="#141e30" stop-opacity=".93"/></linearGradient></defs><rect x="0" y="0" width="100" height="15" fill="#ffd23f"/><path d="M0 19 Q50 11 100 19 L100 51 Q50 59 0 51 Z" fill="url(#vz)"/><path d="M20 29 Q45 24 57 27" stroke="rgba(255,255,255,.45)" stroke-width="3" fill="none"/></svg></div>
   </div>
 
   <div class="dash">
@@ -158,6 +179,10 @@
       <button class="choice" data-laps="2" aria-pressed="false"><b>2 laps</b><small>Quick · 20 signs</small></button>
       <button class="choice" data-laps="3" aria-pressed="true"><b>3 laps</b><small>Classic · 30 signs</small></button>
       <button class="choice" data-laps="5" aria-pressed="false"><b>5 laps</b><small>Endurance · 50 signs</small></button>
+    </div>
+    <div class="extras">
+      <div class="ex"><span><b>Face cam</b><small>See yourself ride. Stays on your device.</small></span><div class="seg" id="camPick"><button data-c="off">Off</button><button data-c="on">On</button><button data-c="helmet">Helmet</button></div></div>
+      <div class="ex"><span><b>Record my race</b><small>Saves a clip on your device to share.</small></span><button class="tog" id="recTog" role="switch" aria-checked="false"><i></i></button></div>
     </div>
     <div class="who"><span>Riding as <b id="whoName"></b></span><button class="linkbtn" id="reroll">New name</button></div>
     <button class="btn" id="rideBtn">Line up</button>
@@ -215,6 +240,7 @@
     <a class="x" href="index.html" aria-label="Close and go home">✕</a>
     <h2 id="endTitle"></h2>
     <div class="duel" id="duelTxt" hidden></div>
+    <div class="clipbox" id="clipBox" hidden><b id="clipHead">Making your clip…</b><button class="btn sm" id="clipBtn" disabled>Save clip</button><span class="note" id="clipMsg" style="color:#6b6476"></span></div>
     <div class="row" style="gap:10px"><button class="btn" id="chalBtn" hidden>Challenge a friend to beat this</button><button class="btn sm ghost" id="cardBtn" hidden>Share picture</button></div>
     <div class="sharebox" id="shareBox" hidden>
       <b id="shareHead">Send it to a friend</b>
@@ -246,8 +272,8 @@
   </div>
 </div>
 
-<script src="assets/game.js?v=20261024s"></script>
-<script src="assets/board.js?v=20261024s"></script>
+<script src="assets/game.js?v=20261024u"></script>
+<script src="assets/board.js?v=20261024u"></script>
 <script>
 (() => {
 const RR = window.ReadRash, $ = id => document.getElementById(id);
@@ -278,7 +304,21 @@ function renderPick(){
 $("lgPick").querySelectorAll(".choice").forEach(b => b.onclick = () => { league = b.dataset.lg; RR.Store.set("league", league); renderPick(); ctl.loadGP(league, laps, []); label(); });
 $("lapPick").querySelectorAll(".choice").forEach(b => b.onclick = () => { laps = +b.dataset.laps; RR.Store.set("gpLaps", laps); renderPick(); ctl.loadGP(league, laps, []); label(); });
 $("reroll").onclick = () => { RR.Store.set("name", RR.randomName()); renderPick(); };
-$("rideBtn").onclick = async () => { RR.Sound.wake(); if (!RR.VOICE_OK) { show("gateScreen"); return; } demo = false; setModeChip(); await prepare(); startMic(); };
+/* ---- face cam + record my race (both optional, both stay on the device) ---- */
+let camMode = RR.Store.get("faceCam", "off"); if (!["off","on","helmet"].includes(camMode)) camMode = "off";
+let recOn = !!RR.Store.get("recRace", false) && RR.Recorder.ok();
+if (!RR.Recorder.ok()) $("recTog").closest(".ex").hidden = true;
+if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || RR.IN_VIEWER) $("camPick").closest(".ex").hidden = true;
+function paintExtras(){ $("camPick").querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.c === camMode))); $("recTog").setAttribute("aria-checked", String(recOn)); }
+$("camPick").querySelectorAll("button").forEach(b => b.onclick = () => { camMode = b.dataset.c; RR.Store.set("faceCam", camMode); paintExtras(); if (camMode === "off") { RR.FaceCam.stop(); $("faceCam").hidden = true; } });
+$("recTog").onclick = () => { recOn = !recOn; RR.Store.set("recRace", recOn); paintExtras(); };
+async function camUp(){ if (camMode === "off" || demo) { $("faceCam").hidden = true; return; }
+  const r = await RR.FaceCam.start($("faceVid"), camMode); $("faceCam").hidden = r !== "ok"; $("faceCam").classList.toggle("helmet", camMode === "helmet"); }
+let fxT = 0; ctl.on("pop", t => { const el = $("faceCam"); if (el.hidden) return; const cls = /NITRO|SLINGSHOT/.test(t) ? "nitro" : /KNOCKOUT|SHOCKED|ZAPPED|BLOCKED|LAP|FINISH/.test(t) ? "good" : /WRONG|HIT!|CRASH|SPLAT|OUCH/.test(t) ? "bad" : "";
+  if (!cls) return; el.classList.remove("good","nitro","bad"); void el.offsetWidth; el.classList.add(cls); clearTimeout(fxT); fxT = setTimeout(() => el.classList.remove(cls), 900); });
+function recStart(){ if (!recOn || demo || RR.Recorder.rec) return; RR.Recorder.start(ctl, $("road"), { face: camMode !== "off", voice: true }).then(() => { $("recChip").hidden = !RR.Recorder.rec; }).catch(() => {}); }
+paintExtras();
+$("rideBtn").onclick = async () => { RR.Sound.wake(); if (!RR.VOICE_OK) { show("gateScreen"); return; } demo = false; setModeChip(); await prepare(); camUp(); startMic(); };
 $("gateBack").onclick = () => show(made ? "raceScreen" : "pickScreen");
 $("demoBtn").onclick = async () => { RR.Sound.wake(); demo = true; setModeChip(); await prepare(); ctl.setAutopilot(true, RR.LEAGUES[league].demo); show(null); $("quitBtn").hidden = false; ctl.countdown(); };
 if (RR.IN_VIEWER) $("gateMsg").textContent = "ReadRash runs on your voice, and microphones are switched off in this preview. On readrash.com in Chrome or Edge, you'll allow the mic and race with your voice.";
@@ -299,7 +339,7 @@ function micHandler(e){
   let txt = ""; for (let r = e.resultIndex; r < e.results.length; r++) txt += " " + e.results[r][0].transcript;
   txt = txt.trim(); if (!txt) return; heardAny = true; $("micHeard").textContent = "Heard: " + txt;
   const toks = txt.split(/\s+/).map(RR.norm).filter(Boolean);
-  if (micStage === "go" && (toks.join("").includes("letsgo") || toks.some(t => GO.has(t) || RR.sim(t, "ready") >= .7 || (t.length <= 4 && "gk".includes(t[0]) && RR.sim(t, "go") >= .5)))) { clearTimeout(hintT); RR.Sound.tone(880,.12,"square",.05); micStage = "off"; show(null); $("quitBtn").hidden = false; ctl.listen(); ctl.countdown(); }
+  if (micStage === "go" && (toks.join("").includes("letsgo") || toks.some(t => GO.has(t) || RR.sim(t, "ready") >= .7 || (t.length <= 4 && "gk".includes(t[0]) && RR.sim(t, "go") >= .5)))) { clearTimeout(hintT); RR.Sound.tone(880,.12,"square",.05); micStage = "off"; show(null); $("quitBtn").hidden = false; ctl.listen(); recStart(); ctl.countdown(); }
 }
 $("micBack").onclick = () => { RR.Voice.stop(); if (made) show("raceScreen"); else { show("pickScreen"); renderPick(); } };
 
@@ -307,6 +347,7 @@ $("micBack").onclick = () => { RR.Voice.stop(); if (made) show("raceScreen"); el
 const fmt = ms => ms == null ? "–" : (ms/1000).toFixed(1) + "s";
 ctl.on("finish", res => {
   lastRes = res; RR.Voice.stop(); $("quitBtn").hidden = true;
+  if (RR.Recorder.rec) { if (exiting || res.stopped) { RR.Recorder.cancel(); $("recChip").hidden = true; clip = null; } else clip = makeClip(res); } else clip = null;
   if (exiting) { exiting = false; demo = false; setModeChip(); ctl.setAutopilot(false); if (made) { prepare(); show("raceScreen"); } else { ctl.loadGP(league, laps); show("pickScreen"); renderPick(); } return; }
   setTimeout(() => showResults(res), 1700);
 });
@@ -324,7 +365,7 @@ function showResults(res){
   $("practice").innerHTML = ""; res.trouble.forEach(m => { const s = document.createElement("span"); s.textContent = m; $("practice").appendChild(s); }); $("practiceWrap").hidden = !res.trouble.length || demo;
   $("postBox").hidden = demo; $("postName").textContent = RR.nickname(); $("postBtn").disabled = true; $("postBtn").textContent = "Posting…"; posted = false;
   $("postMsg").textContent = made ? `${fmt(res.timeMs)} · posting to ${made.title}'s board…` : `${fmt(res.timeMs)} · posts to the ${RR.LEAGUES[league].name} ${laps}-lap board, and ${res.blocks} hit${res.blocks === 1 ? "" : "s"} blocked by your energy · ${res.hitsTaken} taken · ${res.crashes} crash${res.crashes === 1 ? "" : "es"}.`;
-  show("endScreen");
+  show("endScreen"); clipUI();
   if (!demo && !RR.IN_VIEWER) postRun();
 }
 $("postReroll").onclick = () => { RR.Store.set("name", RR.randomName()); $("postName").textContent = RR.nickname(); if (posted) $("postMsg").textContent = "New name saved. Your next race posts under it."; };
@@ -410,10 +451,19 @@ async function openMade(){
 $("repBtn").onclick = () => { $("repBtn").hidden = true; $("repAsk").hidden = false; };
 $("repAsk").querySelectorAll("[data-r]").forEach(b => b.onclick = async () => { $("repAsk").hidden = true; $("repDone").hidden = false;
   try { await fetch(`/api/races/${CODE}/report`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ key: RR.Rider.key(), name: RR.nickname(), reason: b.dataset.r }) }); } catch (e) {} });
-$("rsGo").onclick = async () => { RR.Sound.wake(); if (!RR.VOICE_OK) { show("gateScreen"); return; } demo = false; setModeChip(); await prepare(); startMic(); };
+$("rsGo").onclick = async () => { RR.Sound.wake(); if (!RR.VOICE_OK) { show("gateScreen"); return; } demo = false; setModeChip(); await prepare(); camUp(); startMic(); };
 $("postBtn").onclick = postRun;
+let clip = null;
+async function makeClip(res){
+  const won = made && made.maker_ms && !isMaker ? res.timeMs < made.maker_ms : res.place === 1, code = made ? made.code : null;
+  const blob = await RR.Recorder.finish({ kicker: made ? made.title : `Rash GP · ${RR.LEAGUES[league].name}`, big: res.place ? RR.ord(res.place).toUpperCase() : "DONE", line: `${fmt(res.timeMs)} · ${res.correct}/${res.signs} signs read`, url: code ? RR.raceLink(code).replace(/^https?:\/\//, "") : "readrash.com" });
+  $("recChip").hidden = true; return blob; }
+function clipUI(){ if (!clip) { $("clipBox").hidden = true; return; } $("clipBox").hidden = false; $("clipBtn").disabled = true; $("clipHead").textContent = "Making your clip…"; $("clipMsg").textContent = "";
+  clip.then(b => { if (!b || !b.size) { $("clipBox").hidden = true; return; } $("clipHead").textContent = `Your race clip is ready (${Math.max(1, Math.round(b.size / 1e6))} MB)`; $("clipBtn").disabled = false; }); }
+$("clipBtn").onclick = async () => { const how = await RR.Recorder.save(chal || made ? "Watch me race on ReadRash. Beat me!" : "Watch me race on ReadRash!"); $("clipMsg").textContent = how === "saved" ? "Saved to your downloads." : how === "shared" ? "Shared!" : ""; };
 $("againBtn").onclick = async () => { if (demo) { $("demoBtn").click(); return; } await prepare(); startMic(); };
 $("setupBtn").onclick = () => { if (made) { location.href = "gp.html"; return; } demo = false; setModeChip(); ctl.setAutopilot(false); ctl.loadGP(league, laps, []); show("pickScreen"); renderPick(); };
+window.addEventListener("pagehide", () => { RR.FaceCam.stop(); RR.Recorder.cancel(); });
 $("quitBtn").onclick = () => { exiting = true; RR.Voice.stop(); ctl.finish(); };
 
 renderPick(); label(); setModeChip(); if (CODE) openMade(); else show("pickScreen");

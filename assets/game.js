@@ -135,16 +135,18 @@ function bindMic(el){ let slowT=0;
   paint(Voice.status); }
 
 /* ================= sound ================= */
-const Sound = { ac:null, on:true, eng:null,
+const Sound = { ac:null, on:true, eng:null, _bus:null,
+  bus(){ if(!this._bus){ this._bus=this.ac.createGain(); this._bus.connect(this.ac.destination); } return this._bus; },
+  tap(){ this.wake(); if(!this.ac) return null; const d=this.ac.createMediaStreamDestination(); this.bus().connect(d); return d; },
   wake(){ if(!this.ac){ try{ this.ac=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } if(this.ac&&this.ac.state==="suspended") this.ac.resume(); },
   tone(f,dur,type="square",vol=.07,slide=0){ const ac=this.ac; if(!this.on||!ac) return; const t=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();
     o.type=type; o.frequency.setValueAtTime(f,t); if(slide) o.frequency.exponentialRampToValueAtTime(Math.max(40,f+slide),t+dur);
-    g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.0001,t+dur); o.connect(g).connect(ac.destination); o.start(t); o.stop(t+dur+.02); },
+    g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.0001,t+dur); o.connect(g).connect(this.bus()); o.start(t); o.stop(t+dur+.02); },
   noise(dur,vol=.25){ const ac=this.ac; if(!this.on||!ac) return; const len=Math.floor(ac.sampleRate*dur),b=ac.createBuffer(1,len,ac.sampleRate),d=b.getChannelData(0);
-    for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2); const s=ac.createBufferSource(),g=ac.createGain(); g.gain.value=vol; s.buffer=b; s.connect(g).connect(ac.destination); s.start(); },
+    for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2); const s=ac.createBufferSource(),g=ac.createGain(); g.gain.value=vol; s.buffer=b; s.connect(g).connect(this.bus()); s.start(); },
   engineOn(){ const ac=this.ac; if(!ac||this.eng) return; const o=ac.createOscillator(),o2=ac.createOscillator(),f=ac.createBiquadFilter(),g=ac.createGain();
     o.type="sawtooth"; o2.type="square"; o.frequency.value=45; o2.frequency.value=22; f.type="lowpass"; f.frequency.value=420; g.gain.value=this.on?.02:0;
-    o.connect(f); o2.connect(f); f.connect(g).connect(ac.destination); o.start(); o2.start(); this.eng={o,o2,g}; },
+    o.connect(f); o2.connect(f); f.connect(g).connect(this.bus()); o.start(); o2.start(); this.eng={o,o2,g}; },
   engineOff(){ if(this.eng){ try{ this.eng.o.stop(); this.eng.o2.stop(); }catch(e){} this.eng=null; } },
   setOn(v){ this.on=v; if(this.eng) this.eng.g.gain.value=v?.02:0; }
 };
@@ -818,7 +820,7 @@ function create(o){
   const lastTxt={};
   function setText(k,v){ const el=$u(k); if(!el) return; if(lastTxt[k]!==v){ lastTxt[k]=v; el.textContent=v; } }
   let popTimer=null;
-  function pop(txt,ms=800,cls=""){ const p=$u("pop"); if(!p) return; p.className="pop "+cls; p.textContent=txt; clearTimeout(popTimer); if(ms) popTimer=setTimeout(()=>{p.textContent="";},ms); }
+  function pop(txt,ms=800,cls=""){ emit("pop",txt); const p=$u("pop"); if(!p) return; p.className="pop "+cls; p.textContent=txt; clearTimeout(popTimer); if(ms) popTimer=setTimeout(()=>{p.textContent="";},ms); }
   function renderVeil(){ const p=$u("para"); if(!p) return; p.innerHTML=""; const v=document.createElement("span"); v.className="veil";
     words.slice(0,40).forEach(w=>{const i=document.createElement("i"); i.style.width=Math.min(140,w.length*12+10)+"px"; v.appendChild(i);}); p.appendChild(v); }
   function renderPara(){ const p=$u("para"); if(!p) return; p.innerHTML=""; spans=[];
@@ -1339,6 +1341,7 @@ function create(o){
     ctx.restore();
     ctx.drawImage(vignC,0,0,W,H);
     drawHUD(); if(gp&&o.hud!==false) drawGPHud();
+    if(listeners.frame) emit("frame",cv);
     raf=requestAnimationFrame(loop);
   }
   function resume(){ if(running&&raf) return; running=true; last=performance.now(); if(phase==="race") t0=performance.now()-now; raf=requestAnimationFrame(loop); }
@@ -1440,7 +1443,63 @@ async function shareCard(o){
   try{ if(navigator.canShare&&navigator.canShare({files:[file]})){ await navigator.share({files:[file],text:o.text?o.text+(o.url?" "+o.url:""):undefined}); ev("share_image"); return "shared"; } }catch(e){ if(e&&e.name==="AbortError") return "cancel"; }
   const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="readrash.png"; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },2000); ev("share_image"); return "saved"; }
 
-window.ReadRash = { create, Voice, bindMic, ev, shareCard, Rider, LADDER, levelOf, rpPanel, raceLink, shareRace, esc, Sound, LEAGUES, RACES, ADJ, NOUN, randomName, VOICE_OK, IN_VIEWER, Store, stars, saveStars, nickname, norm, sim, ord,
+/* ================= face cam: the player's camera in a bubble. A plain <video> the browser composites itself:
+   zero cost to the game. Camera only (never the mic), never uploaded, never stored. ================= */
+const FaceCam={ stream:null, vid:null, mode:"off",
+  async start(vid,mode){ this.vid=vid; this.mode=mode||"on";
+    if(!this.stream){ try{ this.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:360},height:{ideal:360},frameRate:{ideal:30,max:30}},audio:false}); }
+      catch(e){ this.stream=null; return e&&e.name==="NotAllowedError"?"blocked":"none"; } }
+    vid.srcObject=this.stream; vid.muted=true; vid.playsInline=true; try{ await vid.play(); }catch(e){} return "ok"; },
+  stop(){ if(this.stream){ this.stream.getTracks().forEach(t=>t.stop()); this.stream=null; } if(this.vid) this.vid.srcObject=null; this.mode="off"; },
+  live(){ return !!(this.stream&&this.vid&&this.vid.readyState>=2); } };
+/* ================= Record my race: the race canvas + face bubble + game sound (+ voice where safe) into one clip.
+   One drawImage per frame while recording, at most 960px wide, 30fps. Saved only on the player's device. ================= */
+const Recorder={ rec:null, chunks:[], cv:null, g:null, off:null, mic:null, endCard:null, t0:0, blob:null, type:"",
+  pick(){ for(const m of ["video/mp4;codecs=avc1,mp4a.40.2","video/mp4;codecs=avc1","video/mp4","video/webm;codecs=vp9,opus","video/webm;codecs=vp8,opus","video/webm"]) if(window.MediaRecorder&&MediaRecorder.isTypeSupported(m)) return m; return ""; },
+  ok(){ return !!(window.MediaRecorder&&HTMLCanvasElement.prototype.captureStream&&this.pick()); },
+  async start(ctl,game,opts){ if(this.rec) return; opts=opts||{}; this.blob=null; this.endCard=null;
+    const cv=document.createElement("canvas"), k=Math.min(1,960/game.width); cv.width=Math.round(game.width*k/2)*2; cv.height=Math.round(game.height*k/2)*2;
+    this.cv=cv; this.g=cv.getContext("2d"); this.opts=opts; const tracks=[...cv.captureStream(30).getVideoTracks()];
+    Sound.wake(); const snd=Sound.ac; const mix=Sound.ac&&Sound.ac.createMediaStreamDestination?Sound.ac.createMediaStreamDestination():null;
+    if(snd&&mix){ Sound.bus().connect(mix);
+      if(opts.voice&&!/Android/i.test(navigator.userAgent)){ try{ this.mic=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}}); const src=Sound.ac.createMediaStreamSource(this.mic), gn=Sound.ac.createGain(); gn.gain.value=1.4; src.connect(gn).connect(mix); }catch(e){ this.mic=null; } }
+      tracks.push(...mix.stream.getAudioTracks()); }
+    this.type=this.pick(); this.chunks=[];
+    this.rec=new MediaRecorder(new MediaStream(tracks),{mimeType:this.type,videoBitsPerSecond:1500000});
+    this.rec.ondataavailable=e=>{ if(e.data&&e.data.size) this.chunks.push(e.data); };
+    this.rec.start(1000); this.t0=performance.now();
+    if(!ctl._recHook){ ctl._recHook=true; ctl.on("frame",c=>{ if(this.rec) this.frame(c); }); } },
+  frame(src){ const g=this.g, W=this.cv.width, H=this.cv.height; g.drawImage(src,0,0,W,H);
+    const fc=this.opts.face&&FaceCam.live()?FaceCam.vid:null, r=Math.round(Math.min(W,H)*.17), cx=Math.round(W*.04+r), cy=Math.round(H-r-H*.16);
+    if(fc){ g.save(); g.beginPath(); g.arc(cx,cy,r,0,7); g.clip(); const vw=fc.videoWidth, vh=fc.videoHeight, s=Math.max(2*r/vw,2*r/vh);
+      g.translate(cx,cy); if(this.opts.mirror!==false) g.scale(-1,1); g.drawImage(fc,-vw*s/2,-vh*s/2,vw*s,vh*s); g.restore();
+      if(FaceCam.mode==="helmet") drawVisor(g,cx,cy,r);
+      g.lineWidth=Math.max(3,r*.09); g.strokeStyle=this.opts.ring||"#ff6a1a"; g.beginPath(); g.arc(cx,cy,r,0,7); g.stroke(); }
+    const f=Math.round(H*.05); g.font=`italic ${f}px 'Racing Sans One','Arial Black',sans-serif`; g.textBaseline="top"; g.textAlign="right";
+    const tag="Read to ride.", tw=g.measureText(tag).width, lw=g.measureText("READRASH").width, x=W-f*.6, y=H-f*1.5;
+    g.fillStyle="rgba(0,0,0,.45)"; g.fillRect(x-tw-lw-f*1.4,y-f*.25,tw+lw+f*1.6,f*1.5);
+    g.fillStyle="#fff4e2"; g.fillText(tag,x,y); g.fillStyle="#ff6a1a"; g.fillText("RASH",x-tw-f*.5,y); g.fillStyle="#fff4e2"; g.fillText("READ",x-tw-f*.5-g.measureText("RASH").width,y);
+    if(this.endCard){ const e=this.endCard, a=Math.min(1,(performance.now()-e.t)/350); g.fillStyle=`rgba(12,10,16,${.72*a})`; g.fillRect(0,0,W,H); g.globalAlpha=a; g.textAlign="center"; g.textBaseline="middle";
+      g.fillStyle="#ffd23f"; g.font=`italic ${Math.round(H*.08)}px 'Racing Sans One','Arial Black',sans-serif`; g.fillText(e.kicker||"",W/2,H*.3);
+      g.fillStyle="#fff4e2"; g.font=`italic ${Math.round(H*.2)}px 'Racing Sans One','Arial Black',sans-serif`; g.fillText(e.big||"",W/2,H*.5);
+      g.fillStyle="#ff6a1a"; g.font=`italic ${Math.round(H*.07)}px 'Racing Sans One','Arial Black',sans-serif`; g.fillText(e.line||"",W/2,H*.68);
+      g.fillStyle="#fff4e2"; g.font=`700 ${Math.round(H*.045)}px Verdana,sans-serif`; g.fillText(e.url||"readrash.com",W/2,H*.82); g.globalAlpha=1; } },
+  async finish(card){ if(!this.rec) return null; if(card){ this.endCard={...card,t:performance.now()}; await new Promise(r=>setTimeout(r,2600)); }
+    const rec=this.rec; const done=new Promise(r=>rec.onstop=r); rec.stop(); await done; this.rec=null;
+    if(this.mic){ this.mic.getTracks().forEach(t=>t.stop()); this.mic=null; }
+    this.blob=new Blob(this.chunks,{type:this.type.split(";")[0]}); return this.blob; },
+  cancel(){ if(this.rec){ try{ this.rec.stop(); }catch(e){} this.rec=null; } if(this.mic){ this.mic.getTracks().forEach(t=>t.stop()); this.mic=null; } },
+  async save(text){ if(!this.blob) return "none"; const ext=this.blob.type.includes("mp4")?"mp4":"webm", file=new File([this.blob],"readrash-race."+ext,{type:this.blob.type});
+    try{ if(navigator.canShare&&navigator.canShare({files:[file]})){ await navigator.share({files:[file],text}); ev("share_video"); return "shared"; } }catch(e){ if(e&&e.name==="AbortError") return "cancel"; }
+    const a=document.createElement("a"); a.href=URL.createObjectURL(this.blob); a.download=file.name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },3000); ev("share_video"); return "saved"; } };
+// helmet mode: a tinted racing visor across the eyes, mouth stays visible so you can see the reading
+function drawVisor(g,cx,cy,r){ g.save(); g.beginPath(); g.arc(cx,cy,r,0,7); g.clip();
+  const gr=g.createLinearGradient(cx-r,cy-r*.5,cx+r,cy+r*.1); gr.addColorStop(0,"rgba(20,30,48,.93)"); gr.addColorStop(.6,"rgba(40,70,110,.9)"); gr.addColorStop(1,"rgba(20,30,48,.93)");
+  g.fillStyle=gr; g.beginPath(); g.moveTo(cx-r,cy-r*.62); g.quadraticCurveTo(cx,cy-r*.78,cx+r,cy-r*.62); g.lineTo(cx+r,cy+r*.02); g.quadraticCurveTo(cx,cy+r*.18,cx-r,cy+r*.02); g.closePath(); g.fill();
+  g.strokeStyle="rgba(255,255,255,.45)"; g.lineWidth=r*.06; g.beginPath(); g.moveTo(cx-r*.6,cy-r*.42); g.quadraticCurveTo(cx-r*.1,cy-r*.52,cx+r*.15,cy-r*.45); g.stroke();
+  g.fillStyle="#ffd23f"; g.fillRect(cx-r,cy-r*.98,r*2,r*.3); g.restore(); }
+
+window.ReadRash = { create, Voice, bindMic, FaceCam, Recorder, drawVisor, ev, shareCard, Rider, LADDER, levelOf, rpPanel, raceLink, shareRace, esc, Sound, LEAGUES, RACES, ADJ, NOUN, randomName, VOICE_OK, IN_VIEWER, Store, stars, saveStars, nickname, norm, sim, ord,
   paintRider:(c,w,f,o)=>{ preloadRiders(); paintRider(c,w,f,o); },
   paintSprite(canvas,t,opt={}){ const g=canvas.getContext("2d"), h=canvas.height; g.clearRect(0,0,canvas.width,canvas.height); const list=t==="bike"?[bikeOnly(opt.rider||ME),riderOnly(opt.rider||ME)]:[getSprite(t,opt)]; for(const S of list){ const w=h*S.aspect; g.drawImage(S.c,(canvas.width-w)/2,0,w,h); } } };
 })();
