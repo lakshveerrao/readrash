@@ -22,7 +22,7 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preload" href="assets/fonts/racing-sans-one.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/site.css?v=20261024r">
+<link rel="stylesheet" href="assets/site.css?v=20261024s">
 <style>
 /* Layout: live Rash GP hero with a reading console → how it works (4 steps) → your kit → two ways to race → levels → board → closer */
 .hero{position:relative;height:clamp(600px,88vh,820px);overflow:hidden;background:#3d9be0}
@@ -89,8 +89,8 @@ section.blk{padding-block:clamp(56px,9vw,104px)}
 .chips div{display:flex;align-items:center;gap:8px;background:rgba(255,248,236,.94);color:var(--ink);border-radius:9px;padding:4px 8px;font-size:13px;font-weight:700}
 .chips em{font-style:normal;font-size:10px;letter-spacing:.06em;padding:2px 6px;border-radius:5px;flex:none;min-width:64px;text-align:center}
 .atk{position:absolute;top:14px;right:12px;background:var(--heat);color:#fff;font-weight:700;border:2px solid var(--ink);border-radius:8px;padding:2px 9px;font-size:15px;box-shadow:0 3px 0 var(--ink)}
-.pips{position:absolute;top:16px;left:12px;display:flex;gap:6px;background:rgba(18,16,22,.8);padding:6px 8px;border-radius:9px}
-.pips i{width:14px;height:14px;border-radius:4px;border:2px solid var(--cool);transform:rotate(45deg) scale(.8)}.pips i.on{background:var(--cool);box-shadow:0 0 8px var(--cool)}
+.pips{position:absolute;top:16px;left:12px;display:flex;align-items:center;gap:3px;background:rgba(18,16,22,.85);padding:6px 8px;border-radius:9px;font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--cool)}
+.pips i{width:22px;height:9px;border-radius:3px;background:rgba(62,193,211,.15)}.pips i.on{background:linear-gradient(90deg,#2aa7c0,#7ff0ff);box-shadow:0 0 6px rgba(62,193,211,.7)}.pips b{margin-right:5px}
 @media (max-width:980px){.steps{grid-template-columns:repeat(2,1fr)}}
 @media (max-width:560px){.steps{grid-template-columns:1fr}}
 
@@ -202,9 +202,9 @@ section.blk{padding-block:clamp(56px,9vw,104px)}
         <p>Under every word is a tag. Brave the long word for nitro, or play it safe.</p>
       </article>
       <article class="step">
-        <div class="vis"><span class="pips"><i class="on"></i><i class="on"></i><i></i></span><span class="atk">pirate</span><canvas id="vHit" width="420" height="240"></canvas></div>
+        <div class="vis"><span class="pips"><b>ENERGY</b><i class="on"></i><i class="on"></i><i></i></span><span class="atk">pirate</span><canvas id="vHit" width="420" height="240"></canvas></div>
         <h3>4. Hit, or be hit</h3>
-        <p>An orange word on a rider? Read it to knock them over. Every 2 words you read right adds a shield bar, and each bar blocks one hit.</p>
+        <p>An orange word on a rider? Read it to knock them over. Reading right fills your energy, and energy blocks their hits.</p>
       </article>
     </div>
   </div>
@@ -217,7 +217,7 @@ section.blk{padding-block:clamp(56px,9vw,104px)}
       <h2 class="sec-h">Four things <em>to know.</em></h2>
     </div>
     <div class="kit">
-      <div style="--c:var(--cool)"><h3>Power shield</h3><p>2 words read right = 1 bar, up to 3. It blocks hits and bites back: 2 bars zap the attacker, 3 bars knock them off their bike.</p></div>
+      <div style="--c:var(--cool)"><h3>Energy</h3><p>Your reading fills it: 2 words right = 1 bar, up to 3. It blocks hits and bites back: full energy knocks attackers off their bike.</p></div>
       <div style="--c:var(--sun)"><h3>Nitro</h3><p>Ride a NITRO lane or read 10 in a row. Your bike rockets forward.</p></div>
       <div style="--c:#b48cff"><h3>Dictionary</h3><p>Heavy weapon. Your hits knock riders clean off their bikes.</p></div>
       <div style="--c:#c98a4b"><h3>Coconut</h3><p>Throw it at the rider ahead. Read their word, watch it fly.</p></div>
@@ -254,7 +254,7 @@ section.blk{padding-block:clamp(56px,9vw,104px)}
         <div class="art"><canvas id="wGP1" width="300" height="400" style="left:6%"></canvas><canvas id="wGP2" width="300" height="400" style="right:10%;height:78%"></canvas><canvas id="wGP3" width="300" height="400" style="left:38%;height:64%"></canvas></div>
         <div class="wi"><h3>Rash <em>GP</em></h3>
           <p>Twelve riders, lap after lap. Read signs to pick lanes, grab nitro and fight for first.</p>
-          <div class="facts"><span>12 riders</span><span>2, 3 or 5 laps</span><span>Fight &amp; shield</span></div>
+          <div class="facts"><span>12 riders</span><span>2, 3 or 5 laps</span><span>Fight &amp; energy</span></div>
           <a class="btn" href="gp.html">Race Rash GP</a></div>
       </article>
       <article class="way">
@@ -321,8 +321,8 @@ section.blk{padding-block:clamp(56px,9vw,104px)}
   <div class="inner"><span class="logo" style="font-size:22px">READ<span>RASH</span></span><span>Read fast. Ride rash. © 2026 ReadRash · <a href="about.html">Parents &amp; privacy</a></span></div>
 </footer>
 
-<script src="assets/game.js?v=20261024r"></script>
-<script src="assets/board.js?v=20261024r"></script>
+<script src="assets/game.js?v=20261024s"></script>
+<script src="assets/board.js?v=20261024s"></script>
 <script>
 (() => {
   const RRk = window.ReadRash, $ = id => document.getElementById(id);

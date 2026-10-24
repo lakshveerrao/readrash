@@ -22,8 +22,8 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preload" href="assets/fonts/racing-sans-one.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/site.css?v=20261024r">
-<link rel="stylesheet" href="assets/game.css?v=20261024r">
+<link rel="stylesheet" href="assets/site.css?v=20261024s">
+<link rel="stylesheet" href="assets/game.css?v=20261024s">
 <style>
 /* Rash GP: same race view; the text card shows the three lane words of the next gantry, with what waits in each lane */
 .lanecard{display:flex;flex-direction:column;gap:10px;justify-content:center;min-height:150px}
@@ -36,12 +36,13 @@
 .ln i{font-style:normal;font-size:11px;font-weight:700;letter-spacing:.08em;border-radius:6px;padding:2px 8px;min-height:18px}
 .lanes.locked .ln{opacity:.45}
 .lanes.locked .ln b{color:#8a8294}
-.pips{display:flex;gap:5px}.pips i{width:16px;height:16px;border-radius:5px;border:2px solid #3ec1d3;background:transparent;transform:rotate(45deg) scale(.8);transition:background .15s}
-.pips i.on{background:#3ec1d3;box-shadow:0 0 10px #3ec1d3}
-.pips i.half{background:linear-gradient(0deg,#3ec1d3 50%,transparent 50%)}
-.pips.up{animation:pipUp .6s}.pips.dn{animation:pipDn .45s}
-@keyframes pipUp{0%{transform:scale(1)}35%{transform:scale(1.35);filter:drop-shadow(0 0 8px #3ec1d3)}100%{transform:scale(1)}}
-@keyframes pipDn{0%,100%{transform:none}20%{transform:translateX(-4px)}40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
+.pips{display:flex;gap:3px;width:96px;height:12px;padding:2px;border-radius:7px;background:#1b1b22;box-shadow:inset 0 0 0 1px rgba(62,193,211,.35)}
+.pips i{flex:1;border-radius:4px;background:rgba(62,193,211,.12);transition:background .25s,box-shadow .25s}
+.pips i.on{background:linear-gradient(90deg,#2aa7c0,#7ff0ff);box-shadow:0 0 6px rgba(62,193,211,.7)}
+.pips i.half{background:linear-gradient(90deg,#2aa7c0 0 50%,rgba(62,193,211,.12) 50%)}
+.pips.up{animation:pipUp .5s}.pips.dn{animation:pipDn .45s}
+@keyframes pipUp{0%,100%{filter:none}40%{filter:brightness(1.8) drop-shadow(0 0 6px #3ec1d3)}}
+@keyframes pipDn{0%,100%{transform:none}20%{transform:translateX(-3px)}40%{transform:translateX(3px)}60%{transform:translateX(-2px)}80%{transform:translateX(1px)}}
 .shw{display:flex;flex-direction:column;align-items:flex-end;gap:3px}.shn{font-size:11px;color:#8fd9e4;letter-spacing:.02em;white-space:nowrap}
 .wpn{font-weight:700;font-size:14px;color:var(--sun)}
 .tag-w{background:#e9dcff;color:#5b23a8}
@@ -118,7 +119,7 @@
       <div class="cside" style="width:100%">
         <div class="crow"><small>Lap</small><span class="lapbox" id="lapTxt">1/3</span></div>
         <div class="crow"><small>Place</small><span class="pos" id="posTxt">–</span></div>
-        <div class="crow"><small>Reading<br>shield</small><span class="shw"><span class="pips" id="shield" title="Every 2 words you read right adds a shield bar. A hit costs one bar. 2 bars zap the attacker, 3 bars knock them off their bike. A missed or wrong word cracks one."><i></i><i></i><i></i></span><small class="shn" id="shieldNext">Read 2 more right</small></span></div>
+        <div class="crow"><small>Energy</small><span class="shw"><span class="pips" id="shield" title="Energy comes from your reading: every 2 words read right fill one bar. Full energy blocks hits and knocks attackers off. A wrong or missed word drains a bar."><i></i><i></i><i></i></span><small class="shn" id="shieldNext">Read 2 more right</small></span></div>
         <div class="crow"><small>Weapon</small><span class="wpn" id="weaponTxt">Newspaper</span></div>
         <div class="nitro" id="nitroWrap" title="Nitro: 10 words in a row"><i id="nitroBar"></i></div>
         <div class="crow"><small>Nitro</small><small id="streakTxt">0/10</small></div>
@@ -145,7 +146,7 @@
       <p class="kicker" style="color:#b14a12">Sprint · Read the word · 12 riders</p>
       <h2 style="margin-top:6px">Rash <span>GP</span></h2>
     </div>
-    <p>Every sign has three words, one over each lane. <b>Read a word and you ride into its lane.</b> Hard words hide nitro, easy words hide traffic. Riders alongside carry a word: <b>read it to hit them.</b> Read right and your <b>power shield</b> charges: it blocks hits, and a full shield knocks attackers off their bikes.</p>
+    <p>Every sign has three words, one over each lane. <b>Read a word and you ride into its lane.</b> Hard words hide nitro, easy words hide traffic. Riders alongside carry a word: <b>read it to hit them.</b> Read right and your <b>energy</b> fills up: it blocks hits, and full energy knocks attackers off their bikes.</p>
     <p class="lab">Level</p>
     <div class="pick" id="lgPick">
       <button class="choice" data-lg="rookie" aria-pressed="false"><b>Rookie</b><small>Short words</small></button>
@@ -160,7 +161,7 @@
     </div>
     <div class="who"><span>Riding as <b id="whoName"></b></span><button class="linkbtn" id="reroll">New name</button></div>
     <button class="btn" id="rideBtn">Line up</button>
-    <p class="note" style="color:#6b6476;margin:0" id="gridNote"><b>Your shield comes from your reading:</b> every 2 words read right add a bar (up to 3). A wrong or missed word cracks one. A full shield knocks attackers off their bikes.</p>
+    <p class="note" style="color:#6b6476;margin:0" id="gridNote"><b>Your energy comes from your reading:</b> every 2 words read right fill a bar (up to 3). A wrong or missed word drains one. Full energy knocks attackers off their bikes.</p>
   </div>
 </div>
 
@@ -245,8 +246,8 @@
   </div>
 </div>
 
-<script src="assets/game.js?v=20261024r"></script>
-<script src="assets/board.js?v=20261024r"></script>
+<script src="assets/game.js?v=20261024s"></script>
+<script src="assets/board.js?v=20261024s"></script>
 <script>
 (() => {
 const RR = window.ReadRash, $ = id => document.getElementById(id);
@@ -319,10 +320,10 @@ function showResults(res){
   $("standings").innerHTML = ""; res.podium.forEach((r, i) => { const d = document.createElement("div"); if (r.me) d.className = "me";
     const a = document.createElement("b"); a.textContent = `${i+1}. ${r.me ? (demo ? "DEMO RIDER" : "YOU") : r.name}`;
         const t = document.createElement("span"); t.textContent = fmt(r.t); d.append(a, t); $("standings").appendChild(d); });
-  $("readShield").innerHTML = `<b>Your reading → your shield</b><span>${res.acc}% of signs read right built <em>${res.shieldBuilt}</em> shield bar${res.shieldBuilt === 1 ? "" : "s"}, which blocked <em>${res.blocks}</em> hit${res.blocks === 1 ? "" : "s"}.</span><span class="tip">${res.acc >= 90 ? "Clean reading. Keep it up!" : "Read every sign, even the short ones, to keep your shield up."}</span>`;
+  $("readShield").innerHTML = `<b>Your reading → your energy</b><span>${res.acc}% of signs read right filled <em>${res.shieldBuilt}</em> energy bar${res.shieldBuilt === 1 ? "" : "s"}, which blocked <em>${res.blocks}</em> hit${res.blocks === 1 ? "" : "s"}.</span><span class="tip">${res.acc >= 90 ? "Clean reading. Keep it up!" : "Read every sign, even the short ones, to keep your energy up."}</span>`;
   $("practice").innerHTML = ""; res.trouble.forEach(m => { const s = document.createElement("span"); s.textContent = m; $("practice").appendChild(s); }); $("practiceWrap").hidden = !res.trouble.length || demo;
   $("postBox").hidden = demo; $("postName").textContent = RR.nickname(); $("postBtn").disabled = true; $("postBtn").textContent = "Posting…"; posted = false;
-  $("postMsg").textContent = made ? `${fmt(res.timeMs)} · posting to ${made.title}'s board…` : `${fmt(res.timeMs)} · posts to the ${RR.LEAGUES[league].name} ${laps}-lap board, and ${res.blocks} hit${res.blocks === 1 ? "" : "s"} blocked by your shield · ${res.hitsTaken} taken · ${res.crashes} crash${res.crashes === 1 ? "" : "es"}.`;
+  $("postMsg").textContent = made ? `${fmt(res.timeMs)} · posting to ${made.title}'s board…` : `${fmt(res.timeMs)} · posts to the ${RR.LEAGUES[league].name} ${laps}-lap board, and ${res.blocks} hit${res.blocks === 1 ? "" : "s"} blocked by your energy · ${res.hitsTaken} taken · ${res.crashes} crash${res.crashes === 1 ? "" : "es"}.`;
   show("endScreen");
   if (!demo && !RR.IN_VIEWER) postRun();
 }

@@ -501,7 +501,7 @@ function botSplits(lg,laps,h){ const L=GP.lg[lg], out=[]; let t=1400; for(let i=
 
 /* ================= the race ================= */
 function create(o){
-  preloadRiders(); if(o.mode==="gp") shieldImg();
+  preloadRiders();
   const cv=o.canvas, ctx=cv.getContext("2d",{alpha:false});
   const ui=o.ui||{}; const $u=k=>ui[k]||null;
   const attract=!!o.attract;
@@ -591,7 +591,7 @@ function create(o){
     const sh=$u("shield"), sk=P.shield+"|"+shieldCharge; if(sh&&sh._v!==sk){ const up=sh._s!=null&&P.shield>sh._s, dn=sh._s!=null&&P.shield<sh._s; sh._v=sk; sh._s=P.shield;
       [...sh.children].forEach((c,i)=>{ c.classList.toggle("on",i<P.shield); c.classList.toggle("half",i===P.shield&&shieldCharge>0); });
       if(up||dn){ sh.classList.remove("up","dn"); void sh.offsetWidth; sh.classList.add(up?"up":"dn"); }
-      const nx=$u("shieldNext"); if(nx) nx.textContent=P.shield>=3?"Full · keep reading clean":`Read ${2-shieldCharge} more right`; }
+      const nx=$u("shieldNext"); if(nx) nx.textContent=P.shield>=3?"Full · read clean to keep it":`Read ${2-shieldCharge} more right`; }
     setText("weaponTxt",P.weapon.type==="book"?`Dictionary ×${P.weapon.uses}`:P.weapon.type==="coconut"?"Coconut":"Newspaper");
   }
   function say(rv,list){ if(now-rv.sayT<3500) return; rv.sayT=now; rv.say=list[Math.floor(Math.random()*list.length)]; }
@@ -605,10 +605,10 @@ function create(o){
     gpUI(true);
   }
   function talk(t){ comment={txt:t,t:now}; }
-  function chargeShield(){ if(P.shield>=3){ shieldCharge=0; return; } shieldCharge++; if(shieldCharge>=2){ shieldCharge=0; P.shield++; P.shieldUpT=now; Sound.tone(1040,.08,"triangle",.05,200); shieldBuilt++; floatTxt("READ RIGHT · +1 SHIELD","#3ec1d3");
-    if(P.shield===3) talk("Clean reading = full shield! Hits bounce back now."); else if(!shieldTold){ shieldTold=true; talk("Your reading built a shield bar! Every 2 words read right adds one."); } } }
+  function chargeShield(){ if(P.shield>=3){ shieldCharge=0; return; } shieldCharge++; if(shieldCharge>=2){ shieldCharge=0; P.shield++; P.shieldUpT=now; Sound.tone(1040,.08,"triangle",.05,200); shieldBuilt++;
+    if(P.shield===3) talk("Full energy from clean reading! Hits bounce back now."); else if(!shieldTold){ shieldTold=true; talk("Your reading filled an energy bar! Every 2 words read right adds one."); } } }
   function crackShield(why){ const lost=shieldCharge>0||P.shield>0; shieldCharge=0; if(P.shield>0){ P.shield--; P.shieldFlashT=now; }
-    if(lost){ floatTxt((why==="wrong"?"WRONG WORD":"MISSED WORD")+" · −1 SHIELD","#ff6b5b"); if(!crackTold){ crackTold=true; talk(why==="wrong"?"Wrong word cracked your shield. Read carefully to build it back.":"Missed a sign, so your shield cracked. Read every sign to build it back."); } } }
+    if(lost){ if(!crackTold){ crackTold=true; talk(why==="wrong"?"Wrong word drained your energy. Read carefully to fill it back.":"Missed a sign, so your energy dropped. Read every sign to fill it back."); } } }
   function floatTxt(t,c){ floats.push({t,c,at:now}); if(floats.length>4) floats.shift(); }
   function playerDown(dir,why){ if(P.state==="down") return; P.state="down"; P.downT=now; P.until=now+2000; P.downDir=dir||1; P.v*=.3; heat*=.6; streak=0; shakeAmt=18; P.bump=4;
     Sound.noise(.4,.35); sparks(26,CX,H-12); atkTarget=null; talk(why||"Down! Back on the bike!"); }
@@ -636,10 +636,10 @@ function create(o){
     if(P.shield>0){ // the shield takes the hit and shocks the attacker: the more bars, the harder it bites back
       const lv=P.shield; P.shield=Math.max(0,P.shield-1); P.shieldFlashT=now; P.shieldHit={t:now,dir:-dir,lv,broke:P.shield===0}; blocks++;
       Sound.tone(1300,.1,"square",.05,-500); Sound.noise(.08,.15); shakeAmt=6+lv*2;
-      if(lv>=3){ knockRider(rv,-dir); kos++; pop("SHOCKED!",700,"go"); Sound.tone(180,.4,"sawtooth",.06,-120); say(rv,["Aaargh!","Zzzap!","Ouch!"]); talk(`Your full shield shocks ${rv.name} off the bike!`); }
-      else if(lv===2){ rv.knockT=now; rv.knockDir=-dir; rv.v*=.5; rv.stunUntil=now+1600; rv.shield=Math.max(0,(rv.shield||0)-1); rv.vx+=-dir*3; pop("ZAPPED!",600,"go"); say(rv,["Ow!","It bites!","Zzt!"]); talk(`${rv.name} gets zapped by your shield!`); }
-      else { rv.knockT=now; rv.knockDir=-dir; rv.v*=.72; rv.stunUntil=now+900; pop("BLOCKED!",600,"go"); say(rv,["What?!","Bounced!","No way!"]); talk(lv===1&&!zapTold?(zapTold=true,"Blocked! 2 or 3 shield bars hit back harder."):`Shield blocks ${rv.name}!`); }
-      if(P.shield===0) floatTxt("SHIELD DOWN","#ff6b5b"); }
+      if(lv>=3){ knockRider(rv,-dir); kos++; pop("SHOCKED!",700,"go"); Sound.tone(180,.4,"sawtooth",.06,-120); say(rv,["Aaargh!","Zzzap!","Ouch!"]); talk(`Full energy! ${rv.name} is knocked off the bike!`); }
+      else if(lv===2){ rv.knockT=now; rv.knockDir=-dir; rv.v*=.5; rv.stunUntil=now+1600; rv.shield=Math.max(0,(rv.shield||0)-1); rv.vx+=-dir*3; pop("ZAPPED!",600,"go"); say(rv,["Ow!","It bites!","Zzt!"]); talk(`${rv.name} gets zapped by your energy!`); }
+      else { rv.knockT=now; rv.knockDir=-dir; rv.v*=.72; rv.stunUntil=now+900; pop("BLOCKED!",600,"go"); say(rv,["What?!","Bounced!","No way!"]); talk(lv===1&&!zapTold?(zapTold=true,"Blocked! 2 or 3 energy bars hit back harder."):`Shield blocks ${rv.name}!`); }
+      }
     else { hitsTaken++; P.bump=3; bursts.push({x:CX+dir*-W*.06,y:H*.62,t:0,dir});
       if(power>=2) playerDown(dir,`${rv.name} knocks you down!`);
       else { P.state="skid"; P.until=now+650; P.v*=.72; heat=Math.max(0,heat-.12); shakeAmt=10; pop("HIT!",500); Sound.noise(.15,.3); }
@@ -716,7 +716,7 @@ function create(o){
         if(!rv.hunt&&Math.abs(dz)<2400&&now-lastRivalAtk>2500&&!rivals.some(o=>o.hunt)&&Math.random()<aggr*dt*.7){ rv.hunt=now+5500; say(rv,["Coming for you!","Hey, wait up!","Gotcha soon!"]); }
         if(rv.hunt&&now>rv.hunt){ rv.hunt=0; rv.atkCD=now+5000; }
         if(Math.abs(dz)>400||dx<.28||dx>1.25||now-lastRivalAtk<2500) continue;
-        if(Math.random()<(rv.hunt?3:aggr)*dt){ rv.hunt=0; rv.attack={t0:now}; lastRivalAtk=now; if(!defTold){ defTold=true; talk(P.shield>0?`${rv.name} is coming for you. Your shield will block it.`:`${rv.name} is coming! Read words right to build a shield.`); } say(rv,["Take this!","Watch out!","Here I come!","You're mine!"]); Sound.tone(440,.08,"square",.04); }
+        if(Math.random()<(rv.hunt?3:aggr)*dt){ rv.hunt=0; rv.attack={t0:now}; lastRivalAtk=now; if(!defTold){ defTold=true; talk(P.shield>0?`${rv.name} is coming for you. Your energy will block it.`:`${rv.name} is coming! Read words right to fill your energy.`); } say(rv,["Take this!","Watch out!","Here I come!","You're mine!"]); Sound.tone(440,.08,"square",.04); }
       }
       projs=projs.filter(pr=>{ if(now-pr.t0<pr.dur) return true; if(!pr.rv.down) landHit(pr.rv,9); return false; });
       // who's leading: the commentator calls lead changes
@@ -1198,6 +1198,10 @@ function create(o){
   }
   // painted sprite: pick the frame for the moment, then weapon, nitro and shield on top
   function shieldFx(u,opt,tn){
+    { const hit=opt.shieldHit, ht=hit?(tn-t0-hit.t):1e9; if(!hit||ht>260||hit.broke) return; const e=ht/260, sd=hit.dir||1;
+      ctx.save(); ctx.translate(sd*30*u,-62*u); ctx.strokeStyle=`rgba(160,240,255,${1-e})`; ctx.lineWidth=2.2*u*(1-e*.6);
+      for(let i=0;i<7;i++){ const a=(i/7-.5)*2.2+(sd<0?Math.PI:0), r1=(6+e*14)*u, r2=(14+e*30)*u; ctx.beginPath(); ctx.moveTo(Math.cos(a)*r1,Math.sin(a)*r1); ctx.lineTo(Math.cos(a)*r2,Math.sin(a)*r2); ctx.stroke(); }
+      ctx.restore(); return; }
     const hit=opt.shieldHit, ht=hit?(tn-t0-hit.t):1e9;
     if(!(opt.shield>0)&&!(hit&&hit.broke&&ht<500)) return;
     const SI=shieldImg();
