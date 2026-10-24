@@ -1458,7 +1458,7 @@ const Recorder={ rec:null, chunks:[], cv:null, g:null, off:null, mic:null, endCa
   pick(){ for(const m of ["video/mp4;codecs=avc1,mp4a.40.2","video/mp4;codecs=avc1","video/mp4","video/webm;codecs=vp9,opus","video/webm;codecs=vp8,opus","video/webm"]) if(window.MediaRecorder&&MediaRecorder.isTypeSupported(m)) return m; return ""; },
   ok(){ return !!(window.MediaRecorder&&HTMLCanvasElement.prototype.captureStream&&this.pick()); },
   async start(ctl,game,opts){ if(this.rec) return; opts=opts||{}; this.blob=null; this.endCard=null;
-    const cv=document.createElement("canvas"), k=Math.min(1,960/game.width); cv.width=Math.round(game.width*k/2)*2; cv.height=Math.round(game.height*k/2)*2;
+    const cv=document.createElement("canvas"), k=Math.min(1,854/game.width); cv.width=Math.round(game.width*k/2)*2; cv.height=Math.round(game.height*k/2)*2;
     this.cv=cv; this.g=cv.getContext("2d"); this.opts=opts; const tracks=[...cv.captureStream(30).getVideoTracks()];
     Sound.wake(); const snd=Sound.ac; const mix=Sound.ac&&Sound.ac.createMediaStreamDestination?Sound.ac.createMediaStreamDestination():null;
     if(snd&&mix){ Sound.bus().connect(mix);
@@ -1469,11 +1469,14 @@ const Recorder={ rec:null, chunks:[], cv:null, g:null, off:null, mic:null, endCa
     this.rec.ondataavailable=e=>{ if(e.data&&e.data.size) this.chunks.push(e.data); };
     this.rec.start(1000); this.t0=performance.now();
     if(!ctl._recHook){ ctl._recHook=true; ctl.on("frame",c=>{ if(this.rec) this.frame(c); }); } },
-  frame(src){ const g=this.g, W=this.cv.width, H=this.cv.height; g.drawImage(src,0,0,W,H);
+  frame(src){ const tn=performance.now(); if(tn-(this.lastF||0)<30) return; this.lastF=tn; const g=this.g, W=this.cv.width, H=this.cv.height; g.drawImage(src,0,0,W,H);
     const fc=this.opts.face&&FaceCam.live()?FaceCam.vid:null, r=Math.round(Math.min(W,H)*.17), cx=Math.round(W*.04+r), cy=Math.round(H-r-H*.16);
-    if(fc){ g.save(); g.beginPath(); g.arc(cx,cy,r,0,7); g.clip(); const vw=fc.videoWidth, vh=fc.videoHeight, s=Math.max(2*r/vw,2*r/vh);
-      g.translate(cx,cy); if(this.opts.mirror!==false) g.scale(-1,1); g.drawImage(fc,-vw*s/2,-vh*s/2,vw*s,vh*s); g.restore();
-      if(FaceCam.mode==="helmet") drawVisor(g,cx,cy,r);
+    if(fc){ // the face is re-cut 15 times a second into a small round tile, then pasted every frame
+      if(!this.ft||this.ft.width!==2*r) { this.ft=document.createElement("canvas"); this.ft.width=this.ft.height=2*r; this.ftT=0; }
+      if(tn-this.ftT>62){ this.ftT=tn; const fg=this.ft.getContext("2d"), vw=fc.videoWidth, vh=fc.videoHeight, s=Math.max(2*r/vw,2*r/vh); fg.clearRect(0,0,2*r,2*r); fg.save(); fg.beginPath(); fg.arc(r,r,r,0,7); fg.clip();
+        fg.translate(r,r); if(this.opts.mirror!==false) fg.scale(-1,1); fg.drawImage(fc,-vw*s/2,-vh*s/2,vw*s,vh*s); fg.restore(); }
+      g.drawImage(this.ft,cx-r,cy-r);
+      if(FaceCam.mode==="helmet"){ if(!this.vz||this.vz.width!==2*r){ const v=document.createElement("canvas"); v.width=v.height=2*r; drawVisor(v.getContext("2d"),r,r,r); this.vz=v; } g.drawImage(this.vz,cx-r,cy-r); }
       g.lineWidth=Math.max(3,r*.09); g.strokeStyle=this.opts.ring||"#ff6a1a"; g.beginPath(); g.arc(cx,cy,r,0,7); g.stroke(); }
     const f=Math.round(H*.05); g.font=`italic ${f}px 'Racing Sans One','Arial Black',sans-serif`; g.textBaseline="top"; g.textAlign="right";
     const tag="Read to ride.", tw=g.measureText(tag).width, lw=g.measureText("READRASH").width, x=W-f*.6, y=H-f*1.5;
@@ -1499,7 +1502,31 @@ function drawVisor(g,cx,cy,r){ g.save(); g.beginPath(); g.arc(cx,cy,r,0,7); g.cl
   g.strokeStyle="rgba(255,255,255,.45)"; g.lineWidth=r*.06; g.beginPath(); g.moveTo(cx-r*.6,cy-r*.42); g.quadraticCurveTo(cx-r*.1,cy-r*.52,cx+r*.15,cy-r*.45); g.stroke();
   g.fillStyle="#ffd23f"; g.fillRect(cx-r,cy-r*.98,r*2,r*.3); g.restore(); }
 
-window.ReadRash = { create, Voice, bindMic, FaceCam, Recorder, drawVisor, ev, shareCard, Rider, LADDER, levelOf, rpPanel, raceLink, shareRace, esc, Sound, LEAGUES, RACES, ADJ, NOUN, randomName, VOICE_OK, IN_VIEWER, Store, stars, saveStars, nickname, norm, sim, ord,
+/* shared race extras for every game page: face cam toggle, Record my race, the face bubble reacting to the race, the clip card */
+function mountExtras(o){ const $=id=>document.getElementById(id), isDemo=o.isDemo||(()=>false);
+  let camMode=Store.get("faceCam","off"); if(!["off","on","helmet"].includes(camMode)) camMode="off";
+  let recOn=!!Store.get("recRace",false)&&Recorder.ok(), clip=null, fxT=0;
+  if(!Recorder.ok()) $("recTog").closest(".ex").hidden=true;
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||IN_VIEWER) $("camPick").closest(".ex").hidden=true;
+  const paint=()=>{ $("camPick").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.c===camMode))); $("recTog").setAttribute("aria-checked",String(recOn)); };
+  $("camPick").querySelectorAll("button").forEach(b=>b.onclick=()=>{ camMode=b.dataset.c; Store.set("faceCam",camMode); paint(); if(camMode==="off"){ FaceCam.stop(); $("faceCam").hidden=true; } });
+  $("recTog").onclick=()=>{ recOn=!recOn; Store.set("recRace",recOn); paint(); };
+  o.ctl.on("pop",t=>{ const el=$("faceCam"); if(el.hidden) return; t=String(t).toUpperCase();
+    const cls=/NITRO|SLINGSHOT|RASH!/.test(t)?"nitro":/KNOCKOUT|SHOCKED|ZAPPED|BLOCKED|SWIPE!|NICE SAVE|COCONUT|DICTIONARY/.test(t)?"good":/WRONG|HIT!|CRASH|BONK|SKID|SWIPED|MISSED|GRAMMAR/.test(t)?"bad":"";
+    if(!cls) return; el.classList.remove("good","nitro","bad"); void el.offsetWidth; el.classList.add(cls); clearTimeout(fxT); fxT=setTimeout(()=>el.classList.remove(cls),900); });
+  $("clipBtn").onclick=async()=>{ const how=await Recorder.save(o.shareText?o.shareText():"Watch me race on ReadRash!"); $("clipMsg").textContent=how==="saved"?"Saved to your downloads.":how==="shared"?"Shared!":""; };
+  window.addEventListener("pagehide",()=>{ FaceCam.stop(); Recorder.cancel(); });
+  paint();
+  return {
+    async camUp(){ if(camMode==="off"||isDemo()){ $("faceCam").hidden=true; return; } const r=await FaceCam.start($("faceVid"),camMode); $("faceCam").hidden=r!=="ok"; $("faceCam").classList.toggle("helmet",camMode==="helmet"); },
+    recStart(){ if(!recOn||isDemo()||Recorder.rec) return; Recorder.start(o.ctl,o.canvas,{face:camMode!=="off",voice:true}).then(()=>{ $("recChip").hidden=!Recorder.rec; }).catch(()=>{}); },
+    finish(res,card){ if(!Recorder.rec){ clip=null; return; } if(!card||res.stopped){ Recorder.cancel(); $("recChip").hidden=true; clip=null; return; }
+      clip=Recorder.finish(card).then(b=>{ $("recChip").hidden=true; return b; }); },
+    showClip(){ if(!clip){ $("clipBox").hidden=true; return; } $("clipBox").hidden=false; $("clipBtn").disabled=true; $("clipHead").textContent="Making your clip…"; $("clipMsg").textContent="";
+      clip.then(b=>{ if(!b||!b.size){ $("clipBox").hidden=true; return; } $("clipHead").textContent=`Your race clip is ready (${Math.max(1,Math.round(b.size/1e6))} MB)`; $("clipBtn").disabled=false; }); },
+    get on(){ return camMode!=="off"; } }; }
+
+window.ReadRash = { create, Voice, bindMic, mountExtras, FaceCam, Recorder, drawVisor, ev, shareCard, Rider, LADDER, levelOf, rpPanel, raceLink, shareRace, esc, Sound, LEAGUES, RACES, ADJ, NOUN, randomName, VOICE_OK, IN_VIEWER, Store, stars, saveStars, nickname, norm, sim, ord,
   paintRider:(c,w,f,o)=>{ preloadRiders(); paintRider(c,w,f,o); },
   paintSprite(canvas,t,opt={}){ const g=canvas.getContext("2d"), h=canvas.height; g.clearRect(0,0,canvas.width,canvas.height); const list=t==="bike"?[bikeOnly(opt.rider||ME),riderOnly(opt.rider||ME)]:[getSprite(t,opt)]; for(const S of list){ const w=h*S.aspect; g.drawImage(S.c,(canvas.width-w)/2,0,w,h); } } };
 })();

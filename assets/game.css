@@ -121,3 +121,24 @@
 .duel{font-family:var(--display);font-style:italic;font-size:22px;color:var(--ink)}
 
 .panel > h2{padding-right:46px;overflow-wrap:anywhere}
+
+/* face cam, extras toggles, REC chip, clip card (shared by every race page) */
+.facecam{position:absolute;left:12px;bottom:12px;width:clamp(78px,15%,168px);aspect-ratio:1;border-radius:50%;overflow:hidden;border:4px solid var(--heat);box-shadow:0 6px 18px rgba(0,0,0,.45);z-index:3;background:#1b1b22;transition:border-color .2s,box-shadow .2s}
+.facecam video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1);display:block}
+.facecam .visor{position:absolute;inset:0;width:100%;height:100%;display:none}.facecam.helmet .visor{display:block}
+.facecam.good{border-color:#7ff0ff;box-shadow:0 0 0 4px rgba(127,240,255,.35),0 0 28px rgba(127,240,255,.8)}
+.facecam.nitro{border-color:var(--sun);box-shadow:0 0 0 4px rgba(255,210,63,.35),0 0 30px rgba(255,170,40,.9)}
+.facecam.bad{border-color:var(--bad);animation:fcShake .35s}
+@keyframes fcShake{20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
+.chip.rec{background:#2a1416;color:#ff8a7a;font-weight:700;display:inline-flex;align-items:center;gap:6px}.chip.rec i{width:9px;height:9px;border-radius:50%;background:#ff3b3b;animation:pulse 1s infinite}
+.extras{display:flex;flex-direction:column;gap:8px;border-top:2px dashed #e6dccb;padding-top:12px}
+.ex{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.ex span{display:flex;flex-direction:column}.ex b{font-family:var(--display);font-style:italic;font-weight:400;font-size:19px}.ex small{color:#6b6476;font-size:13px}
+.seg{display:inline-flex;border:3px solid var(--ink);border-radius:12px;overflow:hidden;flex:none}
+.seg button{font:inherit;font-weight:700;font-size:14px;border:none;background:#fff;color:var(--ink);padding:6px 11px;cursor:pointer}
+.seg button+button{border-left:2px solid var(--ink)}.seg button[aria-pressed="true"]{background:var(--sun)}
+.tog{width:54px;height:30px;border-radius:999px;border:3px solid var(--ink);background:#e6dccb;position:relative;cursor:pointer;flex:none;padding:0}
+.tog i{position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;border:2px solid var(--ink);transition:left .15s}
+.tog[aria-checked="true"]{background:#ff6a1a}.tog[aria-checked="true"] i{left:26px}
+.clipbox{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#1b1b22;color:var(--chalk);border-radius:14px;padding:10px 14px}.clipbox b{flex:1;font-family:var(--display);font-style:italic;font-weight:400;font-size:20px}
+@media (max-width:520px){.ex small{display:none}.seg button{padding:6px 8px}.facecam{bottom:46px;left:8px}}
