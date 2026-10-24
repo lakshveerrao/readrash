@@ -72,3 +72,28 @@ export function profile(r) {
   const lv = levelOf(r.rp), next = LEVELS[lv] ?? null;
   return { name: r.name, rp: r.rp, level: lv, next, prev: LEVELS[lv - 1], races: r.races, streak: r.streak, limits: RACE_LIMITS(r.rp) };
 }
+
+/* Fair play: only things a human voice physically cannot do. Watch-only (ENFORCE = false): flags are recorded for the
+   owner to look at and never change anything for the player. Unusual is not proof: fast, steady, perfect readers pass. */
+export const ENFORCE = false;
+export function fairPlay(chk) {
+  const reasons = [], d = {};
+  if (!chk || typeof chk !== "object") return { reasons, d };
+  const finals = chk.finals | 0, silent = chk.silent | 0;
+  const gaps = Array.isArray(chk.gaps) ? chk.gaps.filter(Number.isFinite).slice(0, 80) : [];
+  d.finals = finals; d.silent = silent; d.signs = gaps.length;
+  // 1. words recognised while the speech service never heard anyone speak: only possible without a voice
+  if (finals >= 8 && silent / finals >= 0.8) reasons.push(`${silent} of ${finals} words arrived with no speech heard`);
+  // 2. faster than the speech service can answer: below 120 ms from the sign opening, on most signs
+  const instant = gaps.filter(g => g < 120).length; d.instant = instant;
+  if (gaps.length >= 10 && instant / gaps.length >= 0.7) reasons.push(`${instant} of ${gaps.length} signs answered faster than speech recognition can work`);
+  return { reasons, d };
+}
+export async function noteFairPlay(env, rider, mode, ref, chk) {
+  try {
+    if (chk && chk.auto) return; // demo races are driven by the computer on purpose
+    const { reasons, d } = fairPlay(chk); if (!reasons.length) return;
+    await env.DB.prepare(`INSERT INTO flags (rider_id, name, mode, ref, reasons, detail, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`)
+      .bind(rider ? rider.id : null, rider ? rider.name : null, mode, ref || null, JSON.stringify(reasons), JSON.stringify(d), Date.now()).run();
+  } catch (e) {}
+}

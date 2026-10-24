@@ -99,3 +99,16 @@ CREATE TABLE IF NOT EXISTS events (
   n INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (day, k)
 );
+-- fair-play checks run in watch-only mode: a row here changes nothing for the player or the boards
+CREATE TABLE IF NOT EXISTS flags (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  rider_id INTEGER,
+  name TEXT,
+  mode TEXT NOT NULL,
+  ref TEXT,
+  reasons TEXT NOT NULL,
+  detail TEXT NOT NULL,
+  cleared INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_flags_time ON flags (created_at);

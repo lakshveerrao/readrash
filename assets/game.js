@@ -71,16 +71,17 @@ function isMatch(h,w){ if(sim(h,w)>=OK) return true; return w.length<=4&&h[0]===
 /* Voice: one recogniser that heals itself. Chrome ends sessions on silence, network blips, tab switches and
    sometimes just stalls; every one of those paths leads back to listening. States: off|starting|listening|retry|blocked|nomic|offline */
 const Voice = {
-  ok: VOICE_OK, rec:null, handler:null, want:false, live:false, starting:false, startedAt:0, lastEvt:0, lastRes:0, speechAt:0, fails:0, netFails:0, timer:0, dog:0,
+  ok: VOICE_OK, finals:0, silent:0, heard:false, rec:null, handler:null, want:false, live:false, starting:false, startedAt:0, lastEvt:0, lastRes:0, speechAt:0, fails:0, netFails:0, timer:0, dog:0,
   status:"off", onDenied:null, onState:null, onStatus:null,
   _set(st,info){ if(this.status===st&&!info) return; this.status=st; this.onStatus&&this.onStatus(st,info); },
   _new(){
     if(this.rec){ const o=this.rec; o.onstart=o.onend=o.onerror=o.onresult=o.onaudiostart=o.onsoundstart=o.onspeechstart=null; try{ o.abort(); }catch(e){} }
     const r=new SR(); r.lang="en-IN"; r.continuous=true; r.interimResults=true; r.maxAlternatives=1;
     const touch=()=>{ this.lastEvt=performance.now(); };
-    r.onaudiostart=r.onsoundstart=touch; r.onspeechstart=()=>{ touch(); this.speechAt=performance.now(); };
-    r.onstart=()=>{ if(this.rec!==r) return; touch(); this.live=true; this.starting=false; this.fails=0; this._set("listening"); this.onState&&this.onState(true); this.handler&&this.handler({reset:true}); };
-    r.onresult=e=>{ if(this.rec!==r) return; touch(); this.lastRes=performance.now(); this.netFails=0; this.handler&&this.handler(e); };
+    r.onaudiostart=r.onsoundstart=touch; r.onspeechstart=()=>{ touch(); this.speechAt=performance.now(); if(this.rec===r) this.heard=true; };
+    r.onstart=()=>{ if(this.rec!==r) return; touch(); this.heard=false; this.live=true; this.starting=false; this.fails=0; this._set("listening"); this.onState&&this.onState(true); this.handler&&this.handler({reset:true}); };
+    r.onresult=e=>{ if(this.rec!==r) return; touch(); this.lastRes=performance.now(); this.netFails=0;
+      for(let i=e.resultIndex;i<e.results.length;i++) if(e.results[i].isFinal){ this.finals++; if(!this.heard&&!(this.speechAt&&performance.now()-this.speechAt<10000)) this.silent++; } this.handler&&this.handler(e); };
     r.onerror=e=>{ if(this.rec!==r) return; const er=e.error;
       if(er==="not-allowed"||er==="service-not-allowed"){ this.want=false; this._set("blocked"); this.onDenied&&this.onDenied(er); }
       else if(er==="audio-capture"){ this.fails++; this._set("nomic"); }
@@ -521,13 +522,13 @@ function create(o){
   /* ---------- Rash GP: word lanes + a pack that fights back ---------- */
   const gp=o.mode==="gp";
   let gpLaps=3, rows=[], gpObs=[], gpNitro=[], rivals=[], heat=.4, lapIdx=0, splits=[], gpMissed=0, gpWrong=0, lastPlace=12;
-  let shieldBuilt=0, gpSeed="", zapTold=false, custom=null, ghosts=[], track=[], trackT=0, floats=[], atkTold=false, defTold=false, shieldTold=false, crackTold=false, playerAtkCD=0, shieldCharge=0, kos=0, hitsTaken=0, blocks=0, atkTarget=null, projs=[], comment=null, lastRivalAtk=-9999, leaderName="";
+  let gaps=[], shieldBuilt=0, gpSeed="", zapTold=false, custom=null, ghosts=[], track=[], trackT=0, floats=[], atkTold=false, defTold=false, shieldTold=false, crackTold=false, playerAtkCD=0, shieldCharge=0, kos=0, hitsTaken=0, blocks=0, atkTarget=null, projs=[], comment=null, lastRivalAtk=-9999, leaderName="";
   let posCand={p:12,t:0}, draft=0, slingUntil=-99999, blockedMsgT=-9999, duelT=-9999, posFlash=null, crashes=0, duelsWon=0, duelsLost=0;
   let VREF=RACE_LEN/4.6, HUD0=START_Z, HUDLEN=RACE_LEN, FINZ=FINISH_Z;
   const LANE_X=GP.LANES;
   const SAY_PASS=["See ya!","Catch me!","Too slow!","Bye bye!"], SAY_LOSE=["Nooo!","Hey!","No way!","Come back!"];
   function nextPending(){ for(const r of rows){ if(r.state===0&&r.z>P.z+80) return r; } return null; }
-  function curRow(){ const r=nextPending(); return r&&r.z-P.z<=GP.ROW_GAP*SEG*GP.OPEN?r:null; }
+  function curRow(){ const r=nextPending(); if(r&&r.z-P.z<=GP.ROW_GAP*SEG*GP.OPEN){ if(r.openT==null&&phase==="race") r.openT=now; return r; } return null; }
   function nextRow(r){ const i=rows.indexOf(r); return i>=0?rows[i+1]||null:null; }
   function laneCenterOf(x){ let b=0; LANE_X.forEach((lx,i)=>{ if(Math.abs(x-lx)<Math.abs(x-LANE_X[b])) b=i; }); return b; }
   function loadGP(lg,laps,gh,cust,seed){
@@ -563,7 +564,7 @@ function create(o){
                                   if(c==="nitro"||c==="book"||c==="coconut") gpNitro.push({z:z+GP.ROW_GAP*SEG*.1,lane,kind:c,taken:false}); });
       } }
     words=rows.flatMap(r=>r.words); keys=words.map(norm); status=[]; trouble=new Set(); acts=[]; idx=0;
-    correctCount=0; attemptCount=0; streak=0; gpMissed=0; gpWrong=0; crashes=0; kos=0; hitsTaken=0; blocks=0; shieldCharge=0; floats=[]; shieldBuilt=0; zapTold=false; atkTold=false; defTold=false; shieldTold=false; crackTold=false; atkTarget=null; projs=[]; comment=null; lastRivalAtk=-9999; leaderName=""; heat=.4; lapIdx=0; splits=[]; finishT=null; lights=0; draft=0; slingUntil=0; posFlash=null;
+    correctCount=0; attemptCount=0; streak=0; gpMissed=0; gpWrong=0; crashes=0; kos=0; hitsTaken=0; blocks=0; shieldCharge=0; floats=[]; shieldBuilt=0; gaps=[]; zapTold=false; atkTold=false; defTold=false; shieldTold=false; crackTold=false; atkTarget=null; projs=[]; comment=null; lastRivalAtk=-9999; leaderName=""; heat=.4; lapIdx=0; splits=[]; finishT=null; lights=0; draft=0; slingUntil=0; posFlash=null;
     Object.assign(P,{z:GP.START-2800,target:0,v:0,x:0,vx:0,lane:1,lean:0,state:"ride",until:0,boostUntil:0,swipeT:-9999,copUntil:0,shield:1,shieldFlashT:-9999,weapon:{type:"paper",uses:Infinity},downT:-9999,downDir:1});
     // the pack: in-game riders with personalities; everyone lines up ahead of you
     const crew=shuffled(CHARS), styles=["sprinter","closer","blocker","steady"];
@@ -599,7 +600,7 @@ function create(o){
   function say(rv,list){ if(now-rv.sayT<3500) return; rv.sayT=now; rv.say=list[Math.floor(Math.random()*list.length)]; }
   function chooseLane(r,lane){
     const early=Math.max(0,Math.min(1,(r.z-P.z)/(GP.ROW_GAP*SEG*GP.OPEN)));
-    r.state=1; r.chosen=lane; r.t=now; P.lane=lane; emit("read",{word:r.words[lane],lane,kind:r.content[lane]}); correctCount++; attemptCount++; streak++; chargeShield();
+    r.state=1; r.chosen=lane; r.t=now; P.lane=lane; if(r.openT!=null) gaps.push(Math.round(now-r.openT)); emit("read",{word:r.words[lane],lane,kind:r.content[lane]}); correctCount++; attemptCount++; streak++; chargeShield();
     heat=Math.min(1,heat+.12+.16*early);
     if(draft>=1.2&&now>slingUntil+5000){ slingUntil=now+1300; draft=0; pop("SLINGSHOT!",650,"go"); Sound.tone(300,.35,"sawtooth",.05,600); }
     Sound.tone(620+Math.min(8,streak%10)*40,.07,"square",.035);
@@ -924,14 +925,14 @@ function create(o){
     ["3","2","1"].forEach((t,i)=>setTimeout(()=>{ if(phase!=="countdown") return; lights=i+1; pop(t,0); Sound.tone(440,.15,"square",.06); },i*700));
     setTimeout(()=>{ if(phase!=="countdown") return; lights=4; pop("RASH!",650,"go"); Sound.tone(880,.35,"square",.07); go(); },2100);
   }
-  function go(){ phase="race"; t0=performance.now(); now=0; lastProgressT=0; apNext=600; renderPara(); if(gp){ gpUI(true); if(!attract) talk("Read a word to ride into its lane!"); } emit("go"); }
+  function go(){ Voice.finals=0; Voice.silent=0; phase="race"; t0=performance.now(); now=0; lastProgressT=0; apNext=600; renderPara(); if(gp){ gpUI(true); if(!attract) talk("Read a word to ride into its lane!"); } emit("go"); }
   function placeOf(){ let p=1; riders.forEach(r=>{ if(r.finishT!=null ? (finishT==null||r.finishT<finishT) : r.z>P.z) p++; }); return p; }
   function finish(stopped){
     if(phase==="done") return;
     phase="done"; if(!stopped&&finishT!=null) P.target=FINZ+3000;
     if(gp){ gpUI(true); const tot=finishT??Math.round(now), lapTimes=splits.map((t,i)=>t-(i?splits[i-1]:0)), place=finishT!=null?gpPlace():null;
       const missedRows=rows.filter(r=>r.state===-1), signsN=rows.length;
-      const res={mode:"gp",seed:gpSeed,track:track.slice(),custom:custom?{seed:custom.seed}:null,stopped:!!stopped,place,timeMs:tot,splits:splits.slice(),lapTimes,best:lapTimes.length?Math.min(...lapTimes):null,signs:signsN,correct:correctCount,wrong:gpWrong,missed:gpMissed,
+      const res={mode:"gp",chk:{finals:Voice.finals,silent:Voice.silent,gaps:gaps.slice(0,80),auto:autopilot},seed:gpSeed,track:track.slice(),custom:custom?{seed:custom.seed}:null,stopped:!!stopped,place,timeMs:tot,splits:splits.slice(),lapTimes,best:lapTimes.length?Math.min(...lapTimes):null,signs:signsN,correct:correctCount,wrong:gpWrong,missed:gpMissed,
         crashes,kos,blocks,hitsTaken,shieldBuilt,acc:signsN?Math.round(correctCount/signsN*100):0,wpm:Math.round(correctCount/(tot/60000)||0),
         trouble:[...new Set(missedRows.map(r=>r.words[r.content.indexOf("nitro")>=0?r.content.indexOf("nitro"):1]))].slice(0,12),league,laps:gpLaps,
         podium:[{name:"YOU",t:finishT,me:true},...rivals.map(r=>({name:r.name,t:r.finishT??(Math.round(now)+Math.round((GP.START+gpLaps*GP.LAP_LEN-r.z)/Math.max(r.v,1)*1000))}))].sort((a,b)=>(a.t??1e12)-(b.t??1e12))};
@@ -939,7 +940,7 @@ function create(o){
       setTimeout(()=>Sound.engineOff(),1500); emit("finish",res);
       if(attract) setTimeout(()=>{ if(!running) return; loadGP(league,gpLaps,[]); lights=4; go(); },2600); return; }
     const secs=(finishT??now)/1000, place=finishT!=null?placeOf():null;
-    const res={ stopped:!!stopped, place, timeMs:Math.round(finishT??now), words:words.length, correct:correctCount, attempts:attemptCount,
+    const res={ chk:{finals:Voice.finals,silent:Voice.silent,gaps:[],auto:autopilot}, stopped:!!stopped, place, timeMs:Math.round(finishT??now), words:words.length, correct:correctCount, attempts:attemptCount,
       wpm:Math.round(correctCount/(secs/60)||0), acc:attemptCount?Math.round(correctCount/attemptCount*100):0, swipes, dodges,
       trouble:[...new Set(words.filter((w,i)=>trouble.has(i)).map(w=>w.replace(/[^A-Za-z0-9'’-]/g,"")))],
       podium:[{name:"YOU",t:finishT,me:true},...riders.map(r=>({name:r.name,t:r.finishT}))].sort((a,b)=>(a.t??1e12)-(b.t??1e12)),

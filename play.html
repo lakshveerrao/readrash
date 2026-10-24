@@ -22,8 +22,8 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preload" href="assets/fonts/racing-sans-one.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/site.css?v=20261024w">
-<link rel="stylesheet" href="assets/game.css?v=20261024w">
+<link rel="stylesheet" href="assets/site.css?v=20261024x">
+<link rel="stylesheet" href="assets/game.css?v=20261024x">
 </head>
 <body>
 <header class="nav gut">
@@ -167,8 +167,8 @@
   </div>
 </div>
 
-<script src="assets/game.js?v=20261024w"></script>
-<script src="assets/board.js?v=20261024w"></script>
+<script src="assets/game.js?v=20261024x"></script>
+<script src="assets/board.js?v=20261024x"></script>
 <script>
 (() => {
 const RR = window.ReadRash, $ = id => document.getElementById(id);
@@ -266,7 +266,7 @@ $("postReroll").onclick = () => { RR.Store.set("name", RR.randomName()); $("post
 let posted = false;
 async function postRun(){
   if (!lastRes) return; if (posted) { location.href = "leaderboard.html#story"; return; } $("postBtn").disabled = true; $("postBtn").textContent = "Posting…"; $("postMsg").textContent = "Posting your score to the board…";
-  try { const j = await Board.submit({ key: RR.Rider.key(), name: RR.nickname(), place: lastRes.place, league, race, words: lastRes.words, correct: lastRes.correct, attempts: lastRes.attempts, timeMs: lastRes.timeMs });
+  try { const j = await Board.submit({ key: RR.Rider.key(), name: RR.nickname(), chk: lastRes.chk, place: lastRes.place, league, race, words: lastRes.words, correct: lastRes.correct, attempts: lastRes.attempts, timeMs: lastRes.timeMs });
     RR.rpPanel($("rpBox"), j.rp, j.rider); if (j.rider) RR.Store.set("rpCache", { rp: j.rider.rp, level: j.rider.level });
     posted = true; $("postBtn").disabled = false; $("postBtn").textContent = "See the board"; $("postMsg").textContent = j.rank ? `Posted ✓ You're #${j.rank} on today's ${RR.LEAGUES[league].name} board.` : "Posted ✓";
   } catch (e) { $("postBtn").disabled = false; $("postBtn").textContent = "Try again"; $("postMsg").textContent = "Couldn't reach the leaderboard. Check your connection and tap Try again."; }

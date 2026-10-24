@@ -62,3 +62,7 @@ It needs a secret key on the Pages project (pick any long password):
 npx wrangler pages secret put STATS_KEY
 ```
 Then open readrash.com/stats.html and type that key. For page views, switch on Web Analytics for the Pages project in the Cloudflare dashboard (free, no cookies).
+
+## Fair play (watch-only)
+Every finished race sends two numbers the server checks: how many words arrived while the speech service had heard no one speak, and how fast each Rash GP sign was answered after it opened. Only things a voice physically can't do are flagged (most words with no speech heard; most signs answered in under 0.12s). Fast, steady or perfect readers are never flagged.
+Flags appear on /stats.html and change nothing for players or boards (`ENFORCE = false` in `functions/_lib/rr.js`). If a real reader is ever flagged, tap "Real reader" and loosen the rule before ever turning `ENFORCE` on.

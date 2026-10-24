@@ -1,5 +1,5 @@
 // A finished run on a made race: checks it, opens the race on the maker's first run, awards Rash Points.
-import { json, getRider, award, makerBonus, profile } from "../../../_lib/rr.js";
+import { json, getRider, award, makerBonus, profile, noteFairPlay } from "../../../_lib/rr.js";
 const LAP_LEN = 1000 * 200, SIGNS_PER_LAP = 10, VMAX = { rookie: 8333, pro: 13333, legend: 18333 };
 const MIN_LAP_MS = l => Math.floor(LAP_LEN / (VMAX[l] * 1.46) * 1000 * 0.97);
 export async function onRequestPost({ request, env, params }) {
@@ -30,6 +30,7 @@ export async function onRequestPost({ request, env, params }) {
     .bind(c, r.id, r.name, total, correct, JSON.stringify(mw), JSON.stringify(track), now).run();
   if (isMaker) { if (race.status === "draft" || !race.maker_ms || total < race.maker_ms) await env.DB.prepare(`UPDATE races SET status = 'live', maker_ms = ?1 WHERE code = ?2`).bind(Math.min(total, race.maker_ms || total), c).run(); }
   else await makerBonus(env, race.maker_id);
+  await noteFairPlay(env, r, "race", c, b.chk);
   const rp = await award(env, r, { mode: "race", code: c, league: race.league, laps, timeMs: total, correct, finished: true, place: Number.isInteger(place) ? place : null, clean: missed === 0 && wrong === 0, rate: isMaker ? 0.5 : 1 });
   const { results } = await env.DB.prepare(`SELECT rider_id, name, MIN(time_ms) AS time_ms FROM race_runs WHERE code = ?1 GROUP BY rider_id ORDER BY time_ms ASC LIMIT 50`).bind(c).all();
   const board = (results || []).map(x => ({ name: x.name, time_ms: x.time_ms, maker: x.rider_id === race.maker_id, me: x.rider_id === r.id }));

@@ -22,8 +22,8 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preload" href="assets/fonts/racing-sans-one.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/site.css?v=20261024w">
-<link rel="stylesheet" href="assets/game.css?v=20261024w">
+<link rel="stylesheet" href="assets/site.css?v=20261024x">
+<link rel="stylesheet" href="assets/game.css?v=20261024x">
 <style>
 /* Rash GP: same race view; the text card shows the three lane words of the next gantry, with what waits in each lane */
 .lanecard{display:flex;flex-direction:column;gap:10px;justify-content:center;min-height:150px}
@@ -254,8 +254,8 @@
   </div>
 </div>
 
-<script src="assets/game.js?v=20261024w"></script>
-<script src="assets/board.js?v=20261024w"></script>
+<script src="assets/game.js?v=20261024x"></script>
+<script src="assets/board.js?v=20261024x"></script>
 <script>
 (() => {
 const RR = window.ReadRash, $ = id => document.getElementById(id);
@@ -345,7 +345,7 @@ async function postRun(){
   if (!lastRes) return; if (posted) { location.href = made ? "garage.html" : "leaderboard.html#gp"; return; } $("postBtn").disabled = true; $("postBtn").textContent = "Posting…"; $("postMsg").textContent = "Posting your time…";
   if (lastRes.stopped || lastRes.place == null) { $("postBox").hidden = true; return; }
   try {
-    const base = { key: RR.Rider.key(), name: RR.nickname(), splits: lastRes.splits, correct: lastRes.correct, wrong: lastRes.wrong, missed: lastRes.missed, place: lastRes.place };
+    const base = { key: RR.Rider.key(), name: RR.nickname(), chk: lastRes.chk, splits: lastRes.splits, correct: lastRes.correct, wrong: lastRes.wrong, missed: lastRes.missed, place: lastRes.place };
     const r = made ? await fetch(`/api/races/${made.code}/runs`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...base, track: lastRes.track, missedWords: lastRes.trouble }) })
                    : await fetch("/api/gp", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...base, league, laps }) });
     const j = await r.json().catch(() => ({})); if (!r.ok) { const e = new Error(j.error || "http"); e.user = !!j.error && r.status !== 500; throw e; }
