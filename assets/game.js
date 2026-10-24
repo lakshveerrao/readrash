@@ -1340,7 +1340,7 @@ function rpPanel(el,rp,rider){ if(!el) return; if(!rp||!rider){ el.hidden=true; 
   el.innerHTML=`<div class="rpb-top"><div class="rpb-gain">+${rp.gained}<small> Rash Points</small></div><div class="rpb-lv">Level ${lv}</div></div>
     <div class="rpb-parts">${rp.parts.filter(p=>p[1]>0).map(p=>`<span>${esc(p[0])} <b>+${p[1]}</b></span>`).join("")}</div>
     <div class="rpb-bar"><i style="width:${Math.max(3,Math.min(100,pct))}%"></i></div>
-    <div class="rpb-next">${nxt?`${rider.rp} / ${nxt} RP · next: ${esc(nextLive[0])}`:`${rider.rp} RP · every unlock is yours`}</div>
+    <div class="rpb-next">${nxt?`${rider.rp} / ${nxt} RP · next: ${esc(nextLive[0])}${nextLive[1]?"":" (coming soon)"}`:`${rider.rp} RP · every unlock is yours`}</div>
     ${ups.length?`<div class="rpb-up"><b>Unlocked!</b> ${ups.map(esc).join(" · ")}${ups.some(t=>/Make a race/.test(t))?' <a href="make.html">Make one now →</a>':""}</div>`:""}`;
   if(ups.length) Sound.tone(784,.12,"square",.05), setTimeout(()=>Sound.tone(1046,.18,"square",.05),130); }
 // share a made race: the phone's share sheet, else WhatsApp / copy

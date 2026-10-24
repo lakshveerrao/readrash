@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Racing+Sans+One&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
-<link rel="stylesheet" href="assets/site.css?v=20261024j">
+<link rel="stylesheet" href="assets/site.css?v=20261024k">
 <style>
 /* Layout: rider hero (bike + level) → your races → unlock ladder → recent races → rider code */
 .hero{display:grid;grid-template-columns:200px 1fr;gap:24px;align-items:end;padding-block:36px 26px}
@@ -73,7 +73,7 @@ table.rec{width:100%;border-collapse:collapse;font-size:15px}.rec td,.rec th{pad
         <div class="lvrow"><span class="lv" id="lv">Level 1</span><span class="rp" id="rp">0 RP</span></div>
         <div class="bar"><i id="bar" style="width:0%"></i></div>
         <p class="next" id="next">Loading…</p>
-        <div class="facts"><span>Races <b id="nRaces">0</b></span><span>Day streak <b id="nStreak">0</b></span><button class="linkbtn" id="reroll" style="color:var(--muted)">New name</button></div>
+        <div class="facts"><span>Races <b id="nRaces">0</b></span><span>Day streak <b id="nStreak">0</b></span><button id="reroll" style="font:inherit;font-size:14px;background:none;border:none;color:var(--muted);text-decoration:underline;cursor:pointer;padding:6px 4px">New name</button></div>
       </div>
     </div>
 
@@ -108,7 +108,7 @@ table.rec{width:100%;border-collapse:collapse;font-size:15px}.rec td,.rec th{pad
 <footer class="foot gut">
   <div class="inner"><span class="logo" style="font-size:22px">READ<span>RASH</span></span><span>Read fast. Ride rash. © 2026 ReadRash</span></div>
 </footer>
-<script src="assets/game.js?v=20261024j"></script>
+<script src="assets/game.js?v=20261024k"></script>
 <script>
 (() => {
 const RR = window.ReadRash, $ = id => document.getElementById(id), esc = RR.esc;
@@ -147,7 +147,7 @@ async function load(){
   $("nm").textContent = me.name; $("lv").textContent = `Level ${me.level}`; $("rp").textContent = `${me.rp.toLocaleString()} RP`;
   const cur = RR.LADDER[me.level - 1].rp, nx = RR.LADDER[me.level] ? RR.LADDER[me.level].rp : null;
   $("bar").style.width = (nx ? Math.max(3, (me.rp - cur) / (nx - cur) * 100) : 100) + "%";
-  const nextItem = nx ? (RR.LADDER[me.level].items.find(x => x[1]) || RR.LADDER[me.level].items[0])[0] : null;
+  const ni = nx ? (RR.LADDER[me.level].items.find(x => x[1]) || RR.LADDER[me.level].items[0]) : null, nextItem = ni ? ni[0] + (ni[1] ? "" : " (coming soon)") : null;
   $("next").textContent = nx ? `${(nx - me.rp).toLocaleString()} RP to Level ${me.level + 1}: ${nextItem}` : "Every unlock is yours.";
   $("nRaces").textContent = me.races; $("nStreak").textContent = me.streak || 0;
   ladder(me.rp); made(me.made || []); recent(me.recent || []);
