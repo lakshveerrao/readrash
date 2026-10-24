@@ -645,7 +645,7 @@ function create(o){
   /* ---------- Redline: read a pack of words like a rap; every word kicks the throttle ---------- */
   // speed follows your reading rate over the last couple of seconds (not each word as Chrome delivers it), so its
   // half-second recognition gaps and 2-3 word bursts don't make the bike stall and lurch. KICK/DECAY only move the rev needle.
-  const RL={D:900,K:72,WIN:1.6,UP:3.2,DOWN:1.1,KICK:.45,DECAY:2.2,GEARS:[0,45,90,140,190,240,999]};
+  const RL={D:780,K:72,WIN:1.6,UP:3.2,DOWN:1.1,KICK:.45,DECAY:2.2,GEARS:[0,45,90,140,190,240,999]};
   let rl={pack:"animals",seed:"",dist:0,v:0,p:0,gear:1,rpm:0,top:0,shiftT:-9999,launch:null,first:null,trace:[],traceT:0,ghost:null,ghostRider:null,miss:0,boost:0,lastGear:1,blipT:-9999};
   let gpLaps=3, rows=[], gpObs=[], gpNitro=[], rivals=[], heat=.4, lapIdx=0, splits=[], gpMissed=0, gpWrong=0, lastPlace=12;
   let gaps=[], shieldBuilt=0, gpSeed="", zapTold=false, custom=null, ghosts=[], track=[], trackT=0, floats=[], atkTold=false, defTold=false, shieldTold=false, crackTold=false, playerAtkCD=0, shieldCharge=0, kos=0, hitsTaken=0, blocks=0, atkTarget=null, projs=[], comment=null, lastRivalAtk=-9999, leaderName="";
@@ -1025,13 +1025,25 @@ function create(o){
     if(redline) return idx<keys.length&&(isMatch(h,keys[idx])||pre(keys[idx])||(last&&keys[idx].length>=4&&h.length>=3&&h.length>=Math.ceil(keys[idx].length*.45)&&keys[idx].startsWith(h)));
     if(gp){ if(atkTarget&&atkTarget.atkKey&&(isMatch(h,atkTarget.atkKey)||pre(atkTarget.atkKey))) return true; const r=curRow(); return !!r&&r.keys.some(k=>isMatch(h,k)||pre(k)); }
     return idx<keys.length&&(isMatch(h,keys[idx])||pre(keys[idx])); }
+  // every word already taken from the voice, newest last. Chrome on Android often starts each new result by repeating
+  // what it already sent ("cat" → "cat dog" → "cat dog cow" as three results); without this the game re-read those old
+  // words against the next one, stalled, and made the reader say words again.
+  let hist=[];
+  const take=t=>{ hist.push(t); if(hist.length>40) hist.shift(); };
+  function repeatedLead(toks){ let best=0;
+    for(let L=Math.min(toks.length,hist.length);L>=1;L--){ let ok=true; for(let i=0;i<L;i++) if(sim(toks[i],hist[hist.length-L+i])<.75){ ok=false; break; } if(ok){ best=L; break; } }
+    // a word repeated on purpose (the next word really is the same as the last one) is still read
+    return best&&!wants(toks[0],false)?best:0; }
   function voiceHandler(e){
-    if(e.reset){ consumed=[]; return; }
+    if(e.reset){ consumed=[]; hist=[]; return; }
     let shown="";
     for(let r=e.resultIndex;r<e.results.length;r++){ const res=e.results[r], txt=res[0].transcript; shown=txt;
       const toks=txt.trim().split(/\s+/).map(norm).filter(Boolean);
-      if(phase!=="race"){ consumed[r]=toks.length; continue; }
-      let c=consumed[r]||0;
+      if(phase!=="race"){ for(let k=consumed[r]||0;k<toks.length;k++) take(toks[k]); consumed[r]=toks.length; continue; }
+      let c=consumed[r];
+      if(c==null){ c=repeatedLead(toks); }
+      else if(c>toks.length) c=toks.length;
+      const c0=c;
       while(c<toks.length){ const lastTok=!res.isFinal&&c===toks.length-1; const used=gp?gpJudge(toks[c],res.isFinal,lastTok):redline?rlJudge(toks[c],toks[c+1],res.isFinal,lastTok):judge(toks[c],toks[c+1],res.isFinal,lastTok);
         if(used){ c+=used; continue; }
         // No lag on a misheard word: Chrome only sends a "final" at a pause, so one wrong word in the live (interim) text
@@ -1039,6 +1051,7 @@ function create(o){
         // want, skip the stray word and carry on straight away.
         let j=-1; for(let k=c+1;k<=Math.min(c+3,toks.length-1);k++) if(wants(toks[k],!res.isFinal&&k===toks.length-1)){ j=k; break; }
         if(j<0) break; c=j; }
+      for(let k=c0;k<c;k++) take(toks[k]);
       consumed[r]=c; }
     if(shown) setText("heard","Heard: "+shown);
   }
@@ -1049,7 +1062,8 @@ function create(o){
     rl.seed=String(seed||Math.random().toString(36).slice(2,10)).replace(/[^a-z0-9]/g,"").slice(0,16)||"x";
     const R=seeded("rl:"+rl.pack+":"+league+":"+rl.seed), sh=a=>{ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(R()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
     const src=PACKS[rl.pack][league]; let list=[];
-    while(list.length<140){ const b=sh(src); while(list.length&&list.slice(-8).includes(b[0])) b.push(b.shift()); list=list.concat(b); }
+    // one full pack before any word comes round again, and never a repeat within 20 words
+    while(list.length<140){ const b=sh(src); for(let i=0;i<b.length;i++){ const back=list.slice(-20); if(back.includes(b[i])){ const j=b.findIndex((w,k)=>k>i&&!back.includes(w)); if(j>0) [b[i],b[j]]=[b[j],b[i]]; } list.push(b[i]); } }
     words=list.slice(0,140); keys=words.map(norm); if(!attract) Voice.setPhrases(words.slice(0,100)); status=words.map(()=>"todo"); trouble=new Set(); acts=new Array(words.length).fill(null);
     idx=0; fails=0; correctCount=0; attemptCount=0; streak=0; finishT=null; lights=0; obstacles=[]; parts=[]; bursts=[]; shakeAmt=0; skyOff=0;
     VREF=RACE_LEN*(300/3.6)/RL.D; HUD0=START_Z; HUDLEN=RACE_LEN; FINZ=FINISH_Z;

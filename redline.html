@@ -234,7 +234,7 @@ RR.bindMic({ dot: $("micDot"), state: $("micState"), label: $("micLabel"), err: 
 function setModeChip(){ $("modeTxt").parentElement.classList.toggle("demo-chip", demo); $("modeTxt").textContent = demo ? "Demo run" : "Voice"; }
 
 /* your best run on each pack + level rides beside you as a ghost (kept on this device) */
-const pbKey = () => `rlpb.${pack}.${league}`;
+const pbKey = () => `rlpb2.${pack}.${league}`;
 const myPB = () => { const p = RR.Store.get(pbKey(), null); return p && p.ms && Array.isArray(p.trace) ? p : null; };
 function ghostNow(){ if (made) return isMaker ? null : made.ghost ? { name: made.maker, ms: made.maker_ms, trace: made.ghost.track } : null; const p = myPB(); return p ? { name: "Your best", ms: p.ms, trace: p.trace } : null; }
 function prepare(){ ctl.loadRL(pack, league, made ? made.redline.seed : undefined, ghostNow()); label(); }
