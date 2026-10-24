@@ -13,8 +13,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Racing+Sans+One&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
-<link rel="stylesheet" href="assets/site.css?v=20261024h">
-<link rel="stylesheet" href="assets/game.css?v=20261024h">
+<link rel="stylesheet" href="assets/site.css?v=20261024i">
+<link rel="stylesheet" href="assets/game.css?v=20261024i">
 <style>
 /* Rash GP: same race view; the text card shows the three lane words of the next gantry, with what waits in each lane */
 .lanecard{display:flex;flex-direction:column;gap:10px;justify-content:center;min-height:150px}
@@ -200,6 +200,12 @@
   <div class="panel">
     <a class="x" href="index.html" aria-label="Close and go home">✕</a>
     <h2 id="endTitle"></h2>
+    <div class="duel" id="duelTxt" hidden></div>
+    <div class="sharebox" id="shareBox" hidden>
+      <b id="shareHead">Send it to a friend</b>
+      <div class="shl"><input id="shareUrl" readonly aria-label="Race link"><button class="btn sm" id="shareBtn">Share</button></div>
+      <div class="shl"><a class="btn sm ghost" id="waBtn" target="_blank" rel="noopener">WhatsApp</a><span class="note" id="shareMsg" style="color:#6b6476"></span></div>
+    </div>
     <div class="stats">
       <div class="stat"><b id="sTime">0s</b><small>Race time</small></div>
       <div class="stat"><b id="sBest">0s</b><small>Best lap</small></div>
@@ -209,12 +215,6 @@
     <div><p style="font-weight:700;margin-bottom:8px">Lap times</p><div class="splits" id="splits"></div></div>
     <div><p style="font-weight:700;margin-bottom:8px">Standings</p><div class="standings" id="standings"></div></div>
     <div id="practiceWrap"><p style="font-weight:700;margin-bottom:8px">Signs you missed</p><div class="practice" id="practice"></div></div>
-    <div class="duel" id="duelTxt" hidden></div>
-    <div class="sharebox" id="shareBox" hidden>
-      <b id="shareHead">Send it to a friend</b>
-      <div class="ln"><input id="shareUrl" readonly aria-label="Race link"><button class="btn sm" id="shareBtn">Share</button></div>
-      <div class="ln"><a class="btn sm ghost" id="waBtn" target="_blank" rel="noopener">WhatsApp</a><span class="note" id="shareMsg" style="color:#6b6476"></span></div>
-    </div>
     <div class="rpbox" id="rpBox" hidden></div>
     <div class="post" id="postBox">
       <span class="nm" id="postName"></span>
@@ -230,8 +230,8 @@
   </div>
 </div>
 
-<script src="assets/game.js?v=20261024h"></script>
-<script src="assets/board.js?v=20261024h"></script>
+<script src="assets/game.js?v=20261024i"></script>
+<script src="assets/board.js?v=20261024i"></script>
 <script>
 (() => {
 const RR = window.ReadRash, $ = id => document.getElementById(id);
