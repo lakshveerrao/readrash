@@ -1,3 +1,4 @@
+import { getRider, award, profile } from "../_lib/rr.js";
 // Rash GP leaderboard: GET (best time per rider) / POST (a finished race). D1 binding: DB.
 const ADJ = ["Turbo","Rapid","Zippy","Mighty","Swift","Blazing","Cosmic","Thunder","Rocket","Nitro","Lucky","Brave","Jolly","Speedy","Golden","Silver","Super","Hyper","Flying","Daring","Clever","Funky","Jumbo","Fearless"];
 const NOUN = ["Mango","Tiger","Falcon","Cheetah","Coconut","Comet","Panther","Crab","Turtle","Monsoon","Pepper","Lassi","Samosa","Dolphin","Eagle","Bolt","Wheelie","Kite","Lion","Peacock","Jalebi","Cyclone","Gecko","Rider"];
@@ -38,5 +39,8 @@ export async function onRequestPost({ request, env }) {
   const ahead = await env.DB.prepare(
     `SELECT COUNT(*) AS n FROM (SELECT name, MIN(total_ms) AS t FROM gp_runs WHERE league = ?1 AND laps = ?2 AND created_at >= ?3 GROUP BY name) WHERE t < ?4`
   ).bind(league, laps, since("today", now), total).first();
-  return json({ ok: true, total_ms: total, best_lap_ms: best, acc, rank: (ahead?.n || 0) + 1 });
+  let rp = null, rider = null; const rr = await getRider(env, b.key, name, true);
+  if (rr) { const pl = Number.isInteger(b.place) && b.place >= 1 && b.place <= 12 ? b.place : null;
+    rp = await award(env, rr, { mode: "gp", league, laps, timeMs: total, correct, finished: true, place: pl, clean: missed === 0 && wrong === 0 }); rider = profile(rr); }
+  return json({ ok: true, total_ms: total, best_lap_ms: best, acc, rank: (ahead?.n || 0) + 1, rp, rider });
 }

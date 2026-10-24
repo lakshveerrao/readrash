@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Garage · ReadRash</title>
+<meta name="theme-color" content="#121016">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Racing+Sans+One&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<link rel="stylesheet" href="assets/site.css?v=20261024k">
+<style>
+/* Layout: rider hero (bike + level) → your races → unlock ladder → recent races → rider code */
+.hero{display:grid;grid-template-columns:200px 1fr;gap:24px;align-items:end;padding-block:36px 26px}
+.hero canvas{width:200px;height:240px;display:block}
+.hero h1{font-size:clamp(40px,7vw,72px);line-height:1;word-break:break-word}
+.lvrow{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-top:6px}
+.lv{font-family:var(--display);font-style:italic;font-size:28px;color:var(--cool)}
+.rp{font-family:var(--display);font-style:italic;font-size:22px;color:var(--sun)}
+.bar{height:14px;border-radius:8px;background:var(--asphalt-3);overflow:hidden;margin-top:10px;max-width:520px}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--cool),var(--sun));transition:width .8s}
+.next{color:var(--muted);margin-top:8px;font-size:15px}
+.facts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.facts span{background:var(--asphalt-2);border-radius:9px;padding:6px 10px;font-size:14px;color:#d9d2c6}.facts b{color:var(--chalk)}
+section.blk{padding-block:26px}
+.blk h2{font-size:clamp(28px,4.5vw,40px);margin-bottom:14px}.blk h2 em{font-style:inherit;color:var(--heat)}
+.races{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.race{background:var(--asphalt-2);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.race h3{font-size:22px}.race p{margin:0;font-size:14px;color:#cfc6b8}
+.race .st{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:6px;align-self:flex-start}
+.st.live{background:#1f5b33;color:#c9f5d6}.st.draft{background:#5b4a1f;color:#ffe9a8}.st.expired{background:#3a3640;color:#bdb6c6}
+.race .acts{display:flex;gap:8px;flex-wrap:wrap}
+.empty{background:var(--asphalt-2);border-radius:16px;padding:18px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;justify-content:space-between}
+.ladder{display:flex;flex-direction:column;gap:8px}
+.step{display:grid;grid-template-columns:96px 1fr;gap:14px;background:var(--asphalt-2);border-radius:14px;padding:12px 14px;align-items:start}
+.step .lvl{font-family:var(--display);font-style:italic;font-size:20px;color:var(--muted)}.step .lvl small{display:block;font-family:var(--read);font-style:normal;font-size:12px}
+.step ul{margin:0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:6px}
+.step li{font-size:14px;border-radius:8px;padding:4px 9px;background:rgba(255,255,255,.05);color:#a39dae}
+.step.got{border-left:4px solid var(--cool)}.step.got .lvl{color:var(--cool)}.step.got li{color:var(--chalk);background:rgba(62,193,211,.12)}
+.step.now{outline:2px solid var(--sun)}.step.now .lvl{color:var(--sun)}
+.step li em{font-style:normal;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-left:6px}
+table.rec{width:100%;border-collapse:collapse;font-size:15px}.rec td,.rec th{padding:8px 6px;border-bottom:1px solid rgba(255,255,255,.07);text-align:left}.rec th{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}.rec .r{text-align:right}
+.code{background:var(--asphalt-2);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.code .k{font-family:ui-monospace,Menlo,monospace;font-size:clamp(15px,2.6vw,20px);letter-spacing:.06em;background:#0c0b10;border-radius:10px;padding:10px 12px;word-break:break-all;filter:blur(6px);cursor:pointer;transition:filter .2s}
+.code .k.show{filter:none}
+.code input{font:inherit;border-radius:10px;border:2px solid var(--asphalt-3);background:#0c0b10;color:var(--chalk);padding:9px 11px;min-width:0;flex:1}
+.code .ln{display:flex;gap:8px;flex-wrap:wrap}
+.note2{font-size:13px;color:var(--muted);margin:0}
+@media (max-width:620px){.hero{grid-template-columns:110px 1fr;gap:14px}.hero canvas{width:110px;height:132px}.step{grid-template-columns:70px 1fr}}
+</style>
+</head>
+<body>
+<header class="nav gut">
+  <div class="inner">
+    <a class="logo" href="index.html">READ<span>RASH</span></a>
+    <nav class="links" aria-label="Main">
+      <a class="opt" href="make.html">Make a race</a>
+      <a class="opt" href="leaderboard.html">Leaderboard</a>
+      <a href="garage.html" aria-current="page">Garage</a>
+      <a class="btn sm" href="gp.html">Race now</a>
+    </nav>
+  </div>
+</header>
+<main class="gut">
+  <div class="inner">
+    <div class="hero">
+      <canvas id="bike" width="300" height="360" aria-hidden="true"></canvas>
+      <div>
+        <p class="kicker">Your garage</p>
+        <h1 id="nm">Rider</h1>
+        <div class="lvrow"><span class="lv" id="lv">Level 1</span><span class="rp" id="rp">0 RP</span></div>
+        <div class="bar"><i id="bar" style="width:0%"></i></div>
+        <p class="next" id="next">Loading…</p>
+        <div class="facts"><span>Races <b id="nRaces">0</b></span><span>Day streak <b id="nStreak">0</b></span><button id="reroll" style="font:inherit;font-size:14px;background:none;border:none;color:var(--muted);text-decoration:underline;cursor:pointer;padding:6px 4px">New name</button></div>
+      </div>
+    </div>
+
+    <section class="blk">
+      <h2>Races you <em>made</em></h2>
+      <div id="madeList"></div>
+    </section>
+
+    <section class="blk">
+      <h2>Unlocks</h2>
+      <div class="ladder" id="ladder"></div>
+    </section>
+
+    <section class="blk">
+      <h2>Recent <em>races</em></h2>
+      <div style="overflow-x:auto"><table class="rec"><thead><tr><th>Race</th><th>Time</th><th>Place</th><th class="r">Rash Points</th></tr></thead><tbody id="recent"></tbody></table></div>
+    </section>
+
+    <section class="blk" style="padding-bottom:60px">
+      <h2>Rider <em>code</em></h2>
+      <div class="code">
+        <p class="note2">Your rider lives on this device. To ride as yourself on another phone or laptop, copy this code there. Keep it secret: anyone with it can ride as you.</p>
+        <div class="k" id="key" title="Tap to show">••••</div>
+        <div class="ln"><button class="btn sm ghost" id="copyKey">Copy code</button></div>
+        <p class="note2">Moving here from another device? Paste its code:</p>
+        <div class="ln"><input id="useKey" placeholder="Paste a rider code" aria-label="Rider code"><button class="btn sm" id="useBtn">Use code</button></div>
+        <p class="note2" id="keyMsg"></p>
+      </div>
+    </section>
+  </div>
+</main>
+<footer class="foot gut">
+  <div class="inner"><span class="logo" style="font-size:22px">READ<span>RASH</span></span><span>Read fast. Ride rash. © 2026 ReadRash</span></div>
+</footer>
+<script src="assets/game.js?v=20261024k"></script>
+<script>
+(() => {
+const RR = window.ReadRash, $ = id => document.getElementById(id), esc = RR.esc;
+const fmt = ms => ms == null ? "–" : (ms / 1000).toFixed(1) + "s";
+RR.paintRider($("bike"), "ME", 12);
+const key = RR.Rider.key(); $("key").textContent = key.replace(/(.{4})/g, "$1 ").trim();
+$("key").onclick = () => $("key").classList.toggle("show");
+$("copyKey").onclick = async () => { try { await navigator.clipboard.writeText(key); $("keyMsg").textContent = "Copied. Paste it on your other device."; } catch (e) { $("key").classList.add("show"); $("keyMsg").textContent = "Select the code above and copy it."; } };
+$("useBtn").onclick = () => { if (RR.Rider.setKey($("useKey").value)) location.reload(); else $("keyMsg").textContent = "That doesn't look like a rider code."; };
+$("reroll").onclick = () => { RR.Store.set("name", RR.randomName()); load(); };
+
+function ladder(rp){
+  const lv = RR.levelOf(rp);
+  $("ladder").innerHTML = RR.LADDER.map((s, i) => `<div class="step ${i < lv ? "got" : ""} ${i === lv ? "now" : ""}"><div class="lvl">Level ${i + 1}<small>${s.rp ? s.rp.toLocaleString() + " RP" : "start"}</small></div>
+    <ul>${s.items.map(([t, live]) => `<li>${esc(t)}${live ? "" : "<em>soon</em>"}</li>`).join("")}</ul></div>`).join("");
+}
+function made(list){
+  if (!list.length) { $("madeList").innerHTML = `<div class="empty"><p style="margin:0">No races yet. Type 10 words, race them, send the link.</p><a class="btn sm" href="make.html">Make a race</a></div>`; return; }
+  $("madeList").innerHTML = `<div class="races">${list.map(r => { const st = Date.now() > r.expires_at ? "expired" : r.status;
+    const days = Math.max(0, Math.ceil((r.expires_at - Date.now()) / 864e5));
+    return `<div class="race"><span class="st ${st}">${st === "draft" ? "Race it to open" : st === "live" ? `Open · ${days} day${days === 1 ? "" : "s"} left` : "Ended"}</span>
+      <h3>${esc(r.title)}</h3><p>${RR.LEAGUES[r.league].name} · ${r.laps} laps · your time ${fmt(r.maker_ms)}</p>
+      <p>${r.max_riders === 1 ? (r.riders ? "Your duel has a challenger" : "Waiting for a challenger") : `${r.riders} of ${r.max_riders} riders`}${r.best_ms && r.best_ms < (r.maker_ms || 1e12) ? ` · best ${fmt(r.best_ms)}` : ""}</p>
+      <div class="acts"><a class="btn sm" href="gp.html?r=${r.code}">${st === "draft" ? "Race it" : "Open"}</a>${st === "live" ? `<button class="btn sm ghost" data-share="${r.code}" data-t="${esc(r.title)}" data-ms="${r.maker_ms || ""}">Share</button>` : ""}</div></div>`; }).join("")}</div>`;
+  $("madeList").querySelectorAll("[data-share]").forEach(b => b.onclick = async () => { const how = await RR.shareRace(`Beat my ${fmt(+b.dataset.ms)} on my ReadRash race ${b.dataset.t}!`, RR.raceLink(b.dataset.share)); b.textContent = how === "copied" ? "Link copied" : how === "shared" ? "Sent!" : "Share"; });
+}
+function recent(rows){
+  $("recent").innerHTML = rows.length ? rows.map(r => `<tr><td>${r.mode === "gp" ? `Rash GP · ${RR.LEAGUES[r.league] ? RR.LEAGUES[r.league].name : ""} · ${r.laps} laps` : r.mode === "race" ? `Made race · ${esc(r.race_code)}` : `Story race · ${RR.LEAGUES[r.league] ? RR.LEAGUES[r.league].name : ""}`}</td><td>${fmt(r.time_ms)}</td><td>${r.place ? RR.ord(r.place) : "–"}</td><td class="r">+${r.rp}</td></tr>`).join("")
+    : `<tr><td colspan="4" class="note2">No races yet. <a href="gp.html" style="color:var(--sun)">Ride one now</a>.</td></tr>`;
+}
+async function load(){
+  $("nm").textContent = RR.nickname();
+  const c = RR.Rider.cached(); ladder(c ? c.rp : 0);
+  const me = await RR.Rider.me();
+  if (!me) { $("next").textContent = RR.IN_VIEWER ? "Your garage fills up on readrash.com." : "Couldn't load your garage. Check your connection."; made([]); recent([]); return; }
+  $("nm").textContent = me.name; $("lv").textContent = `Level ${me.level}`; $("rp").textContent = `${me.rp.toLocaleString()} RP`;
+  const cur = RR.LADDER[me.level - 1].rp, nx = RR.LADDER[me.level] ? RR.LADDER[me.level].rp : null;
+  $("bar").style.width = (nx ? Math.max(3, (me.rp - cur) / (nx - cur) * 100) : 100) + "%";
+  const ni = nx ? (RR.LADDER[me.level].items.find(x => x[1]) || RR.LADDER[me.level].items[0]) : null, nextItem = ni ? ni[0] + (ni[1] ? "" : " (coming soon)") : null;
+  $("next").textContent = nx ? `${(nx - me.rp).toLocaleString()} RP to Level ${me.level + 1}: ${nextItem}` : "Every unlock is yours.";
+  $("nRaces").textContent = me.races; $("nStreak").textContent = me.streak || 0;
+  ladder(me.rp); made(me.made || []); recent(me.recent || []);
+}
+load();
+})();
+</script>
+</body>
+</html>

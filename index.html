@@ -15,7 +15,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Racing+Sans+One&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
-<link rel="stylesheet" href="assets/site.css?v=20261024g">
+<link rel="stylesheet" href="assets/site.css?v=20261024k">
 <style>
 /* Layout: live Rash GP hero with a reading console → how it works (4 steps) → your kit → two ways to race → levels → board → closer */
 .hero{position:relative;height:clamp(600px,88vh,820px);overflow:hidden;background:#3d9be0}
@@ -93,6 +93,15 @@ section.blk{padding-block:clamp(56px,9vw,104px)}
 .kit h3{font-size:22px;color:var(--c)}.kit p{margin:0;font-size:14px;color:#d4cdc1}
 @media (max-width:860px){.kit{grid-template-columns:repeat(2,1fr)}}
 
+/* make a race band */
+.makeband{display:grid;grid-template-columns:1.1fr 1fr;gap:26px;align-items:center;background:linear-gradient(135deg,#1d1a22,#132a2e);border:1px solid rgba(62,193,211,.3);border-radius:24px;padding:clamp(20px,4vw,40px)}
+.makeband .c{display:flex;flex-direction:column;gap:14px;align-items:flex-start}
+.mk3{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;counter-reset:mk}
+.mk3 li{counter-increment:mk;background:rgba(255,255,255,.05);border-radius:14px;padding:12px 14px 12px 56px;position:relative;display:flex;flex-direction:column}
+.mk3 li::before{content:counter(mk);position:absolute;left:14px;top:50%;transform:translateY(-50%);width:30px;height:30px;border-radius:50%;background:var(--cool);color:var(--ink);font-family:var(--display);font-style:italic;display:grid;place-items:center;font-size:18px}
+.mk3 b{font-family:var(--display);font-style:italic;font-weight:400;font-size:22px}.mk3 span{color:var(--muted);font-size:14px}
+@media (max-width:820px){.makeband{grid-template-columns:1fr}}
+
 /* two ways */
 .ways{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .way{background:var(--asphalt-2);border-radius:22px;overflow:hidden;display:flex;flex-direction:column}
@@ -127,9 +136,9 @@ section.blk{padding-block:clamp(56px,9vw,104px)}
   <div class="inner">
     <a class="logo" href="index.html">READ<span>RASH</span></a>
     <nav class="links" aria-label="Main">
-      <a class="opt" href="#how">How it works</a>
-      <a class="opt" href="play.html">Story races</a>
-      <a href="leaderboard.html">Leaderboard</a>
+      <a class="opt" href="make.html">Make a race</a>
+      <a class="opt" href="leaderboard.html">Leaderboard</a>
+      <a href="garage.html">Garage</a>
       <a class="btn sm" href="gp.html">Race now</a>
     </nav>
   </div>
@@ -203,6 +212,24 @@ section.blk{padding-block:clamp(56px,9vw,104px)}
       <div style="--c:var(--sun)"><h3>Nitro</h3><p>Ride a NITRO lane or read 10 in a row. Your bike rockets forward.</p></div>
       <div style="--c:#b48cff"><h3>Dictionary</h3><p>Heavy weapon. Your hits knock riders clean off their bikes.</p></div>
       <div style="--c:#c98a4b"><h3>Coconut</h3><p>Throw it at the rider ahead. Read their word, watch it fly.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="blk gut" id="make" style="padding-top:0">
+  <div class="inner">
+    <div class="makeband">
+      <div class="c">
+        <p class="kicker" style="color:var(--cool)">New · Make a race</p>
+        <h2 class="sec-h">Your words. <em>Their challenge.</em></h2>
+        <p class="lede">Type 10 words, race them, send the link. Your friend races the same words with your ghost beside them. Opens after your second race.</p>
+        <a class="btn" href="make.html">Make a race</a>
+      </div>
+      <ol class="mk3">
+        <li><b>Type 10 words</b><span>rocket, mango, tiger, lantern…</span></li>
+        <li><b>Race them once</b><span>your time becomes the one to beat</span></li>
+        <li><b>Send the link</b><span>on WhatsApp or anywhere; no signup to play</span></li>
+      </ol>
     </div>
   </div>
 </section>
@@ -285,8 +312,8 @@ section.blk{padding-block:clamp(56px,9vw,104px)}
   <div class="inner"><span class="logo" style="font-size:22px">READ<span>RASH</span></span><span>Read fast. Ride rash. © 2026 ReadRash</span></div>
 </footer>
 
-<script src="assets/game.js?v=20261024g"></script>
-<script src="assets/board.js?v=20261024g"></script>
+<script src="assets/game.js?v=20261024k"></script>
+<script src="assets/board.js?v=20261024k"></script>
 <script>
 (() => {
   const RRk = window.ReadRash, $ = id => document.getElementById(id);
