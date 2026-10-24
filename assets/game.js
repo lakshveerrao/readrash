@@ -113,6 +113,10 @@ const Voice = {
     if(this.local&&!this.localBad){ try{ r.processLocally=true; r.lang=this.local; r._local=true;
       if(this.phrases&&this.phrases.length&&!this.phraseBad&&window.SpeechRecognitionPhrase) r.phrases=this.phrases.map(p=>new SpeechRecognitionPhrase(p,3)); }catch(e){ this.phraseBad=true; } }
     const touch=()=>{ this.lastEvt=performance.now(); };
+    // readrash.com/...?voicelog : prints every recogniser event with its timing, to see where any delay comes from
+    const LOG=/[?&]voicelog/.test(location.search), T0=performance.now(), lg=(k,x)=>{ if(!LOG) return; const t=Math.round(performance.now()-T0); (window.__voiceLog=window.__voiceLog||[]).push([t,k,x||""]); console.log(`[voice] ${String(t).padStart(6)}ms ${k} ${x||""}`); };
+    if(LOG&&typeof r.addEventListener==="function"){ r.addEventListener("start",()=>lg("start",(r._local?"on-device ":"cloud ")+r.lang)); r.addEventListener("end",()=>lg("end")); r.addEventListener("speechstart",()=>lg("speech-start")); r.addEventListener("speechend",()=>lg("speech-end"));
+      r.addEventListener("error",e=>lg("error",e.error)); r.addEventListener("result",e=>{ for(let i=e.resultIndex;i<e.results.length;i++) lg(e.results[i].isFinal?"FINAL":"live",`#${i} "${e.results[i][0].transcript}"`); }); }
     r.onaudiostart=r.onsoundstart=touch; r.onspeechstart=()=>{ touch(); this.speechAt=performance.now(); if(this.rec===r) this.heard=true; };
     r.onstart=()=>{ if(this.rec!==r) return; touch(); this.heard=false; this.live=true; this.starting=false; this.fails=0; this._set("listening"); this.onState&&this.onState(true); this.handler&&this.handler({reset:true}); };
     r.onresult=e=>{ if(this.rec!==r) return; touch(); this.lastRes=performance.now(); this.netFails=0;
@@ -124,7 +128,7 @@ const Voice = {
       else if(er==="network"){ this.netFails++; this.fails++; this._set("offline"); }
       /* no-speech, aborted: normal, onend restarts */ };
     r.onend=()=>{ if(this.rec!==r) return; this.live=false; this.starting=false; this.onState&&this.onState(false);
-      if(this.want){ if(this.status==="listening") this._set("retry"); this._later(150); } else if(this.status!=="blocked") this._set("off"); };
+      if(this.want){ if(this.status==="listening") this._set("retry"); this._later(this.fails?150:0); } else if(this.status!=="blocked") this._set("off"); };
     this.rec=r;
   },
   _later(ms){ clearTimeout(this.timer); this.timer=setTimeout(()=>this._kick(), ms+Math.min(this.fails,6)*300); },
@@ -185,10 +189,13 @@ const Sound = { ac:null, on:true, eng:null, _bus:null,
   noise(dur,vol=.25){ const ac=this.ac; if(!this.on||!ac) return; const len=Math.floor(ac.sampleRate*dur),b=ac.createBuffer(1,len,ac.sampleRate),d=b.getChannelData(0);
     for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2); const s=ac.createBufferSource(),g=ac.createGain(); g.gain.value=vol; s.buffer=b; s.connect(g).connect(this.bus()); s.start(); },
   engineOn(){ const ac=this.ac; if(!ac||this.eng) return; const o=ac.createOscillator(),o2=ac.createOscillator(),f=ac.createBiquadFilter(),g=ac.createGain();
-    o.type="sawtooth"; o2.type="square"; o.frequency.value=45; o2.frequency.value=22; f.type="lowpass"; f.frequency.value=420; g.gain.value=this.on?.02:0;
+    o.type="sawtooth"; o2.type="square"; o.frequency.value=45; o2.frequency.value=22; f.type="lowpass"; f.frequency.value=420; g.gain.value=this.on&&!this.quiet?.02:0;
     o.connect(f); o2.connect(f); f.connect(g).connect(this.bus()); o.start(); o2.start(); this.eng={o,o2,g}; },
   engineOff(){ if(this.eng){ try{ this.eng.o.stop(); this.eng.o2.stop(); }catch(e){} this.eng=null; } },
-  setOn(v){ this.on=v; if(this.eng) this.eng.g.gain.value=v?.02:0; }
+  setOn(v){ this.on=v; if(this.eng) this.eng.g.gain.value=v&&!this.quiet?.02:0; },
+  // while the mic is open the engine hum goes silent: phone and laptop mics pick it up and the speech service then hears
+  // a constant noise, so words come back later and less accurately. Short sound effects stay.
+  setQuiet(v){ this.quiet=v; if(this.eng) this.eng.g.gain.value=this.on&&!v?.02:0; }
 };
 
 /* ================= sprite cache (painted once, drawn as images) ================= */
@@ -633,7 +640,7 @@ function create(o){
   let DRAW=attract?130:160, quality=1;
   let segs=[], words=[], keys=[], idx=0, fails=0, status=[], spans=[], trouble=new Set(), acts=[];
   let phase="idle", t0=0, now=0, finishT=null, lights=0, apNext=0, running=true, raf=0;
-  let correctCount=0, attemptCount=0, streak=0, lastProgressT=0, swipes=0, dodges=0;
+  let correctCount=0, attemptCount=0, streak=0, lastProgressT=0, swipes=0, dodges=0, readT=[];
   const P={z:START_Z,target:START_Z,v:0,x:0,lean:0,state:"ride",until:0,boostUntil:0,swipeT:-9999,swipeDir:1,copUntil:0,crashT:0};
   let riders=[], obstacles=[], skyOff=0, lastSwipeIdx=-9, lastSwipeT=-9999, tilt=0, shakeAmt=0, parts=[], bursts=[];
   let W=900,H=450,HY=180,CX=450,dpr=1,skyC=null,vignC=null;
@@ -973,7 +980,7 @@ function create(o){
   function advance(asMiss){
     status[idx]=asMiss?"miss":"ok"; if(asMiss||fails>0) trouble.add(idx); if(!asMiss) correctCount++;
     const a=acts[idx]; if(a&&a.type==="dodge") a.ob.cleared=true; if(a&&a.type==="swipe") a.r.bound=-1;
-    const was=idx; idx++; fails=0; lastProgressT=now; P.target=zOfWord(idx); paintWords(was);
+    const was=idx; idx++; fails=0; lastProgressT=now; if(!asMiss){ readT.push(now); if(readT.length>12) readT.shift(); } P.target=Math.max(P.target,zOfWord(idx)); paintWords(was);
   }
   function sparks(n,x,y){ for(let i=0;i<n;i++) parts.push({x,y,vx:(Math.random()-.5)*520,vy:-Math.random()*380-60,life:1,k:"spark"}); }
   function dust(n,x,y){ for(let i=0;i<n;i++) parts.push({x,y,vx:(Math.random()-.5)*160,vy:-Math.random()*60,life:1,k:"dust",r:4+Math.random()*8}); }
@@ -1065,7 +1072,7 @@ function create(o){
     // one full pack before any word comes round again, and never a repeat within 20 words
     while(list.length<140){ const b=sh(src); for(let i=0;i<b.length;i++){ const back=list.slice(-20); if(back.includes(b[i])){ const j=b.findIndex((w,k)=>k>i&&!back.includes(w)); if(j>0) [b[i],b[j]]=[b[j],b[i]]; } list.push(b[i]); } }
     words=list.slice(0,140); keys=words.map(norm); if(!attract) Voice.setPhrases(words.slice(0,100)); status=words.map(()=>"todo"); trouble=new Set(); acts=new Array(words.length).fill(null);
-    idx=0; fails=0; correctCount=0; attemptCount=0; streak=0; finishT=null; lights=0; obstacles=[]; parts=[]; bursts=[]; shakeAmt=0; skyOff=0;
+    idx=0; fails=0; readT=[]; correctCount=0; attemptCount=0; streak=0; finishT=null; lights=0; obstacles=[]; parts=[]; bursts=[]; shakeAmt=0; skyOff=0;
     VREF=RACE_LEN*(300/3.6)/RL.D; HUD0=START_Z; HUDLEN=RACE_LEN; FINZ=FINISH_Z;
     segs=buildDragRoad(DRAW);
     Object.assign(P,{z:START_Z,target:START_Z,v:0,x:-.42,vx:0,lean:0,state:"ride",until:0,boostUntil:0,swipeT:-9999,copUntil:0});
@@ -1081,7 +1088,7 @@ function create(o){
       if(rl.launch==="perfect"){ rl.v+=22; rl.p+=.35; shakeAmt=6; pop("PERFECT LAUNCH!",800,"go"); Sound.noise(.2,.2); } else if(rl.launch==="good") pop("GOOD LAUNCH",600); }
     rl.p=Math.min(1.6,rl.p+RL.KICK);
     if(streak%12===0){ rl.boost=now+1600; P.boostUntil=now+1600; shakeAmt=5; pop("NITRO!",650,"go"); Sound.tone(220,.45,"sawtooth",.05,500); }
-    Sound.tone(260+rl.rpm*420,.045,"square",.022,90);
+    if(autopilot) Sound.tone(260+rl.rpm*420,.045,"square",.022,90);
   }
   function rlSkip(){ rl.miss++; advance(true); }
   function rlJudge(h,next,final,last){
@@ -1107,8 +1114,11 @@ function create(o){
     if(phase==="race"){ now=performance.now()-t0;
       if(autopilot&&idx<words.length&&now>=apNext){ const w=keys[idx]; rlJudge(w,null,true,false); apNext=now+(60000/apWpm)*(.75+Math.random()*.5)*(w.length>7?1.35:1); }
       rl.p-=rl.p*Math.min(1,RL.DECAY*dt);
-      while(rl.hits.length&&rl.hits[0]<now-RL.WIN*1000) rl.hits.shift();
-      const win=rl.first==null?RL.WIN:Math.max(.6,Math.min(RL.WIN,(now-rl.first)/1000+.35)), rate=rl.hits.filter(t=>t>=now-win*1000).length/win;
+      while(rl.hits.length&&rl.hits[0]<now-(RL.WIN+1.4)*1000) rl.hits.shift();
+      // the speech service hands words over up to a second late: hold the pace through that gap instead of letting the
+      // bike sag every time it goes quiet for a moment. Only a real stop (1.2s with no new word) lets the speed drop.
+      const lastHit=rl.hits.length?rl.hits[rl.hits.length-1]:null, end=lastHit!=null&&now-lastHit<1200?Math.min(now,lastHit+350):now;
+      const win=rl.first==null?RL.WIN:Math.max(.6,Math.min(RL.WIN,(end-rl.first)/1000+.35)), rate=rl.hits.filter(t=>t>=end-win*1000&&t<=end).length/win;
       const tv=RL.K*rate*(rl.boost>now?1.3:1); rl.v=Math.max(0,rl.v+(tv-rl.v)*Math.min(1,dt*(tv>rl.v?RL.UP:RL.DOWN)));
       rl.dist+=rl.v/3.6*dt; rl.top=Math.max(rl.top,rl.v);
       while(now>=rl.traceT){ rl.trace.push(Math.round(rl.dist*10)); rl.traceT+=100; }
@@ -1186,7 +1196,7 @@ function create(o){
     const R=RACES[raceIdx]; segs=buildRoad(raceIdx+1,R.bridge,DRAW);
     const text=o.text||R[league]; words=text.split(/\s+/).filter(Boolean); keys=words.map(norm); if(!attract) Voice.setPhrases(words);
     status=words.map(()=>"todo"); trouble=new Set(); acts=new Array(words.length).fill(null);
-    idx=0; fails=0; correctCount=0; attemptCount=0; streak=0; swipes=0; dodges=0; finishT=null; lights=0;
+    idx=0; fails=0; readT=[]; correctCount=0; attemptCount=0; streak=0; swipes=0; dodges=0; finishT=null; lights=0;
     Object.assign(P,{z:START_Z,target:START_Z,v:0,x:0,lean:0,state:"ride",until:0,boostUntil:0,swipeT:-9999,copUntil:0});
     const paces=LEAGUES[league].paces; lastSwipeIdx=-9; lastSwipeT=-9999;
     riders=RIVALS.map((r,i)=>({...r,z:START_Z+(i===2?520:260),z0:(i===2?520:260),x:r.lane,pace:paces[i],penalty:0,stunUntil:0,knockT:-99999,knockDir:1,bound:-1,finishT:null,wob:Math.random()*6}));
@@ -1260,6 +1270,11 @@ function create(o){
       }
       { const a=acts[idx]; if(autopilot&&a&&a.type==="dodge"&&a.ob.z-P.z>2600) apNext=Math.max(apNext,now+120); }
       if((P.state==="crash"||P.state==="skid")&&now>P.until) P.state="ride";
+      // keep rolling at your reading pace while the speech service catches up (up to most of one word ahead), so the
+      // bike doesn't stop and start between words; it settles if you really stop
+      if(P.state==="ride"&&idx<total&&readT.length>=2){ const span=(readT[readT.length-1]-readT[0])/1000, rate=span>0?(readT.length-1)/span:0, since=(now-lastProgressT)/1000;
+        if(rate>0&&since<2){ let tz=zOfWord(idx+Math.min(1.6,since*rate)); const ob=obstacles.find(o=>!o.cleared&&o.z>P.z); if(ob) tz=Math.min(tz,ob.z-RACE_LEN/words.length*.35);
+          P.target=Math.max(P.target,tz); } }
       if(P.state==="ride"){
         const vmax=RACE_LEN/(P.boostUntil>now?3:4.6), gap=P.target-P.z, want=Math.min(vmax,Math.max(0,gap*3.4));
         P.v+=(want-P.v)*Math.min(1,dt*7.5); P.z=Math.min(P.target,P.z+P.v*dt);
@@ -1645,8 +1660,8 @@ function create(o){
 
   return {
     load:(lg,ri)=>{ o.text=null; o.ghost=null; load(lg,ri); }, loadText, loadGP, loadRL, rlInfo:()=>({idx,top:Math.round(rl.top)}), countdown, finish:()=>{ finishT=null; finish(true); },
-    listen:()=>Voice.use(voiceHandler), voiceHandler,
-    setAutopilot:(on,wpm)=>{ autopilot=on; if(wpm) apWpm=wpm; },
+    listen:()=>{ Sound.setQuiet(true); Voice.use(voiceHandler); }, voiceHandler,
+    setAutopilot:(on,wpm)=>{ autopilot=on; if(wpm) apWpm=wpm; if(on) Sound.setQuiet(false); },
     on:(k,f)=>{ (listeners[k]=listeners[k]||[]).push(f); },
     row:()=>{ if(!gp||phase!=="race") return null; const r=nextPending(); return r?{w:r.words,c:r.content,tags:[0,1,2].map(i=>laneTag(r,i)),id:r.z,open:r.z-P.z<=GP.ROW_GAP*SEG*GP.OPEN,lane:P.lane}:null; },
     pause, resume, resize,
