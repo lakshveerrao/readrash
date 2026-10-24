@@ -1,5 +1,5 @@
 // Challenge from any finished Rash GP race: the same signs (same seed) with the rider's run as the ghost. Open to every rider from race 1.
-import { json, getRider, RACE_LIMITS } from "../../_lib/rr.js";
+import { json, getRider, RACE_LIMITS, circuitFor } from "../../_lib/rr.js";
 const LAP_LEN = 1000 * 200, SIGNS_PER_LAP = 10, VMAX = { rookie: 8333, pro: 13333, legend: 18333 };
 const MIN_LAP_MS = l => Math.floor(LAP_LEN / (VMAX[l] * 1.46) * 1000 * 0.97);
 const ALPHA = "abcdefghjkmnpqrstuvwxyz23456789";
@@ -22,7 +22,7 @@ export async function onRequestPost({ request, env }) {
   const title = `${r.name}'s Rash GP · ${LG} · ${laps} laps`;
   let c = code(); for (let i = 0; i < 4 && await env.DB.prepare(`SELECT 1 FROM races WHERE code = ?1`).bind(c).first(); i++) c = code();
   await env.DB.prepare(`INSERT INTO races (code, maker_id, maker_name, title, words, league, laps, max_riders, status, maker_ms, created_at, expires_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 'live', ?9, ?10, ?11)`)
-    .bind(c, r.id, r.name, title, JSON.stringify({ seed }), league, laps, lim.riders, total, now, now + lim.days * 864e5).run();
+    .bind(c, r.id, r.name, title, JSON.stringify({ seed, circuit: circuitFor(b.circuit, r.rp) }), league, laps, lim.riders, total, now, now + lim.days * 864e5).run();
   await env.DB.prepare(`INSERT INTO race_runs (code, rider_id, name, time_ms, correct, missed, track, created_at) VALUES (?1, ?2, ?3, ?4, ?5, '[]', ?6, ?7)`)
     .bind(c, r.id, r.name, total, correct, JSON.stringify(track), now).run();
   await env.DB.prepare(`DELETE FROM races WHERE maker_id = ?1 AND code NOT IN (SELECT code FROM races WHERE maker_id = ?1 ORDER BY created_at DESC LIMIT 30)`).bind(r.id).run();

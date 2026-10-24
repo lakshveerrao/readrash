@@ -97,3 +97,32 @@ export async function noteFairPlay(env, rider, mode, ref, chk) {
       .bind(rider ? rider.id : null, rider ? rider.name : null, mode, ref || null, JSON.stringify(reasons), JSON.stringify(d), Date.now()).run();
   } catch (e) {}
 }
+
+/* Circuits unlock with Rash Points. A race's extra details live in the races.words JSON:
+   an array (older word races) or an object {words?, seed?, circuit?, series?, passage?}. */
+export const CIRCUIT_RP = { konkan: 0, desert: 1000, ghats: 2000 };
+export const circuitFor = (c, rp) => (CIRCUIT_RP[c] != null && rp >= CIRCUIT_RP[c]) ? c : "konkan";
+export function raceData(race) {
+  let w; try { w = JSON.parse(race.words); } catch { w = []; }
+  if (Array.isArray(w)) return { kind: "words", words: w, seed: null, circuit: "konkan", series: null, passage: null };
+  const kind = w.passage ? "story" : w.seed ? "gp" : "words";
+  return { kind, words: Array.isArray(w.words) ? w.words : [], seed: w.seed || null, circuit: CIRCUIT_RP[w.circuit] != null ? w.circuit : "konkan", series: w.series || null, passage: w.passage || null };
+}
+/* Passages: a rider's own story race (Level 5). 30 to 150 words of plain text; every word is checked like a made race's
+   words (everyday dictionary, rude words blocked). No digits, links or symbols. Returns {text, bad[]} or {error}. */
+export function checkPassage(raw) {
+  let t = String(raw || "").replace(/[‘’`]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, "-").replace(/\s+/g, " ").trim();
+  if (/[^A-Za-z'.,!?;:"\- ]/.test(t)) return { error: "Use letters and simple punctuation only: no numbers, links or symbols" };
+  const toks = t.split(" ").filter(Boolean);
+  if (toks.length < 30) return { error: "Write at least 30 words" };
+  if (toks.length > 150) return { error: "Keep it to 150 words" };
+  if (!DSET) { DSET = new Set(DICT.split("\n")); BSET = new Set(BLOCK.split("\n")); }
+  const bad = new Set();
+  for (const tok of toks) {
+    const w = tok.toLowerCase().replace(/^[^a-z]+|[^a-z']+$/g, ""); if (!w) continue;
+    for (const part of w.split("-")) { if (!part) continue;
+      const m = part.match(/^([a-z]+)(?:'(s|t|re|ve|ll|d|m))?$/); const base = m ? m[1] : null;
+      if (!base || base.length > 18 || BSET.has(base) || (base.length < 2 ? !["a", "i"].includes(base) : !DSET.has(base))) bad.add(part); }
+  }
+  return { text: t, bad: [...bad], words: toks.length };
+}

@@ -25,6 +25,7 @@
 .crow .pos{font-family:var(--display);font-size:22px;font-style:italic}
 .card{background:var(--paper);color:var(--ink);border-radius:18px;padding:clamp(14px,2.6vw,24px);min-width:0}
 .para{font-size:clamp(19px,3vw,27px);line-height:1.75;margin:0;max-width:64ch}
+.para.long{max-height:calc(1.75em * 4);overflow:hidden;position:relative;scroll-behavior:smooth}
 .w{display:inline-block;border-radius:6px;padding:1px 3px;transition:background .08s,color .08s}
 .w.done{color:#a19ca8}
 .w.cur{background:var(--sun);color:var(--ink);box-shadow:0 3px 0 var(--ink)}

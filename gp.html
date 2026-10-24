@@ -22,8 +22,8 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preload" href="assets/fonts/racing-sans-one.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/site.css?v=20261024x">
-<link rel="stylesheet" href="assets/game.css?v=20261024x">
+<link rel="stylesheet" href="assets/site.css?v=20261024y">
+<link rel="stylesheet" href="assets/game.css?v=20261024y">
 <style>
 /* Rash GP: same race view; the text card shows the three lane words of the next gantry, with what waits in each lane */
 .lanecard{display:flex;flex-direction:column;gap:10px;justify-content:center;min-height:150px}
@@ -60,6 +60,8 @@
 .choice{font:inherit;cursor:pointer;border:3px solid var(--ink);background:#fff;color:var(--ink);border-radius:14px;padding:12px 10px;display:flex;flex-direction:column;gap:2px;text-align:left}
 .choice b{font-family:var(--display);font-style:italic;font-weight:400;font-size:24px;line-height:1}
 .choice small{font-size:12px;color:#6b6476}
+.choice.locked{opacity:.6;border-style:dashed}.choice.locked b::after{content:" 🔒";font-size:.7em}
+#circPick .choice b{font-size:21px}
 .choice[aria-pressed="true"]{background:var(--sun);box-shadow:0 4px 0 var(--ink);transform:translateY(-2px)}
 .lab{font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:#6b6476;margin-bottom:-8px}
 .splits{display:flex;gap:6px;flex-wrap:wrap}
@@ -162,6 +164,12 @@
       <button class="choice" data-laps="3" aria-pressed="true"><b>3 laps</b><small>Classic · 30 signs</small></button>
       <button class="choice" data-laps="5" aria-pressed="false"><b>5 laps</b><small>Endurance · 50 signs</small></button>
     </div>
+    <p class="lab">Circuit</p>
+    <div class="pick" id="circPick">
+      <button class="choice" data-c="konkan" aria-pressed="true"><b>Konkan Coast</b><small>Palms and sea</small></button>
+      <button class="choice" data-c="desert" aria-pressed="false"><b>Rajasthan Desert</b><small>Fast and open</small></button>
+      <button class="choice" data-c="ghats" aria-pressed="false"><b>Western Ghats</b><small>Twisty, in the rain</small></button>
+    </div>
     <div class="extras">
       <div class="ex"><span><b>Face cam</b><small>See yourself ride. Stays on your device.</small></span><div class="seg" id="camPick"><button data-c="off">Off</button><button data-c="on">On</button><button data-c="helmet">Helmet</button></div></div>
       <div class="ex"><span><b>Record my race</b><small>Saves a clip on your device to share.</small></span><button class="tog" id="recTog" role="switch" aria-checked="false"><i></i></button></div>
@@ -223,7 +231,7 @@
     <h2 id="endTitle"></h2>
     <div class="duel" id="duelTxt" hidden></div>
     <div class="clipbox" id="clipBox" hidden><b id="clipHead">Making your clip…</b><button class="btn sm" id="clipBtn" disabled>Save clip</button><span class="note" id="clipMsg" style="color:#6b6476"></span></div>
-    <div class="row" style="gap:10px"><button class="btn" id="chalBtn" hidden>Challenge a friend to beat this</button><button class="btn sm ghost" id="cardBtn" hidden>Share picture</button></div>
+    <div class="row" style="gap:10px"><button class="btn" id="rematchBtn" hidden>Rematch: send it back</button><button class="btn" id="chalBtn" hidden>Challenge a friend to beat this</button><button class="btn sm ghost" id="cardBtn" hidden>Share picture</button></div>
     <div class="sharebox" id="shareBox" hidden>
       <b id="shareHead">Send it to a friend</b>
       <div class="shl"><input id="shareUrl" readonly aria-label="Race link"><button class="btn sm" id="shareBtn">Share</button></div>
@@ -254,14 +262,16 @@
   </div>
 </div>
 
-<script src="assets/game.js?v=20261024x"></script>
-<script src="assets/board.js?v=20261024x"></script>
+<script src="assets/game.js?v=20261024y"></script>
+<script src="assets/board.js?v=20261024y"></script>
 <script>
 (() => {
 const RR = window.ReadRash, $ = id => document.getElementById(id);
 const show = id => ["pickScreen","gateScreen","micScreen","endScreen","raceScreen"].forEach(s => $(s).hidden = s !== id);
 let league = RR.Store.get("league", "pro"); if (!RR.LEAGUES[league]) league = "pro";
 let laps = RR.Store.get("gpLaps", 3); if (![2,3,5].includes(laps)) laps = 3;
+const myRP = () => ((RR.Rider.cached() || {}).rp || 0), circOK = c => RR.CIRCUITS[c] && myRP() >= RR.CIRCUITS[c].rp;
+let circuit = RR.Store.get("circuit", "konkan"); if (!circOK(circuit)) circuit = "konkan";
 let demo = false, lastRes = null, firstGo = true, exiting = false;
 const CODE = (new URLSearchParams(location.search).get("r") || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 12);
 let made = null, isMaker = false;
@@ -273,18 +283,25 @@ const ctl = RR.create({ canvas: $("road"), mode: "gp", league, laps,
 $("sndBtn").onclick = () => { RR.Sound.setOn(!RR.Sound.on); $("sndBtn").textContent = RR.Sound.on ? "Sound on" : "Sound off"; $("sndBtn").setAttribute("aria-pressed", RR.Sound.on); };
 RR.bindMic({ dot: $("micDot"), state: $("micState"), label: $("micLabel"), err: $("micErr"), fix: $("micFix"), heard: $("heard"), chip: $("modeTxt"), isDemo: () => demo });
 function setModeChip(){ const c = $("modeTxt").parentElement; c.classList.toggle("demo-chip", demo); $("modeTxt").textContent = demo ? "Demo race" : "Voice"; }
-function label(){ $("raceChip").textContent = made ? `${made.title} · ${laps} laps` : `Rash GP · Sprint · ${RR.LEAGUES[league].name} · ${laps} laps`; }
+function label(){ $("raceChip").textContent = made ? `${made.title} · ${laps} laps` : `Rash GP · ${circuit === "konkan" ? "Sprint" : RR.CIRCUITS[circuit].name} · ${RR.LEAGUES[league].name} · ${laps} laps`; }
 
-async function prepare(){ if (made) ctl.loadGP(made.league, made.laps, made.ghost ? [made.ghost] : [], made.seed ? null : { words: made.words, seed: made.code }, made.seed || undefined); else ctl.loadGP(league, laps); label(); }
+const loadMine = () => ctl.loadGP(league, laps, [], null, undefined, circuit);
+async function prepare(){ if (made) ctl.loadGP(made.league, made.laps, made.ghost ? [made.ghost] : [], made.seed ? null : { words: made.words, seed: made.code }, made.seed || undefined, made.circuit); else loadMine(); label(); }
 
 /* ---- setup screen ---- */
 function renderPick(){
   $("lgPick").querySelectorAll(".choice").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lg === league)));
   $("lapPick").querySelectorAll(".choice").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.laps === laps)));
+  $("circPick").querySelectorAll(".choice").forEach(b => { const c = b.dataset.c, ok = circOK(c); b.setAttribute("aria-pressed", String(c === circuit)); b.classList.toggle("locked", !ok);
+    b.querySelector("small").textContent = ok ? b.dataset.d : `🔒 ${RR.CIRCUITS[c].rp.toLocaleString("en-IN")} Rash Points`; });
   $("whoName").textContent = RR.nickname();
 }
-$("lgPick").querySelectorAll(".choice").forEach(b => b.onclick = () => { league = b.dataset.lg; RR.Store.set("league", league); renderPick(); ctl.loadGP(league, laps, []); label(); });
-$("lapPick").querySelectorAll(".choice").forEach(b => b.onclick = () => { laps = +b.dataset.laps; RR.Store.set("gpLaps", laps); renderPick(); ctl.loadGP(league, laps, []); label(); });
+$("lgPick").querySelectorAll(".choice").forEach(b => b.onclick = () => { league = b.dataset.lg; RR.Store.set("league", league); renderPick(); loadMine(); label(); });
+$("lapPick").querySelectorAll(".choice").forEach(b => b.onclick = () => { laps = +b.dataset.laps; RR.Store.set("gpLaps", laps); renderPick(); loadMine(); label(); });
+$("circPick").querySelectorAll(".choice").forEach(b => { b.dataset.d = b.querySelector("small").textContent; b.onclick = () => { const c = b.dataset.c;
+  if (!circOK(c)) { $("gridNote").innerHTML = `<b>${RR.CIRCUITS[c].name} unlocks at ${RR.CIRCUITS[c].rp.toLocaleString("en-IN")} Rash Points.</b> You have ${myRP().toLocaleString("en-IN")}. Every race earns points.`; return; }
+  circuit = c; RR.Store.set("circuit", c); renderPick(); loadMine(); label(); }; });
+RR.Rider.me().then(() => { if (!made) renderPick(); });
 $("reroll").onclick = () => { RR.Store.set("name", RR.randomName()); renderPick(); };
 /* ---- face cam + record my race (shared helper; both optional, both stay on the device) ---- */
 const X = RR.mountExtras({ ctl, canvas: $("road"), isDemo: () => demo, shareText: () => chal || made ? "Watch me race on ReadRash. Beat me!" : "Watch me race on ReadRash!" });
@@ -319,14 +336,14 @@ const fmt = ms => ms == null ? "–" : (ms/1000).toFixed(1) + "s";
 ctl.on("finish", res => {
   lastRes = res; RR.Voice.stop(); $("quitBtn").hidden = true;
   X.finish(res, exiting || res.stopped ? null : clipCard(res));
-  if (exiting) { exiting = false; demo = false; setModeChip(); ctl.setAutopilot(false); if (made) { prepare(); show("raceScreen"); } else { ctl.loadGP(league, laps); show("pickScreen"); renderPick(); } return; }
+  if (exiting) { exiting = false; demo = false; setModeChip(); ctl.setAutopilot(false); if (made) { prepare(); show("raceScreen"); } else { loadMine(); show("pickScreen"); renderPick(); } return; }
   setTimeout(() => showResults(res), 1700);
 });
 function showResults(res){
   const p = res.place;
   const esc = RR.esc, heat = made && made.maker_ms && Math.abs(res.timeMs - made.maker_ms) < 100, won = made && made.maker_ms && !heat && res.timeMs < made.maker_ms;
   $("endTitle").innerHTML = made ? (res.stopped ? "Ride <span>stopped</span>" : isMaker ? (made.status === "draft" ? "Your race is <span>open!</span>" : won ? "New best <span>time!</span>" : "Race <span>done</span>") : made.maker_ms ? (heat ? "Dead <span>heat!</span>" : won ? `You beat <span>${esc(made.maker)}!</span>` : `${esc(made.maker)} <span>wins</span>`) : "Race <span>done</span>") : p === 1 ? "You won <span>Rash GP!</span>" : `You finished <span>${RR.ord(p)}</span>`;
-  $("duelTxt").hidden = true; $("shareBox").hidden = true; $("rpBox").hidden = true; $("chalBtn").hidden = true; chal = null; $("cardBtn").hidden = demo || res.stopped || res.place == null; $("cardBtn").textContent = "Share picture";
+  $("duelTxt").hidden = true; $("shareBox").hidden = true; $("rpBox").hidden = true; $("chalBtn").hidden = true; $("rematchBtn").hidden = true; chal = null; $("cardBtn").hidden = demo || res.stopped || res.place == null; $("cardBtn").textContent = "Share picture";
   $("sTime").textContent = fmt(res.timeMs); $("sBest").textContent = fmt(res.best); $("sRead").textContent = `${res.correct}/${res.signs}`; $("sKO").textContent = res.kos;
   $("splits").innerHTML = ""; res.lapTimes.forEach((t, i) => { const s = document.createElement("span"); s.textContent = `Lap ${i+1} · ${fmt(t)}`; if (t === res.best) s.className = "best"; $("splits").appendChild(s); });
   $("standings").innerHTML = ""; res.podium.forEach((r, i) => { const d = document.createElement("div"); if (r.me) d.className = "me";
@@ -362,7 +379,7 @@ $("chalBtn").onclick = async () => {
   if (chal) { shareSetup("Send it to a friend", chalText(res), chal); return; }
   $("chalBtn").disabled = true; $("chalBtn").textContent = "Making your challenge…";
   try {
-    const r = await fetch("/api/races/gp", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ key: RR.Rider.key(), name: RR.nickname(), league, laps, seed: res.seed, splits: res.splits, correct: res.correct, wrong: res.wrong, missed: res.missed, track: res.track }) });
+    const r = await fetch("/api/races/gp", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ key: RR.Rider.key(), name: RR.nickname(), league, laps, circuit, seed: res.seed, splits: res.splits, correct: res.correct, wrong: res.wrong, missed: res.missed, track: res.track }) });
     const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || "Couldn't make the challenge. Try again.");
     chal = j.code; RR.Rider.addMade(j.code); $("chalBtn").hidden = true; RR.ev("challenge_gp");
     shareSetup(j.max_riders === 1 ? "Send it to one friend" : `Send it to up to ${j.max_riders} friends`, chalText(res), chal);
@@ -389,15 +406,35 @@ function madeResult(j){
     shareSetup("Send it to a friend", made.kind === "gp" ? `Beat my ${fmt(mk)} on Rash GP. Same signs, my ghost!` : `I made a ReadRash race with ${n} words. Beat my ${fmt(mk)}!`);
   } else {
     const d = Math.abs(me - mk) / 1000, won = me < mk;
-    $("duelTxt").hidden = false; $("duelTxt").textContent = mk ? (d < .1 ? `Level with ${made.maker} at ${fmt(mk)}. Rematch?` : won ? `By ${d.toFixed(1)}s: ${fmt(me)} against ${fmt(mk)}.` : `By ${d.toFixed(1)}s: ${fmt(mk)} against your ${fmt(me)}. Rematch?`) : "Posted.";
-    shareSetup(won ? "Tell them you won" : "Ask for a rematch", won ? `I beat your ReadRash race ${made.title}: ${fmt(me)} vs ${fmt(mk)}. Your move!` : `Your race ${made.title} was close: ${fmt(me)} vs ${fmt(mk)}. Rematch?`);
+    $("duelTxt").hidden = false; $("duelTxt").textContent = mk ? (d < .1 ? `Level with ${made.maker} at ${fmt(mk)}.` : won ? `By ${d.toFixed(1)}s: ${fmt(me)} against ${fmt(mk)}.` : `By ${d.toFixed(1)}s: ${fmt(mk)} against your ${fmt(me)}.`) : "Posted.";
+    const ser = seriesLine(j); if (ser) $("duelTxt").innerHTML = `${RR.esc($("duelTxt").textContent)}<br><b>${RR.esc(ser)}</b>`;
+    $("rematchBtn").hidden = !mk; $("rematchBtn").disabled = false; $("rematchBtn").textContent = /series/.test(ser || "") && /wins/.test(ser) ? "New best of 3" : "Rematch: send it back";
     $("makeBtn").hidden = false; $("makeBtn").textContent = "Make your own race";
   }
 }
+/* best of 3: the score before this game is in the race; add this game's result (best runs) */
+function seriesLine(j){
+  const meB = (j.board.find(x => x.me) || {}).time_ms || j.time_ms, mk = j.maker_ms, them = made.maker, me = RR.nickname();
+  let s = made.series; if (!s || !(s.names || []).includes(me) || !s.names.includes(them)) s = { g: 1, w: {} };
+  const w = { ...s.w }; if (mk && meB < mk) w[me] = (w[me] || 0) + 1; else if (mk && meB > mk) w[them] = (w[them] || 0) + 1;
+  const a = w[me] || 0, b = w[them] || 0;
+  if (a >= 2) return `You win the series ${a}–${b}! 🏆`; if (b >= 2) return `${them} wins the series ${b}–${a}. Start a new one?`;
+  if (s.g >= 3) return a === b ? `Series level ${a}–${b} after 3. Decider?` : a > b ? `You win the series ${a}–${b}! 🏆` : `${them} wins the series ${b}–${a}.`;
+  return `Best of 3 · Game ${s.g} done · You ${a}–${b} ${them}`;
+}
+$("rematchBtn").onclick = async () => {
+  $("rematchBtn").disabled = true; $("rematchBtn").textContent = "Making the rematch…";
+  try { const r = await fetch(`/api/races/${made.code}/rematch`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ key: RR.Rider.key(), name: RR.nickname() }) });
+    const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || "Couldn't make the rematch. Try again.");
+    RR.Rider.addMade(j.code); $("rematchBtn").hidden = true; RR.ev("rematch");
+    shareSetup(`Send game ${j.series.g} to ${made.maker}`, `Rematch! Game ${j.series.g} of 3 on ReadRash. Beat my ${fmt(j.maker_ms)}, same signs, my ghost.`, j.code);
+  } catch (e) { $("rematchBtn").disabled = false; $("rematchBtn").textContent = "Try again"; $("postMsg").textContent = e.message; }
+};
 async function openMade(){
   show("raceScreen"); $("rsGo").disabled = true;
   let j = null; try { const r = await fetch(`/api/races/${CODE}`); j = await r.json(); if (!r.ok) throw new Error(j.error || "Not found"); }
   catch (e) { $("rsTitle").textContent = "Race not found"; $("rsInfo").textContent = (e && e.message) || "Check the link and try again."; $("rsBeat").textContent = ""; $("rsBoardWrap").hidden = true; $("rsWords").parentElement.hidden = true; $("rsGo").hidden = true; $("repWrap").hidden = true; return; }
+  if (j.kind === "story") { location.replace("play.html?r=" + CODE); return; }
   made = j; league = j.league; laps = j.laps;
   isMaker = RR.Rider.made().includes(j.code) || j.maker === RR.nickname(); $("repWrap").hidden = isMaker;
   $("rsKick").textContent = isMaker ? "Your race" : `A race from ${j.maker}`; $("rsTitle").textContent = j.title;
@@ -405,6 +442,9 @@ async function openMade(){
   $("rsInfo").textContent = gpk ? `Rash GP · ${RR.LEAGUES[j.league].name} · ${j.laps} laps · the same ${j.laps * 10} signs, the same traffic` : `${j.words.length} words · ${j.laps} laps · ${RR.LEAGUES[j.league].name} level · your words are on the NITRO lane`;
   $("rsWords").innerHTML = j.words.map(w => `<span>${RR.esc(w)}</span>`).join(""); $("rsWords").parentElement.hidden = gpk;
   if (gpk) $("rsTitle").textContent = isMaker ? "Your Rash GP challenge" : `${j.maker} challenges you`;
+  if (j.series && j.series.g > 1 && !isMaker) { const w = j.series.w || {}, me = RR.nickname(); $("rsKick").textContent = `Best of 3 · Game ${j.series.g}`; $("rsTitle").textContent = `${j.maker} wants a rematch`;
+    if ((j.series.names || []).includes(me)) $("rsKick").textContent += ` · You ${w[me] || 0}–${w[j.maker] || 0}`; }
+  if (j.circuit && j.circuit !== "konkan") $("rsInfo").textContent += ` · ${RR.CIRCUITS[j.circuit].name}`;
   $("rsBoard").innerHTML = boardHTML(j.board); $("rsBoardWrap").hidden = !j.board.length;
   const inBoard = j.board.some(x => !x.maker && x.name === RR.nickname());
   let note = "", ok = true;
@@ -427,7 +467,7 @@ $("postBtn").onclick = postRun;
 function clipCard(res){ const code = made ? made.code : null;
   return { kicker: made ? made.title : `Rash GP · ${RR.LEAGUES[league].name}`, big: res.place ? RR.ord(res.place).toUpperCase() : "DONE", line: `${fmt(res.timeMs)} · ${res.correct}/${res.signs} signs read`, url: code ? RR.raceLink(code).replace(/^https?:\/\//, "") : "readrash.com" }; }
 $("againBtn").onclick = async () => { if (demo) { $("demoBtn").click(); return; } await prepare(); startMic(); };
-$("setupBtn").onclick = () => { if (made) { location.href = "gp.html"; return; } demo = false; setModeChip(); ctl.setAutopilot(false); ctl.loadGP(league, laps, []); show("pickScreen"); renderPick(); };
+$("setupBtn").onclick = () => { if (made) { location.href = "gp.html"; return; } demo = false; setModeChip(); ctl.setAutopilot(false); loadMine(); show("pickScreen"); renderPick(); };
 $("quitBtn").onclick = () => { exiting = true; RR.Voice.stop(); ctl.finish(); };
 
 renderPick(); label(); setModeChip(); if (CODE) openMade(); else show("pickScreen");

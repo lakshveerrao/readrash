@@ -1,6 +1,6 @@
 // Count a growth moment for today (link opened, shared, challenge made). Only known keys; no personal data.
 import { json, dayOf } from "../_lib/rr.js";
-const KEYS = new Set(["open_link", "share_link", "share_copy", "share_whatsapp", "share_image", "challenge_gp", "visit_home", "visit_gp", "visit_make"]);
+const KEYS = new Set(["open_link", "share_link", "share_copy", "share_whatsapp", "share_image", "challenge_gp", "rematch", "visit_home", "visit_gp", "visit_make"]);
 export async function onRequestPost({ request, env }) {
   let b; try { b = await request.json(); } catch { return json({ ok: false }, 400); }
   if (!KEYS.has(b && b.k)) return json({ ok: false }, 400);

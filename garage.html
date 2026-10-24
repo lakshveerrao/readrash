@@ -23,7 +23,7 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preload" href="assets/fonts/racing-sans-one.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/site.css?v=20261024x">
+<link rel="stylesheet" href="assets/site.css?v=20261024y">
 <style>
 /* Layout: rider hero (bike + level) → your races → unlock ladder → recent races → rider code */
 .hero{display:grid;grid-template-columns:200px 1fr;gap:24px;align-items:end;padding-block:36px 26px}
@@ -59,6 +59,14 @@ table.rec{width:100%;border-collapse:collapse;font-size:15px}.rec td,.rec th{pad
 .code input{font:inherit;border-radius:10px;border:2px solid var(--asphalt-3);background:#0c0b10;color:var(--chalk);padding:9px 11px;min-width:0;flex:1}
 .code .ln{display:flex;gap:8px;flex-wrap:wrap}
 .note2{font-size:13px;color:var(--muted);margin:0}
+.paints{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.paints button{font:inherit;color:var(--chalk);background:var(--asphalt-2);border:2px solid transparent;border-radius:14px;padding:8px 6px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px}
+.paints button canvas{width:100%;max-width:96px;aspect-ratio:5/6;height:auto}
+.paints button span{font-size:13px;font-weight:700;text-align:center;line-height:1.15}
+.paints button[aria-pressed="true"]{border-color:var(--sun);background:#2a2530}
+.paints.locked button{opacity:.45;cursor:default}
+.missed{font-size:13px;color:#d9d2c6;margin:4px 0 0}.missed b{color:var(--sun);font-weight:700}
+@media (max-width:620px){.paints{grid-template-columns:repeat(3,1fr)}}
 @media (max-width:620px){.hero{grid-template-columns:110px 1fr;gap:14px}.hero canvas{width:110px;height:132px}.step{grid-template-columns:70px 1fr}}
 </style>
 </head>
@@ -87,6 +95,12 @@ table.rec{width:100%;border-collapse:collapse;font-size:15px}.rec td,.rec th{pad
         <div class="facts"><span>Races <b id="nRaces">0</b></span><span>Day streak <b id="nStreak">0</b></span><button id="reroll" style="font:inherit;font-size:14px;background:none;border:none;color:var(--muted);text-decoration:underline;cursor:pointer;padding:6px 4px">New name</button></div>
       </div>
     </div>
+
+    <section class="blk">
+      <h2>Paint <em>shop</em></h2>
+      <p class="note2" id="paintMsg" style="margin-bottom:12px"></p>
+      <div class="paints" id="paints"></div>
+    </section>
 
     <section class="blk">
       <h2>Races you <em>made</em></h2>
@@ -119,31 +133,44 @@ table.rec{width:100%;border-collapse:collapse;font-size:15px}.rec td,.rec th{pad
 <footer class="foot gut">
   <div class="inner"><span class="logo" style="font-size:22px">READ<span>RASH</span></span><span>Read fast. Ride rash. © 2026 ReadRash · <a href="about.html">Parents &amp; privacy</a></span></div>
 </footer>
-<script src="assets/game.js?v=20261024x"></script>
+<script src="assets/game.js?v=20261024y"></script>
 <script>
 (() => {
 const RR = window.ReadRash, $ = id => document.getElementById(id), esc = RR.esc;
 const fmt = ms => ms == null ? "–" : (ms / 1000).toFixed(1) + "s";
-RR.paintRider($("bike"), "ME", 12);
+RR.applyPaint(); RR.paintRider($("bike"), "ME", 12);
 const key = RR.Rider.key(); $("key").textContent = key.replace(/(.{4})/g, "$1 ").trim();
 $("key").onclick = () => $("key").classList.toggle("show");
 $("copyKey").onclick = async () => { try { await navigator.clipboard.writeText(key); $("keyMsg").textContent = "Copied. Paste it on your other device."; } catch (e) { $("key").classList.add("show"); $("keyMsg").textContent = "Select the code above and copy it."; } };
 $("useBtn").onclick = () => { if (RR.Rider.setKey($("useKey").value)) location.reload(); else $("keyMsg").textContent = "That doesn't look like a rider code."; };
 $("reroll").onclick = () => { RR.Store.set("name", RR.randomName()); load(); };
 
+/* paint shop: pick a kit (Level 3) */
+let paintsDrawn = false;
+function paints(rp){
+  const open = rp >= RR.PAINT_RP, cur = RR.Store.get("paint", "rash");
+  $("paints").classList.toggle("locked", !open);
+  $("paintMsg").textContent = open ? "Pick your colours. Your bike changes in every race." : `Opens at Level 3: ${(RR.PAINT_RP - rp).toLocaleString()} more Rash Points. Here's what's waiting.`;
+  if (!paintsDrawn) { paintsDrawn = true;
+    $("paints").innerHTML = RR.PAINTS.map(p => `<button data-p="${p.id}" aria-pressed="false"><canvas width="150" height="180"></canvas><span>${esc(p.name)}</span></button>`).join("");
+    $("paints").querySelectorAll("button").forEach((b, i) => { RR.paintRider(b.querySelector("canvas"), RR.PAINTS[i].sk, 0, { fill: .98 });
+      b.onclick = () => { if (!$("paints").classList.contains("locked")) { RR.Store.set("paint", b.dataset.p); RR.applyPaint(); paints(rp); RR.paintRider($("bike"), "ME", 12); } }; }); }
+  $("paints").querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(open && b.dataset.p === cur)));
+}
 function ladder(rp){
   const lv = RR.levelOf(rp);
   $("ladder").innerHTML = RR.LADDER.map((s, i) => `<div class="step ${i < lv ? "got" : ""} ${i === lv ? "now" : ""}"><div class="lvl">Level ${i + 1}<small>${s.rp ? s.rp.toLocaleString() + " RP" : "start"}</small></div>
     <ul>${s.items.map(([t, live]) => `<li>${esc(t)}${live ? "" : "<em>soon</em>"}</li>`).join("")}</ul></div>`).join("");
 }
-function made(list){
+function made(list, rp){
   if (!list.length) { $("madeList").innerHTML = `<div class="empty"><p style="margin:0">No races yet. Type 10 words, race them, send the link.</p><a class="btn sm" href="make.html">Make a race</a></div>`; return; }
   $("madeList").innerHTML = `<div class="races">${list.map(r => { const st = Date.now() > r.expires_at ? "expired" : r.status;
     const days = Math.max(0, Math.ceil((r.expires_at - Date.now()) / 864e5));
     return `<div class="race"><span class="st ${st}">${st === "draft" ? "Race it to open" : st === "live" ? `Open · ${days} day${days === 1 ? "" : "s"} left` : "Ended"}</span>
-      <h3>${esc(r.title)}</h3><p>${RR.LEAGUES[r.league].name} · ${r.laps} laps · your time ${fmt(r.maker_ms)}</p>
+      <h3>${esc(r.title)}</h3><p>${r.kind === "story" ? "Story race" : `${r.laps} laps`} · ${RR.LEAGUES[r.league].name} · your time ${fmt(r.maker_ms)}</p>
       <p>${r.max_riders === 1 ? (r.riders ? "Your duel has a challenger" : "Waiting for a challenger") : `${r.riders} of ${r.max_riders} riders`}${r.best_ms && r.best_ms < (r.maker_ms || 1e12) ? ` · best ${fmt(r.best_ms)}` : ""}</p>
-      <div class="acts"><a class="btn sm" href="gp.html?r=${r.code}">${st === "draft" ? "Race it" : "Open"}</a>${st === "live" ? `<button class="btn sm ghost" data-share="${r.code}" data-t="${esc(r.title)}" data-ms="${r.maker_ms || ""}">Share</button>` : ""}</div></div>`; }).join("")}</div>`;
+      ${rp >= 450 && r.missed && r.missed.length ? `<p class="missed">Friends missed most: ${r.missed.map(([w, n]) => `<b>${esc(w)}</b>${n > 1 ? ` ×${n}` : ""}`).join(", ")}</p>` : ""}
+      <div class="acts"><a class="btn sm" href="${r.kind === "story" ? "play" : "gp"}.html?r=${r.code}">${st === "draft" ? "Race it" : "Open"}</a>${st === "live" ? `<button class="btn sm ghost" data-share="${r.code}" data-t="${esc(r.title)}" data-ms="${r.maker_ms || ""}">Share</button>` : ""}</div></div>`; }).join("")}</div>`;
   $("madeList").querySelectorAll("[data-share]").forEach(b => b.onclick = async () => { const how = await RR.shareRace(`Beat my ${fmt(+b.dataset.ms)} on my ReadRash race ${b.dataset.t}!`, RR.raceLink(b.dataset.share)); b.textContent = how === "copied" ? "Link copied" : how === "shared" ? "Sent!" : "Share"; });
 }
 function recent(rows){
@@ -152,7 +179,7 @@ function recent(rows){
 }
 async function load(){
   $("nm").textContent = RR.nickname();
-  const c = RR.Rider.cached(); ladder(c ? c.rp : 0);
+  const c = RR.Rider.cached(); ladder(c ? c.rp : 0); paints(c ? c.rp : 0);
   const me = await RR.Rider.me();
   if (!me) { $("next").textContent = RR.IN_VIEWER ? "Your garage fills up on readrash.com." : "Couldn't load your garage. Check your connection."; made([]); recent([]); return; }
   $("nm").textContent = me.name; $("lv").textContent = `Level ${me.level}`; $("rp").textContent = `${me.rp.toLocaleString()} RP`;
@@ -161,7 +188,7 @@ async function load(){
   const ni = nx ? (RR.LADDER[me.level].items.find(x => x[1]) || RR.LADDER[me.level].items[0]) : null, nextItem = ni ? ni[0] + (ni[1] ? "" : " (coming soon)") : null;
   $("next").textContent = nx ? `${(nx - me.rp).toLocaleString()} RP to Level ${me.level + 1}: ${nextItem}` : "Every unlock is yours.";
   $("nRaces").textContent = me.races; $("nStreak").textContent = me.streak || 0;
-  ladder(me.rp); made(me.made || []); recent(me.recent || []);
+  ladder(me.rp); paints(me.rp); RR.applyPaint(); RR.paintRider($("bike"), "ME", 12); made(me.made || [], me.rp); recent(me.recent || []);
 }
 load();
 })();

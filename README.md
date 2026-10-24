@@ -53,6 +53,10 @@ If you change GP speeds or lap length in `assets/game.js`, update the matching n
 - Every page has link-preview tags; preview images live in `assets/og/`. Race links (`/r/<code>`) return their own preview (who challenges you, the time to beat), then jump to the race.
 - Any finished Rash GP race can become a challenge: `POST /api/races/gp` stores its seed, so friends get the same signs and traffic, with the rider's ghost.
 - Results can be shared as a picture (made in the browser, nothing uploaded).
+- Rematch: after racing anyone's link, `POST /api/races/<code>/rematch` makes a one-on-one race back to the maker (same signs or words, the rider's best run as ghost). The best-of-3 score lives in the race's `words` JSON (`series`). Open to every rider.
+- Circuits: Konkan Coast, Rajasthan Desert (1,000 RP) and Western Ghats (2,000 RP). Palettes and roadside sets are in `CIRCUITS` in `assets/game.js`; the server's unlock points are `CIRCUIT_RP` in `functions/_lib/rr.js`. A challenge keeps its circuit.
+- Story races (Level 5, 2,000 RP): riders write 30 to 150 words on the Make page (Story race tab). Each word is checked like made-race words (`checkPassage` in `functions/_lib/rr.js`); links open on `play.html?r=<code>`.
+- Paint shop (Level 3, 450 RP) is in the Garage; the choice is kept on the device.
 - `robots.txt` and `sitemap.xml` are in the root. Fonts are self-hosted in `assets/fonts/` (SIL Open Font License).
 
 ## Your stats page
