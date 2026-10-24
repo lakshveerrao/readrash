@@ -2193,7 +2193,6 @@ antlers
 antonym
 antonyms
 ants
-anuses
 anvil
 anvils
 anxieties
@@ -2749,11 +2748,9 @@ arrowroot
 arrows
 arroyo
 arroyos
-arseholes
 arsenal
 arsenals
 arsenic
-arses
 arson
 arsonist
 arsonists
@@ -2968,7 +2965,6 @@ assertive
 assertively
 assertiveness
 asserts
-asses
 assess
 assessed
 assesses
@@ -2983,7 +2979,6 @@ asseverate
 asseverated
 asseverates
 asseverating
-assholes
 assiduous
 assiduously
 assiduousness
@@ -4188,7 +4183,6 @@ bastardize
 bastardized
 bastardizes
 bastardizing
-bastards
 baste
 basted
 bastes
@@ -4485,7 +4479,6 @@ beeper
 beepers
 beeping
 beeps
-beers
 bees
 beeswax
 beet
@@ -4809,7 +4802,6 @@ bespoke
 bespoken
 best
 bested
-bestial
 bestiaries
 bestiary
 besting
@@ -5043,7 +5035,6 @@ billows
 billowy
 bills
 billy
-bimbo
 bimonthlies
 bimonthly
 bin
@@ -5176,11 +5167,8 @@ bisque
 bistro
 bistros
 bit
-bitched
 bitchier
 bitchiest
-bitching
-bitchy
 bitcoin
 bitcoins
 bite
@@ -5500,7 +5488,6 @@ bloodhound
 bloodhounds
 bloodied
 bloodier
-bloodies
 bloodiest
 blooding
 bloodless
@@ -5521,8 +5508,6 @@ bloodthirstier
 bloodthirstiest
 bloodthirstiness
 bloodthirsty
-bloody
-bloodying
 bloom
 bloomed
 bloomer
@@ -5797,10 +5782,6 @@ bombardments
 bombards
 bombast
 bombastic
-bombed
-bomber
-bombers
-bombing
 bombings
 bombshell
 bombshells
@@ -5819,7 +5800,6 @@ boned
 bonehead
 boneheads
 boneless
-boners
 bones
 bonfire
 bonfires
@@ -5845,10 +5825,6 @@ bonus
 bonuses
 bony
 boo
-boobed
-boobies
-boobing
-booby
 boodle
 boodles
 booed
@@ -5943,7 +5919,6 @@ booty
 boozed
 boozer
 boozers
-boozes
 boozier
 booziest
 boozing
@@ -6302,8 +6277,6 @@ breakwater
 breakwaters
 breastbone
 breastbones
-breasted
-breasting
 breastplate
 breastplates
 breaststroke
@@ -6727,8 +6700,6 @@ bugaboos
 bugbear
 bugbears
 bugged
-bugger
-buggers
 buggier
 buggies
 buggiest
@@ -6820,7 +6791,6 @@ bullpens
 bullring
 bullrings
 bulls
-bullshits
 bullshitted
 bullshitting
 bully
@@ -6869,7 +6839,6 @@ bung
 bungalow
 bungalows
 bunged
-bungholes
 bunging
 bungle
 bungled
@@ -8975,10 +8944,6 @@ chin
 china
 chinchilla
 chinchillas
-chink
-chinked
-chinking
-chinks
 chinned
 chinning
 chino
@@ -9663,8 +9628,6 @@ clique
 cliques
 cliquish
 clitoral
-clitorises
-clits
 cloak
 cloaked
 cloaking
@@ -9904,6 +9867,7 @@ coccyx
 cochlea
 cochleae
 cochleas
+cock
 cockade
 cockades
 cockamamie
@@ -9932,8 +9896,6 @@ cockroach
 cockroaches
 cockscomb
 cockscombs
-cocksucker
-cocksuckers
 cocksure
 cocktail
 cocktails
@@ -10085,9 +10047,7 @@ coins
 coital
 coitus
 coke
-coked
 cokes
-coking
 cola
 colander
 colanders
@@ -10915,10 +10875,8 @@ condolence
 condolences
 condoles
 condoling
-condom
 condominium
 condominiums
-condoms
 condone
 condoned
 condones
@@ -11715,8 +11673,6 @@ cooled
 cooler
 coolers
 coolest
-coolie
-coolies
 cooling
 coolly
 coolness
@@ -12418,7 +12374,6 @@ crappier
 crappiest
 crapping
 crappy
-craps
 crash
 crashed
 crashes
@@ -12635,9 +12590,6 @@ crinkling
 crinkly
 crinoline
 crinolines
-cripple
-crippled
-cripples
 crippling
 crises
 crisis
@@ -13015,7 +12967,6 @@ cumbersome
 cumin
 cummerbund
 cummerbunds
-cums
 cumulative
 cumulatively
 cumuli
@@ -13025,7 +12976,6 @@ cunning
 cunninger
 cunningest
 cunningly
-cunts
 cup
 cupboard
 cupboards
@@ -13359,10 +13309,7 @@ damming
 damnable
 damnably
 damnation
-damned
 damnedest
-damning
-damns
 damp
 damped
 dampen
@@ -15148,13 +15095,10 @@ dichotomy
 dicier
 diciest
 dicing
-dicker
 dickered
 dickering
-dickers
 dickey
 dickeys
-dicks
 dicta
 dictate
 dictated
@@ -16477,7 +16421,6 @@ doggerel
 doggier
 doggies
 doggiest
-dogging
 doggone
 doggoner
 doggones
@@ -17095,9 +17038,7 @@ drunkards
 drunken
 drunkenly
 drunkenness
-drunker
 drunkest
-drunks
 dry
 dryad
 dryads
@@ -17189,14 +17130,12 @@ dully
 duly
 dumbbell
 dumbbells
-dumber
 dumbest
 dumbfound
 dumbfounded
 dumbfounding
 dumbfounds
 dumbly
-dumbness
 dumbwaiter
 dumbwaiters
 dummies
@@ -17315,8 +17254,6 @@ dyers
 dyes
 dyestuff
 dying
-dyke
-dykes
 dynamic
 dynamical
 dynamically
@@ -17703,11 +17640,6 @@ eightieths
 eights
 eighty
 either
-ejaculate
-ejaculated
-ejaculates
-ejaculating
-ejaculations
 eject
 ejected
 ejecting
@@ -18355,8 +18287,6 @@ endured
 endures
 enduring
 endways
-enema
-enemas
 enemies
 enemy
 energetic
@@ -19094,7 +19024,6 @@ eulogized
 eulogizes
 eulogizing
 eulogy
-eunuchs
 euphemism
 euphemisms
 euphemistic
@@ -20018,11 +19947,6 @@ fads
 faecal
 faeces
 fagged
-fagging
-faggots
-fagot
-fagots
-fags
 fail
 failed
 failing
@@ -20172,9 +20096,7 @@ fanfares
 fang
 fangs
 fanned
-fannies
 fanning
-fanny
 fans
 fantasied
 fantasies
@@ -20301,8 +20223,6 @@ fatigued
 fatigues
 fatiguing
 fating
-fatness
-fats
 fatten
 fattened
 fattening
@@ -20401,7 +20321,6 @@ featureless
 features
 featuring
 febrile
-feces
 feckless
 fecund
 fecundity
@@ -21855,8 +21774,6 @@ foreshortened
 foreshortening
 foreshortens
 foresight
-foreskin
-foreskins
 forest
 forestall
 forestalled
@@ -22517,10 +22434,6 @@ fryers
 frying
 fuchsia
 fuchsias
-fucked
-fucker
-fuckers
-fucks
 fuddle
 fuddled
 fuddles
@@ -23081,11 +22994,7 @@ gawkiness
 gawking
 gawks
 gawky
-gay
-gayer
 gayest
-gayness
-gays
 gaze
 gazebo
 gazebos
@@ -23212,7 +23121,6 @@ genitive
 genitives
 genius
 geniuses
-genocide
 genome
 genomes
 genre
@@ -23779,8 +23687,6 @@ gobs
 god
 godchild
 godchildren
-goddamn
-goddamned
 goddaughter
 goddaughters
 goddess
@@ -23886,8 +23792,6 @@ googles
 googling
 gooier
 gooiest
-gook
-gooks
 goon
 goons
 goop
@@ -24306,8 +24210,6 @@ grinding
 grinds
 grindstone
 grindstones
-gringo
-gringos
 grinned
 grinning
 grins
@@ -24368,7 +24270,6 @@ grooviest
 grooving
 groovy
 groped
-gropes
 groping
 grosbeak
 grosbeaks
@@ -24732,13 +24633,8 @@ gynecological
 gynecologist
 gynecologists
 gynecology
-gyp
-gypped
 gypping
-gyps
-gypsies
 gypsum
-gypsy
 gyrate
 gyrated
 gyrates
@@ -25051,7 +24947,6 @@ hang
 hangar
 hangars
 hangdog
-hanged
 hanger
 hangers
 hanging
@@ -25771,7 +25666,6 @@ heroic
 heroically
 heroics
 heroine
-heroins
 heroism
 heron
 herons
@@ -26079,12 +25973,10 @@ hod
 hodgepodge
 hodgepodges
 hods
-hoe
 hoed
 hoedown
 hoedowns
 hoeing
-hoes
 hog
 hogan
 hogans
@@ -26143,8 +26035,6 @@ hollows
 holly
 hollyhock
 hollyhocks
-holocaust
-holocausts
 hologram
 holograms
 holograph
@@ -26325,7 +26215,6 @@ hook
 hookah
 hookahs
 hooked
-hookers
 hooking
 hooks
 hookup
@@ -26387,7 +26276,6 @@ horned
 hornet
 hornets
 hornier
-horniest
 hornless
 hornpipe
 hornpipes
@@ -26843,8 +26731,6 @@ husks
 husky
 hussar
 hussars
-hussies
-hussy
 hustings
 hustle
 hustled
@@ -27113,7 +26999,6 @@ idiosyncrasy
 idiosyncratic
 idiotic
 idiotically
-idiots
 idle
 idled
 idleness
@@ -27243,8 +27128,6 @@ imams
 imbalance
 imbalanced
 imbalances
-imbecile
-imbeciles
 imbecilic
 imbecilities
 imbecility
@@ -30404,11 +30287,8 @@ kielbasa
 kielbasas
 killdeer
 killdeers
-killers
-killings
 killjoy
 killjoys
-kills
 kiln
 kilned
 kilning
@@ -30663,7 +30543,6 @@ labeling
 labelled
 labelling
 labels
-labia
 labial
 labials
 labium
@@ -32532,8 +32411,6 @@ lusher
 lushes
 lushest
 lushness
-lust
-lusted
 luster
 lustful
 lustfully
@@ -32541,11 +32418,8 @@ lustier
 lustiest
 lustily
 lustiness
-lusting
 lustre
 lustrous
-lusts
-lusty
 lute
 lutes
 luxuriance
@@ -32569,11 +32443,6 @@ lymphatic
 lymphatics
 lymphoma
 lymphomas
-lynch
-lynched
-lynches
-lynching
-lynchings
 lynx
 lynxes
 lyre
@@ -33287,9 +33156,7 @@ masked
 masking
 masks
 masochism
-masochist
 masochistic
-masochists
 mason
 masonic
 masonry
@@ -33357,7 +33224,6 @@ mastoid
 mastoids
 masts
 masturbated
-masturbates
 mat
 matador
 matadors
@@ -34124,8 +33990,6 @@ middling
 middy
 midge
 midges
-midget
-midgets
 midland
 midlands
 midmost
@@ -34204,7 +34068,6 @@ milers
 miles
 milestone
 milestones
-milfs
 milieu
 milieus
 militancy
@@ -34996,13 +34859,7 @@ molehill
 molehills
 moles
 moleskin
-molest
 molestation
-molested
-molester
-molesters
-molesting
-molests
 moll
 mollification
 mollified
@@ -35279,7 +35136,6 @@ mornings
 morns
 morocco
 moronic
-morons
 morose
 morosely
 moroseness
@@ -35353,8 +35209,6 @@ mother
 motherboard
 motherboards
 mothered
-motherfuckers
-motherfucking
 motherhood
 mothering
 motherland
@@ -35716,13 +35570,10 @@ mural
 muralist
 muralists
 murals
-murderers
 murderess
 murderesses
-murdering
 murderous
 murderously
-murders
 murk
 murkier
 murkiest
@@ -35932,7 +35783,6 @@ naiver
 naivest
 naivety
 nakedly
-nakedness
 name
 named
 nameless
@@ -36440,9 +36290,6 @@ niggard
 niggardliness
 niggardly
 niggards
-niggas
-niggaz
-niggers
 niggle
 niggled
 niggles
@@ -36749,8 +36596,6 @@ nooks
 noon
 noonday
 noontime
-noose
-nooses
 nope
 nor
 norm
@@ -37778,9 +37623,7 @@ organizes
 organizing
 organs
 orgasmic
-orgasms
 orgiastic
-orgies
 orient
 oriental
 orientals
@@ -38900,8 +38743,6 @@ panorama
 panoramas
 panoramic
 pans
-pansies
-pansy
 pant
 pantaloons
 panted
@@ -39754,7 +39595,6 @@ penile
 peninsula
 peninsular
 peninsulas
-penises
 penitence
 penitent
 penitential
@@ -40777,8 +40617,6 @@ pirouettes
 pirouetting
 pis
 piscatorial
-pissed
-pisses
 pistachio
 pistachios
 pistil
@@ -41008,7 +40846,6 @@ playback
 playbacks
 playbill
 playbills
-playboys
 played
 player
 players
@@ -42461,7 +42298,6 @@ pricey
 pricier
 priciest
 pricing
-prick
 pricked
 pricking
 prickle
@@ -42471,7 +42307,6 @@ pricklier
 prickliest
 prickling
 prickly
-pricks
 pride
 prided
 prides
@@ -43101,9 +42936,7 @@ prostates
 prostheses
 prosthesis
 prosthetic
-prostitute
 prostituted
-prostitutes
 prostituting
 prostitution
 prostrate
@@ -43646,9 +43479,6 @@ pushy
 pusillanimity
 pusillanimous
 puss
-pusses
-pussier
-pussies
 pussiest
 pussycat
 pussycats
@@ -43872,14 +43702,8 @@ queenlier
 queenliest
 queenly
 queens
-queer
-queered
-queerer
 queerest
-queering
 queerly
-queerness
-queers
 quell
 quelled
 quelling
@@ -44270,7 +44094,6 @@ rancor
 rancorous
 rancorously
 rancour
-randier
 randiest
 random
 randomise
@@ -44325,7 +44148,6 @@ rapacious
 rapaciously
 rapaciousness
 rapacity
-rapes
 rapid
 rapider
 rapidest
@@ -44335,7 +44157,6 @@ rapids
 rapier
 rapiers
 rapine
-rapists
 rapped
 rapper
 rappers
@@ -45047,7 +44868,6 @@ rector
 rectories
 rectors
 rectory
-rectums
 recumbent
 recuperate
 recuperated
@@ -45180,8 +45000,6 @@ redresses
 redressing
 redrew
 reds
-redskin
-redskins
 reduce
 reduced
 reduces
@@ -46573,13 +46391,9 @@ retaliating
 retaliation
 retaliations
 retaliatory
-retard
 retardant
 retardants
 retardation
-retarded
-retarding
-retards
 retch
 retched
 retches
@@ -47850,10 +47664,8 @@ saddled
 saddles
 saddling
 sades
-sadist
 sadistic
 sadistically
-sadists
 sadly
 sadness
 safari
@@ -48547,8 +48359,6 @@ schmooze
 schmoozed
 schmoozes
 schmoozing
-schmuck
-schmucks
 schnapps
 schnauzer
 schnauzers
@@ -48779,7 +48589,6 @@ screwdrivers
 screwed
 screwier
 screwiest
-screwing
 screws
 screwy
 scribble
@@ -48822,7 +48631,6 @@ scrolls
 scrooge
 scrooges
 scrota
-scrotum
 scrounge
 scrounged
 scrounger
@@ -49587,13 +49395,10 @@ sewn
 sews
 sexagenarian
 sexagenarians
-sexed
-sexes
 sexier
 sexiest
 sexily
 sexiness
-sexing
 sexism
 sexist
 sexists
@@ -49645,14 +49450,11 @@ shaft
 shafted
 shafting
 shafts
-shag
 shagged
 shaggier
 shaggiest
 shagginess
-shagging
 shaggy
-shags
 shah
 shahs
 shake
@@ -49978,10 +49780,8 @@ shirttail
 shirttails
 shirtwaist
 shirtwaists
-shits
 shittier
 shittiest
-shitting
 shiver
 shivered
 shivering
@@ -50640,9 +50440,7 @@ sis
 sisal
 sises
 sissier
-sissies
 sissiest
-sissy
 sister
 sisterhood
 sisterhoods
@@ -50874,8 +50672,6 @@ slacking
 slackly
 slackness
 slacks
-slag
-slags
 slain
 slake
 slaked
@@ -50944,7 +50740,6 @@ slaver
 slavered
 slavering
 slavers
-slavery
 slaving
 slavish
 slavishly
@@ -51241,7 +51036,6 @@ slush
 slushier
 slushiest
 slushy
-sluts
 sluttish
 sly
 slyer
@@ -51341,7 +51135,6 @@ smokehouses
 smokeless
 smoker
 smokers
-smokes
 smokestack
 smokestacks
 smokier
@@ -51393,7 +51186,6 @@ smuggles
 smuggling
 smugly
 smugness
-smuts
 smuttier
 smuttiest
 smutty
@@ -52198,7 +51990,6 @@ spasm
 spasmodic
 spasmodically
 spasms
-spastics
 spat
 spate
 spates
@@ -52773,7 +52564,6 @@ spumoni
 spun
 spunkier
 spunkiest
-spunky
 spur
 spurious
 spuriously
@@ -52843,12 +52633,10 @@ squatter
 squatters
 squattest
 squatting
-squaw
 squawk
 squawked
 squawking
 squawks
-squaws
 squeak
 squeaked
 squeakier
@@ -53591,7 +53379,6 @@ stomped
 stomping
 stomps
 stone
-stoned
 stoner
 stoners
 stones
@@ -53892,8 +53679,6 @@ striping
 stripling
 striplings
 stripped
-stripper
-strippers
 stripping
 strips
 striptease
@@ -54040,12 +53825,10 @@ stupefy
 stupefying
 stupendous
 stupendously
-stupider
 stupidest
 stupidities
 stupidity
 stupidly
-stupids
 stupor
 stupors
 sturdier
@@ -54384,6 +54167,7 @@ succumbing
 succumbs
 such
 suchlike
+suck
 sucked
 sucker
 suckered
@@ -54395,6 +54179,7 @@ suckled
 suckles
 suckling
 sucklings
+sucks
 sucrose
 suction
 suctioned
@@ -54471,8 +54256,6 @@ suggestions
 suggestive
 suggestively
 suggests
-suicidal
-suicides
 suing
 suit
 suitability
@@ -55030,7 +54813,6 @@ swashbuckling
 swashed
 swashes
 swashing
-swastikas
 swat
 swatch
 swatches
@@ -55152,7 +54934,6 @@ swindling
 swine
 swines
 swing
-swingers
 swinging
 swings
 swinish
@@ -56212,7 +55993,6 @@ terrorise
 terrorised
 terrorises
 terrorising
-terrorists
 terrorize
 terrorized
 terrorizes
@@ -56236,8 +56016,6 @@ tested
 tester
 testers
 testes
-testicle
-testicles
 testier
 testiest
 testified
@@ -56546,7 +56324,6 @@ threefold
 threes
 threescore
 threescores
-threesomes
 threnodies
 threnody
 thresh
@@ -56968,7 +56745,6 @@ toasts
 toasty
 tobacconist
 tobacconists
-tobaccos
 toboggan
 tobogganed
 tobogganing
@@ -58307,8 +58083,6 @@ turbots
 turbulence
 turbulent
 turbulently
-turd
-turds
 turducken
 turduckens
 tureen
@@ -60684,7 +60458,6 @@ vibrating
 vibration
 vibrations
 vibrato
-vibrators
 vibratos
 viburnum
 viburnums
@@ -61116,7 +60889,6 @@ voyages
 voyaging
 voyeurism
 voyeuristic
-voyeurs
 vulcanisation
 vulcanise
 vulcanised
@@ -61716,6 +61488,7 @@ wedging
 wedlock
 weds
 wee
+weed
 weeded
 weeder
 weeders
@@ -61846,7 +61619,6 @@ westerns
 westward
 westwards
 wet
-wetbacks
 wetland
 wetlands
 wetly
@@ -62014,11 +61786,8 @@ whisked
 whisker
 whiskered
 whiskers
-whiskeys
-whiskies
 whisking
 whisks
-whiskys
 whisper
 whispered
 whispering
@@ -62105,7 +61874,6 @@ whoppers
 whopping
 whorehouse
 whorehouses
-whores
 whorl
 whorled
 whorls
@@ -62301,7 +62069,6 @@ wineglass
 wineglasses
 wineries
 winery
-wines
 wing
 winged
 winger

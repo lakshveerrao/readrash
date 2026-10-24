@@ -84,3 +84,11 @@ CREATE TABLE IF NOT EXISTS race_runs (
   created_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_race_runs ON race_runs (code, time_ms);
+-- one report per rider per race; 3 reports pause a race until it's checked
+CREATE TABLE IF NOT EXISTS race_reports (
+  code TEXT NOT NULL,
+  rider_id INTEGER NOT NULL,
+  reason TEXT,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (code, rider_id)
+);

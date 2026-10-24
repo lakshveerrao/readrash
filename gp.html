@@ -13,8 +13,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Racing+Sans+One&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
-<link rel="stylesheet" href="assets/site.css?v=20261024k">
-<link rel="stylesheet" href="assets/game.css?v=20261024k">
+<link rel="stylesheet" href="assets/site.css?v=20261024l">
+<link rel="stylesheet" href="assets/game.css?v=20261024l">
 <style>
 /* Rash GP: same race view; the text card shows the three lane words of the next gantry, with what waits in each lane */
 .lanecard{display:flex;flex-direction:column;gap:10px;justify-content:center;min-height:150px}
@@ -192,6 +192,9 @@
     <div id="rsBoardWrap"><p class="lab" style="margin:0 0 8px">This race's board</p><div class="standings" id="rsBoard"></div></div>
     <p class="note" style="color:#6b6476;margin:0" id="rsNote"></p>
     <div class="row"><button class="btn" id="rsGo">Line up</button><a class="btn ghost" href="gp.html" id="rsAlt">Race Rash GP</a></div>
+    <div id="repWrap" style="font-size:13px;color:#6b6476"><button class="linkbtn" id="repBtn" style="color:#6b6476;font-weight:400">Report this race</button>
+      <span id="repAsk" hidden>Why? <button class="linkbtn" data-r="rude">Rude words</button> · <button class="linkbtn" data-r="hurtful">Hurtful to a group</button> · <button class="linkbtn" data-r="personal">Personal details</button> · <button class="linkbtn" data-r="other">Other</button></span>
+      <span id="repDone" hidden>Thanks. We'll check it. Races with 3 reports are paused.</span></div>
   </div>
 </div>
 
@@ -230,8 +233,8 @@
   </div>
 </div>
 
-<script src="assets/game.js?v=20261024k"></script>
-<script src="assets/board.js?v=20261024k"></script>
+<script src="assets/game.js?v=20261024l"></script>
+<script src="assets/board.js?v=20261024l"></script>
 <script>
 (() => {
 const RR = window.ReadRash, $ = id => document.getElementById(id);
@@ -347,9 +350,9 @@ function madeResult(j){
 async function openMade(){
   show("raceScreen"); $("rsGo").disabled = true;
   let j = null; try { const r = await fetch(`/api/races/${CODE}`); j = await r.json(); if (!r.ok) throw new Error(j.error || "Not found"); }
-  catch (e) { $("rsTitle").textContent = "Race not found"; $("rsInfo").textContent = (e && e.message) || "Check the link and try again."; $("rsBeat").textContent = ""; $("rsBoardWrap").hidden = true; $("rsWords").parentElement.hidden = true; $("rsGo").hidden = true; return; }
+  catch (e) { $("rsTitle").textContent = "Race not found"; $("rsInfo").textContent = (e && e.message) || "Check the link and try again."; $("rsBeat").textContent = ""; $("rsBoardWrap").hidden = true; $("rsWords").parentElement.hidden = true; $("rsGo").hidden = true; $("repWrap").hidden = true; return; }
   made = j; league = j.league; laps = j.laps;
-  isMaker = RR.Rider.made().includes(j.code) || j.maker === RR.nickname();
+  isMaker = RR.Rider.made().includes(j.code) || j.maker === RR.nickname(); $("repWrap").hidden = isMaker;
   $("rsKick").textContent = isMaker ? "Your race" : `A race from ${j.maker}`; $("rsTitle").textContent = j.title;
   $("rsInfo").textContent = `${j.words.length} words · ${j.laps} laps · ${RR.LEAGUES[j.league].name} level · your words are on the NITRO lane`;
   $("rsWords").innerHTML = j.words.map(w => `<span>${RR.esc(w)}</span>`).join("");
@@ -366,6 +369,9 @@ async function openMade(){
   if (isMaker && j.status !== "draft") { shareSetup("Send it to a friend", `I made a ReadRash race with ${j.words.length} words. Beat my ${fmt(j.maker_ms)}!`); }
   await prepare();
 }
+$("repBtn").onclick = () => { $("repBtn").hidden = true; $("repAsk").hidden = false; };
+$("repAsk").querySelectorAll("[data-r]").forEach(b => b.onclick = async () => { $("repAsk").hidden = true; $("repDone").hidden = false;
+  try { await fetch(`/api/races/${CODE}/report`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ key: RR.Rider.key(), name: RR.nickname(), reason: b.dataset.r }) }); } catch (e) {} });
 $("rsGo").onclick = async () => { RR.Sound.wake(); if (!RR.VOICE_OK) { show("gateScreen"); return; } demo = false; setModeChip(); await prepare(); startMic(); };
 $("postBtn").onclick = postRun;
 $("againBtn").onclick = async () => { if (demo) { $("demoBtn").click(); return; } await prepare(); startMic(); };
