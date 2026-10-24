@@ -286,6 +286,9 @@ function paintRider(canvas,who,fi,o){ o=o||{}; const sk=SKINS[who]||SKINS.ME, ke
   draw(); }
 // the power shield: a glowing energy dome, one pre-rendered canvas per strength (1 to 3 bars), drawn as an image each frame
 const SHIELD_SPR={};
+// painted shield frames: 0 weak, 1 medium, 2 full, 3 impact (ripple on the right), 4 shattering; cx/cy = rim centre in the frame
+const SHIELD_META={"rw": 236.2, "rh": 360.0, "frames": [{"x": 0, "w": 261, "h": 385, "cx": 125.3, "cy": 193.7}, {"x": 263, "w": 270, "h": 398, "cx": 133.9, "cy": 198.0}, {"x": 535, "w": 270, "h": 431, "cx": 136.8, "cy": 219.6}, {"x": 807, "w": 295, "h": 437, "cx": 126.0, "cy": 224.6}, {"x": 1104, "w": 304, "h": 410, "cx": 128.2, "cy": 205.9}]}; let SHIELD_IMG=null;
+function shieldImg(){ if(!SHIELD_IMG&&typeof Image!=="undefined"){ SHIELD_IMG=new Image(); SHIELD_IMG.decoding="async"; SHIELD_IMG.src="assets/shield.webp?v=2"; } return SHIELD_IMG&&SHIELD_IMG.complete&&SHIELD_IMG.naturalWidth?SHIELD_IMG:null; }
 function shieldSprite(lv){ if(SHIELD_SPR[lv]) return SHIELD_SPR[lv];
   const c=mk(280,360), g=c.getContext("2d"), cx=140, cy=180, rx=104, ry=146, col=["","62,193,211","70,205,240","120,230,255"][lv], A=[0,.55,.8,1][lv];
   // outer glow grows with strength
@@ -498,7 +501,7 @@ function botSplits(lg,laps,h){ const L=GP.lg[lg], out=[]; let t=1400; for(let i=
 
 /* ================= the race ================= */
 function create(o){
-  preloadRiders();
+  preloadRiders(); if(o.mode==="gp") shieldImg();
   const cv=o.canvas, ctx=cv.getContext("2d",{alpha:false});
   const ui=o.ui||{}; const $u=k=>ui[k]||null;
   const attract=!!o.attract;
@@ -1194,6 +1197,16 @@ function create(o){
   function shieldFx(u,opt,tn){
     const hit=opt.shieldHit, ht=hit?(tn-t0-hit.t):1e9;
     if(!(opt.shield>0)&&!(hit&&hit.broke&&ht<500)) return;
+    const SI=shieldImg();
+    if(SI){ const lv=Math.max(1,Math.min(3,opt.shield||hit.lv)), fl=opt.shieldFlash||0, sc=96*u/SHIELD_META.rw, pulse=1+.01*Math.sin(tn/170);
+      let fi=lv-1, al=1, flip=false;
+      if(hit&&hit.broke&&ht<500){ fi=4; al=1-ht/500; flip=(hit.dir||1)<0; }
+      else if(hit&&ht<420){ fi=3; flip=(hit.dir||1)<0; }
+      const f=SHIELD_META.frames[fi];
+      ctx.save(); ctx.translate(0,-74*u); ctx.scale(pulse*(flip?-1:1),pulse);
+      ctx.globalAlpha=al; ctx.drawImage(SI,f.x,0,f.w,f.h,-f.cx*sc,-f.cy*sc,f.w*sc,f.h*sc);
+      if(fl>0&&fi<4){ ctx.globalCompositeOperation="lighter"; ctx.globalAlpha=fl*.45; ctx.drawImage(SI,f.x,0,f.w,f.h,-f.cx*sc,-f.cy*sc,f.w*sc,f.h*sc); }
+      ctx.restore(); return; }
     const lv=Math.max(1,Math.min(3,opt.shield||hit.lv)), Sp=shieldSprite(lv), k=52*u/104, fl=opt.shieldFlash||0, pulse=1+.012*Math.sin(tn/180);
     ctx.save(); ctx.translate(0,-70*u); ctx.scale(pulse,pulse);
     if(opt.shield>0){ ctx.globalAlpha=1; ctx.drawImage(Sp,-140*k,-180*k+4*k,280*k,360*k); }
