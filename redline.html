@@ -34,14 +34,15 @@
 .tkcard{display:flex;flex-direction:column;justify-content:center;gap:10px;min-width:0}
 .tkhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#8a8294}
 .tkhead b{color:var(--ink);letter-spacing:.06em}
-.ticker{position:relative;overflow:hidden;height:86px;border-radius:14px;background:#fff;border:3px solid var(--ink);display:flex;align-items:center;
-  -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 6%,#000 88%,transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 6%,#000 88%,transparent 100%)}
-.tk-track{display:flex;align-items:center;gap:22px;white-space:nowrap;transition:transform .16s cubic-bezier(.2,.8,.3,1);will-change:transform;padding-left:2px}
-.tk-track .w{font-family:var(--read);font-weight:700;font-size:clamp(26px,4.4vw,40px);padding:4px 10px;border-radius:10px;color:var(--ink);transition:color .12s,background .12s,transform .12s}
-.tk-track .w.done{color:#b8b0c2;transform:scale(.8)}
-.tk-track .w.miss{color:var(--bad)}
-.tk-track .w.cur{background:var(--sun);box-shadow:0 4px 0 var(--ink);transform:scale(1.12)}
-.tk-veil{width:100%;text-align:center;font-family:var(--display);font-style:italic;font-size:clamp(20px,3vw,28px);color:#8a8294}
+/* lyrics block: --lh is one line; four lines show (three and a half on phones), the block slides up a line at a time */
+.ticker{--fs:clamp(25px,3.4vw,34px);--lh:calc(var(--fs) * 1.62);position:relative;overflow:hidden;height:calc(var(--lh) * 4 + 16px);border-radius:14px;background:#fff;border:3px solid var(--ink);padding:8px 10px;
+  -webkit-mask-image:linear-gradient(180deg,#000 0,#000 72%,transparent 100%);mask-image:linear-gradient(180deg,#000 0,#000 72%,transparent 100%)}
+.tk-track{position:relative;display:flex;flex-wrap:wrap;align-content:flex-start;column-gap:6px;transition:transform .28s cubic-bezier(.2,.8,.3,1);will-change:transform}
+.tk-track .w{font-family:var(--read);font-weight:700;font-size:var(--fs);line-height:1;height:var(--lh);display:inline-flex;align-items:center;padding:0 9px;border-radius:10px;color:var(--ink);box-shadow:none;transition:color .1s,background .1s}
+.tk-track .w.done{color:#c3bccc}
+.tk-track .w.miss{color:var(--bad);text-decoration:none}
+.tk-track .w.cur{background:var(--sun);box-shadow:inset 0 -4px 0 rgba(0,0,0,.25)}
+.tk-veil{height:100%;display:flex;align-items:center;justify-content:center;text-align:center;font-family:var(--display);font-style:italic;font-size:clamp(20px,3vw,28px);color:#8a8294}
 .packs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .pack{font:inherit;cursor:pointer;border:3px solid var(--ink);background:#fff;color:var(--ink);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:3px;text-align:left;min-width:0}
 .pack b{font-family:var(--display);font-style:italic;font-weight:400;font-size:24px;line-height:1}
@@ -57,12 +58,14 @@
 .pb b{color:var(--ink)}
 .launch{font-weight:700;margin:0}
 .stage{background:#9fd6f4}
+/* shorter road than the other modes so the speedometer and the word block always fit on the screen with it */
+.stage canvas{height:clamp(170px,min(38vh,56vw),360px)}
 @media (max-width:640px){
   .rldash{grid-template-columns:1fr}
   .dialbox{flex-direction:row;justify-content:center;gap:14px;padding:8px}
   #dial{width:172px;height:152px}
   .mini{flex-direction:column;width:auto;gap:8px}
-  .ticker{height:72px}
+  .ticker{--fs:24px;height:calc(var(--lh) * 3.5 + 16px)}
   .tkhead span:last-child{display:none}
   .packs{grid-template-columns:repeat(2,1fr)}
   .choice small{display:none}
@@ -222,7 +225,7 @@ let demo = false, lastRes = null, exiting = false, posted = false, chal = null;
 const CODE = (new URLSearchParams(location.search).get("r") || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 12);
 let made = null, isMaker = false;
 
-const ctl = RR.create({ canvas: $("road"), mode: "redline", league, pack,
+const ctl = RR.create({ canvas: $("road"), mode: "redline", league, pack, fill: true,
   ui: { heard: $("heard"), pop: $("pop"), timeChip: $("timeChip"), wpmChip: $("wpmChip"), ticker: $("ticker"), dial: $("dial") } });
 
 $("sndBtn").onclick = () => { RR.Sound.setOn(!RR.Sound.on); $("sndBtn").textContent = RR.Sound.on ? "Sound on" : "Sound off"; $("sndBtn").setAttribute("aria-pressed", RR.Sound.on); };
@@ -275,6 +278,8 @@ function micHandler(e){
 }
 $("micBack").onclick = () => { RR.Voice.stop(); show("pickScreen"); renderPick(); };
 
+/* on GO, make sure the whole word block is on screen */
+ctl.on("go", () => { const r = $("ticker").getBoundingClientRect(); if (r.bottom > innerHeight - 8) scrollBy({ top: r.bottom - innerHeight + 16, behavior: "smooth" }); });
 /* ---- live numbers under the dial ---- */
 setInterval(() => { const s = ctl.state(); if (!s.rl) return; $("mWords").textContent = s.idx; $("mTop").textContent = Math.round(s.rl.top); }, 200);
 

@@ -622,7 +622,9 @@ function create(o){
   /* ---------- Rash GP: word lanes + a pack that fights back ---------- */
   const gp=o.mode==="gp", redline=o.mode==="redline";
   /* ---------- Redline: read a pack of words like a rap; every word kicks the throttle ---------- */
-  const RL={D:900,A:284,DRAG:.8,KICK:.45,DECAY:2.2,GEARS:[0,45,90,140,190,240,999]};
+  // speed follows your reading rate over the last couple of seconds (not each word as Chrome delivers it), so its
+  // half-second recognition gaps and 2-3 word bursts don't make the bike stall and lurch. KICK/DECAY only move the rev needle.
+  const RL={D:900,K:72,WIN:2.5,UP:1.7,DOWN:.9,KICK:.45,DECAY:2.2,GEARS:[0,45,90,140,190,240,999]};
   let rl={pack:"animals",seed:"",dist:0,v:0,p:0,gear:1,rpm:0,top:0,shiftT:-9999,launch:null,first:null,trace:[],traceT:0,ghost:null,ghostRider:null,miss:0,boost:0,lastGear:1,blipT:-9999};
   let gpLaps=3, rows=[], gpObs=[], gpNitro=[], rivals=[], heat=.4, lapIdx=0, splits=[], gpMissed=0, gpWrong=0, lastPlace=12;
   let gaps=[], shieldBuilt=0, gpSeed="", zapTold=false, custom=null, ghosts=[], track=[], trackT=0, floats=[], atkTold=false, defTold=false, shieldTold=false, crackTold=false, playerAtkCD=0, shieldCharge=0, kos=0, hitsTaken=0, blocks=0, atkTarget=null, projs=[], comment=null, lastRivalAtk=-9999, leaderName="";
@@ -1032,18 +1034,18 @@ function create(o){
     VREF=RACE_LEN*(300/3.6)/RL.D; HUD0=START_Z; HUDLEN=RACE_LEN; FINZ=FINISH_Z;
     segs=buildDragRoad(DRAW);
     Object.assign(P,{z:START_Z,target:START_Z,v:0,x:-.42,vx:0,lean:0,state:"ride",until:0,boostUntil:0,swipeT:-9999,copUntil:0});
-    Object.assign(rl,{dist:0,v:0,p:0,gear:1,rpm:0,top:0,shiftT:-9999,launch:null,first:null,trace:[],traceT:0,miss:0,boost:0});
+    Object.assign(rl,{dist:0,v:0,p:0,gear:1,rpm:0,top:0,shiftT:-9999,launch:null,first:null,trace:[],traceT:0,miss:0,boost:0,hits:[]});
     rl.ghost=ghost&&Array.isArray(ghost.trace)&&ghost.trace.length>2?ghost:null;
     riders=rl.ghost?[{name:String(rl.ghost.name||"GHOST").toUpperCase().slice(0,16),x:.42,lane:.42,z:START_Z,jacket:"#7ff0ff",skin:["teal",-10,1.15],ghostly:true,knockT:-99999,knockDir:1,bound:-1,finishT:null,sp:0}]:[];
     rl.ghostRider=riders[0]||null;
     phase="idle"; setText("heard",""); setText("timeChip","0.0s"); setText("wpmChip","0 wpm"); renderTicker(); drawDial();
   }
   function rlHit(){
-    attemptCount++; advance(false); streak++;
+    attemptCount++; advance(false); streak++; rl.hits.push(now);
     if(rl.first==null){ rl.first=now; rl.launch=now<900?"perfect":now<1700?"good":"late";
       if(rl.launch==="perfect"){ rl.v+=22; rl.p+=.35; shakeAmt=6; pop("PERFECT LAUNCH!",800,"go"); Sound.noise(.2,.2); } else if(rl.launch==="good") pop("GOOD LAUNCH",600); }
     rl.p=Math.min(1.6,rl.p+RL.KICK);
-    if(streak%8===0){ rl.boost=now+1600; P.boostUntil=now+1600; shakeAmt=5; pop("NITRO!",650,"go"); Sound.tone(220,.45,"sawtooth",.05,500); }
+    if(streak%12===0){ rl.boost=now+1600; P.boostUntil=now+1600; shakeAmt=5; pop("NITRO!",650,"go"); Sound.tone(220,.45,"sawtooth",.05,500); }
     Sound.tone(260+rl.rpm*420,.045,"square",.022,90);
   }
   function rlSkip(){ rl.miss++; advance(true); }
@@ -1067,7 +1069,9 @@ function create(o){
     if(phase==="race"){ now=performance.now()-t0;
       if(autopilot&&idx<words.length&&now>=apNext){ const w=keys[idx]; rlJudge(w,null,true,false); apNext=now+(60000/apWpm)*(.75+Math.random()*.5)*(w.length>7?1.35:1); }
       rl.p-=rl.p*Math.min(1,RL.DECAY*dt);
-      rl.v=Math.max(0,rl.v+(RL.A*rl.p*(rl.boost>now?1.3:1)-RL.DRAG*rl.v)*dt);
+      while(rl.hits.length&&rl.hits[0]<now-RL.WIN*1000) rl.hits.shift();
+      const win=rl.first==null?RL.WIN:Math.max(.8,Math.min(RL.WIN,(now-rl.first)/1000+.4)), rate=rl.hits.filter(t=>t>=now-win*1000).length/win;
+      const tv=RL.K*rate*(rl.boost>now?1.3:1); rl.v=Math.max(0,rl.v+(tv-rl.v)*Math.min(1,dt*(tv>rl.v?RL.UP:RL.DOWN)));
       rl.dist+=rl.v/3.6*dt; rl.top=Math.max(rl.top,rl.v);
       while(now>=rl.traceT){ rl.trace.push(Math.round(rl.dist*10)); rl.traceT+=100; }
       if(rl.dist>=RL.D&&finishT==null){ finishT=now; finish(false); }
@@ -1085,14 +1089,16 @@ function create(o){
       gr.z=START_Z+Math.min(d,RL.D+60)/RL.D*RACE_LEN; gr.sp=phase==="race"?Math.min(1.2,Math.max(0,gr.z-pz)/Math.max(dt,1e-3)/VREF):0;
       if(gr.finishT==null&&d>=RL.D) gr.finishT=rl.ghost.ms; }
   }
-  // the words roll past like a teleprompter: the one to read sits near the left, the next few wait to its right
+  // the words sit in lines like song lyrics; the line you're on stays at the top and the block slides up as you finish each line,
+  // so two or three lines are always waiting below and fast readers never have to stop for the screen
   let tickTrack=null;
   function renderTicker(){ const t=$u("ticker"); if(!t) return; t.innerHTML=""; spans=[]; tickTrack=null;
     if(phase!=="race"){ const v=document.createElement("div"); v.className="tk-veil"; v.textContent=PACKS[rl.pack].name+" · words appear on GO"; t.appendChild(v); return; }
-    const tr=document.createElement("div"); tr.className="tk-track"; t.appendChild(tr); tickTrack=tr;
+    const tr=document.createElement("div"); tr.className="tk-track"; t.appendChild(tr); tickTrack=tr; tickY=-1;
     words.forEach(w=>{ const s=document.createElement("span"); s.className="w"; s.textContent=w; spans.push(s); tr.appendChild(s); }); paintWords(); }
-  function tickerMove(){ const t=$u("ticker"), s=spans[Math.min(idx,spans.length-1)]; if(!t||!tickTrack||!s) return;
-    tickTrack.style.transform=`translateX(${Math.round(Math.min(t.clientWidth*.22,90)-s.offsetLeft)}px)`; }
+  let tickY=-1;
+  function tickerMove(){ const s=spans[Math.min(idx,spans.length-1)]; if(!tickTrack||!s) return;
+    const y=s.offsetTop; if(y!==tickY){ tickY=y; tickTrack.style.transform=`translateY(${-y}px)`; } }
   // the big dial: speed needle, rev ring, gear, shift lights
   function drawDial(){ const c=$u("dial"); if(!c) return;
     const bw=c.clientWidth, bh=c.clientHeight; if(!bw||!bh) return; const d=Math.min(2,window.devicePixelRatio||1), w=Math.round(bw*d), h=Math.round(bh*d);
