@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Make a race · ReadRash</title>
+<meta name="theme-color" content="#121016">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Racing+Sans+One&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<link rel="stylesheet" href="assets/site.css?v=20261024h">
+<style>
+/* Layout: title, one card: words box + live word chips, level and laps, the big button */
+.top{padding-block:40px 20px;display:flex;flex-direction:column;gap:10px}
+.top h1{font-size:clamp(46px,9vw,84px)}.top h1 em{font-style:inherit;color:var(--heat)}
+.card{background:var(--paper);color:var(--ink);border-radius:22px;padding:clamp(16px,3vw,26px);display:flex;flex-direction:column;gap:16px;margin-bottom:56px;box-shadow:0 6px 0 rgba(0,0,0,.35)}
+.card .lab{font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#6b6476;margin:0}
+textarea{width:100%;min-height:120px;resize:vertical;font:inherit;font-size:19px;line-height:1.5;border:3px solid var(--ink);border-radius:14px;padding:12px 14px;background:#fff;color:var(--ink)}
+textarea:focus{outline:3px solid var(--sun);outline-offset:2px}
+.chips{display:flex;flex-wrap:wrap;gap:7px;min-height:34px}
+.chips span{border:2px solid var(--ink);border-radius:9px;padding:3px 10px;font-weight:700;font-size:16px;background:#fff}
+.chips span.ok{background:#e3f6e6;border-color:#2e8b47;color:#185c2c}
+.chips span.bad{background:#fde3e0;border-color:var(--bad);color:#9d2116;text-decoration:line-through}
+.chips span.dup{opacity:.45}
+.count{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-weight:700}
+.count small{font-weight:400;color:#6b6476}
+.fill{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.fill button{font:inherit;font-size:14px;font-weight:700;border:2px solid var(--ink);border-radius:999px;background:#fff4e2;color:var(--ink);padding:5px 12px;cursor:pointer}
+.pick{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.pick.two{grid-template-columns:repeat(2,1fr);max-width:360px}
+.choice{font:inherit;text-align:left;border:3px solid var(--ink);border-radius:14px;background:#fff;color:var(--ink);padding:10px 12px;cursor:pointer;display:flex;flex-direction:column;gap:2px}
+.choice b{font-family:var(--display);font-style:italic;font-weight:400;font-size:21px}.choice small{color:#6b6476}
+.choice[aria-pressed="true"]{background:var(--sun);box-shadow:0 4px 0 var(--ink)}
+.err{color:#b3261e;font-weight:700;margin:0}
+.lock{display:flex;flex-direction:column;gap:14px;align-items:flex-start}
+.bar{height:14px;width:100%;max-width:440px;border-radius:8px;background:#e6dccb;overflow:hidden;border:2px solid var(--ink)}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--cool),var(--sun))}
+@media (max-width:520px){.choice small{display:none}}
+</style>
+</head>
+<body>
+<header class="nav gut">
+  <div class="inner">
+    <a class="logo" href="index.html">READ<span>RASH</span></a>
+    <nav class="links" aria-label="Main">
+      <a class="opt" href="leaderboard.html">Leaderboard</a>
+      <a href="garage.html">Garage</a>
+      <a class="btn sm" href="gp.html">Race now</a>
+    </nav>
+  </div>
+</header>
+<main class="gut">
+  <div class="inner">
+    <div class="top">
+      <p class="kicker">Your words, your race</p>
+      <h1>Make a <em>race.</em></h1>
+      <p class="lede">Type 10 to 20 words. Each one goes on a NITRO lane. Race it once, then send the link: your friend races the same words, with your ghost beside them.</p>
+    </div>
+
+    <section class="card" id="lockCard" hidden>
+      <div class="lock">
+        <p class="lab">Locked</p>
+        <h2 style="font-size:clamp(30px,5vw,44px)">Race twice to unlock</h2>
+        <p style="margin:0">Make a race opens at <b>150 Rash Points</b>. You earn about 100 a race.</p>
+        <div class="bar"><i id="lockBar" style="width:0%"></i></div>
+        <p style="margin:0" id="lockTxt">Loading your points…</p>
+        <a class="btn" href="gp.html">Race Rash GP</a>
+      </div>
+    </section>
+
+    <section class="card" id="makeCard" hidden>
+      <div>
+        <p class="lab" style="margin-bottom:8px">Your words</p>
+        <textarea id="words" placeholder="rocket, mango, lantern, tiger…" aria-label="Your words, separated by spaces or commas"></textarea>
+      </div>
+      <div class="fill"><small style="color:#6b6476">Or start from:</small>
+        <button type="button" data-set="animals">Animals</button><button type="button" data-set="space">Space</button><button type="button" data-set="food">Food</button><button type="button" data-set="sport">Sport</button>
+      </div>
+      <div class="chips" id="chips"></div>
+      <div class="count"><span id="countTxt">0 words</span><small id="countHint">Everyday English words, 2 to 18 letters.</small></div>
+      <div><p class="lab" style="margin-bottom:8px">Level of the other two words on each sign</p>
+        <div class="pick" id="lgPick">
+          <button class="choice" data-lg="rookie" aria-pressed="false"><b>Rookie</b><small>Short words</small></button>
+          <button class="choice" data-lg="pro" aria-pressed="true"><b>Pro</b><small>Longer words</small></button>
+          <button class="choice" data-lg="legend" aria-pressed="false"><b>Legend</b><small>Tough words</small></button>
+        </div></div>
+      <div><p class="lab" style="margin-bottom:8px">Laps</p>
+        <div class="pick two" id="lapPick">
+          <button class="choice" data-laps="2" aria-pressed="true"><b>2 laps</b><small>20 signs</small></button>
+          <button class="choice" data-laps="3" aria-pressed="false"><b>3 laps</b><small>30 signs</small></button>
+        </div></div>
+      <p class="err" id="err" hidden></p>
+      <div><button class="btn" id="goBtn" disabled>Make it and race it</button></div>
+    </section>
+  </div>
+</main>
+<footer class="foot gut">
+  <div class="inner"><span class="logo" style="font-size:22px">READ<span>RASH</span></span><span>Read fast. Ride rash. © 2026 ReadRash</span></div>
+</footer>
+<script src="assets/game.js?v=20261024h"></script>
+<script>
+(() => {
+const RR = window.ReadRash, $ = id => document.getElementById(id);
+const SETS = {
+  animals: "tiger elephant monkey giraffe dolphin peacock rabbit turtle penguin crocodile zebra kangaroo",
+  space: "rocket planet comet galaxy astronaut moon orbit meteor telescope satellite gravity sunrise",
+  food: "mango banana coconut pancake noodle biscuit sandwich popcorn pumpkin cherry yogurt muffin",
+  sport: "cricket football hockey tennis racket stadium trophy goalkeeper sprint helmet medal champion" };
+let league = RR.Store.get("league", "pro"); if (!RR.LEAGUES[league]) league = "pro";
+let laps = 2, max = 20, dict = null, busy = false;
+fetch("assets/dict.txt?v=1").then(r => r.text()).then(t => { dict = new Set(t.split("\n")); paint(); }).catch(() => {});
+
+function parse(){ return $("words").value.toLowerCase().split(/[\s,;.\/|]+/).map(w => w.replace(/[^a-z]/g, "")).filter(Boolean).slice(0, 60); }
+function paint(){
+  const seen = new Set(); let good = 0, bad = 0;
+  $("chips").innerHTML = parse().map(w => { const dup = seen.has(w); seen.add(w);
+    const ok = w.length >= 2 && w.length <= 18 && (!dict || dict.has(w)); if (!dup) ok ? good++ : bad++;
+    return `<span class="${dup ? "dup" : ok ? "ok" : "bad"}" title="${dup ? "already in the list" : ok ? "" : "We don't know this word yet"}">${RR.esc(w)}</span>`; }).join("");
+  $("countTxt").textContent = `${good} of ${max} words` + (bad ? ` · ${bad} can't be used` : "");
+  $("countHint").textContent = bad ? "Red words aren't in our word list. Change or remove them." : good < 10 ? `Add ${10 - good} more` : good > max ? `Remove ${good - max}` : "Ready!";
+  $("goBtn").disabled = busy || bad > 0 || good < 10 || good > max || !dict;
+}
+$("words").addEventListener("input", paint);
+document.querySelectorAll(".fill button").forEach(b => b.onclick = () => { $("words").value = SETS[b.dataset.set]; paint(); });
+const sel = () => { $("lgPick").querySelectorAll(".choice").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lg === league)));
+  $("lapPick").querySelectorAll(".choice").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.laps === laps))); };
+$("lgPick").querySelectorAll(".choice").forEach(b => b.onclick = () => { league = b.dataset.lg; sel(); });
+$("lapPick").querySelectorAll(".choice").forEach(b => b.onclick = () => { laps = +b.dataset.laps; sel(); });
+$("goBtn").onclick = async () => {
+  busy = true; paint(); $("err").hidden = true; $("goBtn").textContent = "Making…";
+  try {
+    const words = [...new Set(parse())];
+    const r = await fetch("/api/races", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ key: RR.Rider.key(), name: RR.nickname(), words, league, laps }) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.bad ? `These words can't be used: ${j.bad.join(", ")}` : j.error || "Couldn't make the race. Try again.");
+    RR.Rider.addMade(j.code); location.href = "gp.html?r=" + j.code;
+  } catch (e) { $("err").hidden = false; $("err").textContent = RR.IN_VIEWER ? "Making races works on readrash.com." : e.message; busy = false; $("goBtn").textContent = "Make it and race it"; paint(); }
+};
+sel(); paint();
+(async () => {
+  const me = await RR.Rider.me();
+  if (me && me.limits && me.limits.make) { max = me.limits.words; $("makeCard").hidden = false; paint(); $("words").focus({ preventScroll: true }); return; }
+  $("lockCard").hidden = false;
+  if (me) { $("lockBar").style.width = Math.min(100, me.rp / 150 * 100) + "%"; $("lockTxt").textContent = `You have ${me.rp} of 150 Rash Points. ${me.rp ? "Almost there!" : "One or two races will do it."}`; }
+  else $("lockTxt").textContent = RR.IN_VIEWER ? "Rash Points work on readrash.com." : "Couldn't load your points. Race once and come back.";
+})();
+})();
+</script>
+</body>
+</html>

@@ -12,17 +12,18 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Racing+Sans+One&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
-<link rel="stylesheet" href="assets/site.css?v=20261024g">
-<link rel="stylesheet" href="assets/game.css?v=20261024g">
+<link rel="stylesheet" href="assets/site.css?v=20261024h">
+<link rel="stylesheet" href="assets/game.css?v=20261024h">
 </head>
 <body>
 <header class="nav gut">
   <div class="inner">
     <a class="logo" href="index.html">READ<span>RASH</span></a>
     <nav class="links" aria-label="Main">
-      <a class="opt" href="index.html#how">How it works</a>
+      <a class="opt" href="make.html">Make a race</a>
       <a href="gp.html">Rash GP</a>
       <a class="opt" href="leaderboard.html">Leaderboard</a>
+      <a href="garage.html">Garage</a>
     </nav>
   </div>
 </header>
@@ -134,6 +135,7 @@
       <div class="stat"><b id="sSwipe">0</b><small>Swipes</small></div>
     </div>
     <div id="practiceWrap"><p style="font-weight:700;margin-bottom:8px">Words to practice</p><div class="practice" id="practice"></div></div>
+    <div class="rpbox" id="rpBox" hidden></div>
     <div class="post" id="postBox">
       <span class="nm" id="postName"></span>
       <button class="linkbtn" id="postReroll">New name</button>
@@ -148,8 +150,8 @@
   </div>
 </div>
 
-<script src="assets/game.js?v=20261024g"></script>
-<script src="assets/board.js?v=20261024g"></script>
+<script src="assets/game.js?v=20261024h"></script>
+<script src="assets/board.js?v=20261024h"></script>
 <script>
 (() => {
 const RR = window.ReadRash, $ = id => document.getElementById(id);
@@ -235,7 +237,7 @@ function showResults(res){
   $("sTime").textContent = (res.timeMs/1000).toFixed(1) + "s"; $("sWpm").textContent = res.wpm; $("sAcc").textContent = res.acc + "%"; $("sSwipe").textContent = res.swipes;
   $("practice").innerHTML = ""; res.trouble.forEach(m => { const s = document.createElement("span"); s.textContent = m; $("practice").appendChild(s); }); $("practiceWrap").hidden = !res.trouble.length || demo;
   const canPost = !demo && !res.stopped;
-  $("postBox").hidden = !canPost; $("postName").textContent = RR.nickname(); $("postMsg").textContent = "Score " + Math.round(res.wpm * res.acc / 100) + " · posts to the " + RR.LEAGUES[league].name + " board"; $("postBtn").disabled = true; $("postBtn").textContent = "Posting…"; posted = false;
+  $("rpBox").hidden = true; $("postBox").hidden = !canPost; $("postName").textContent = RR.nickname(); $("postMsg").textContent = "Score " + Math.round(res.wpm * res.acc / 100) + " · posts to the " + RR.LEAGUES[league].name + " board"; $("postBtn").disabled = true; $("postBtn").textContent = "Posting…"; posted = false;
   const st = RR.stars(league); const nextOpen = race < RR.RACES.length - 1 && st[race] > 0;
   $("nextBtn").hidden = !nextOpen || demo;
   show("endScreen");
@@ -245,7 +247,8 @@ $("postReroll").onclick = () => { RR.Store.set("name", RR.randomName()); $("post
 let posted = false;
 async function postRun(){
   if (!lastRes) return; if (posted) { location.href = "leaderboard.html#story"; return; } $("postBtn").disabled = true; $("postBtn").textContent = "Posting…"; $("postMsg").textContent = "Posting your score to the board…";
-  try { const j = await Board.submit({ name: RR.nickname(), league, race, words: lastRes.words, correct: lastRes.correct, attempts: lastRes.attempts, timeMs: lastRes.timeMs });
+  try { const j = await Board.submit({ key: RR.Rider.key(), name: RR.nickname(), place: lastRes.place, league, race, words: lastRes.words, correct: lastRes.correct, attempts: lastRes.attempts, timeMs: lastRes.timeMs });
+    RR.rpPanel($("rpBox"), j.rp, j.rider); if (j.rider) RR.Store.set("rpCache", { rp: j.rider.rp, level: j.rider.level });
     posted = true; $("postBtn").disabled = false; $("postBtn").textContent = "See the board"; $("postMsg").textContent = j.rank ? `Posted ✓ You're #${j.rank} on today's ${RR.LEAGUES[league].name} board.` : "Posted ✓";
   } catch (e) { $("postBtn").disabled = false; $("postBtn").textContent = "Try again"; $("postMsg").textContent = "Couldn't reach the leaderboard. Check your connection and tap Try again."; }
 }

@@ -248,6 +248,8 @@ const SKINS={ME:["orange",0,1],ZIPPY:["blue",-18,1],TARA:["blue",110,1],BABLU:["
   RAJU:["teal",0,1],PINKY:["teal",145,1],SONU:["blue",0,1],GUDDU:["teal",-95,1],BUNTY:["red",0,1],MOTU:["blue",0,.18]};
 function skinFor(ro){ if(ro===ME||ro.me) return SKINS.ME; if(ro.skin) return ro.skin; return SKINS[ro.name]||["blue",0,.18]; }
 // phones get a half-size set (~110 KB a kit); your own orange kit loads first
+function seeded(str){ let h=1779033703^str.length; for(let i=0;i<str.length;i++){ h=Math.imul(h^str.charCodeAt(i),3432918353); h=h<<13|h>>>19; }
+  return ()=>{ h=Math.imul(h^h>>>16,2246822507); h=Math.imul(h^h>>>13,3266489909); h^=h>>>16; return (h>>>0)/4294967296; }; }
 function riderSmall(){ try{ return Math.min(window.innerWidth,1200)*Math.min(1.75,window.devicePixelRatio||1)<1150; }catch(e){ return false; } }
 function riderImg(base){ let im=RIDER_IMG[base]; if(!im){ if(typeof Image==="undefined") return null; im=new Image(); im._fh=RIDER_FULL[base][1]; im.decoding="async"; if(base==="orange") try{ im.fetchPriority="high"; }catch(e){}
     im.onload=()=>{ let d=0; for(const k in SKINS) if(SKINS[k][0]===base&&(SKINS[k][1]||SKINS[k][2]!==1)) setTimeout(()=>tintSkin(SKINS[k]),40+(d++)*30); };
@@ -427,7 +429,7 @@ const CHARS=[ // in-game characters fill the grid when there aren't enough real 
   {name:"PINKY",jacket:"#ff7ab8",helmet:"#7a2cbf",paint:"#fff4e2"},{name:"SONU",jacket:"#5d6bff",helmet:"#1b1b22",paint:"#ffd23f"},
   {name:"GUDDU",jacket:"#8bc34a",helmet:"#2f6fa8",paint:"#e0392b"},{name:"BUNTY",jacket:"#ff5a36",helmet:"#1b1b22",paint:"#fff4e2"},
   {name:"MOTU",jacket:"#c0a060",helmet:"#fff4e2",paint:"#2f9e5b"}];
-const GHOST_KIT=[{jacket:"#e8e4dc",helmet:"#3ec1d3",paint:"#3ec1d3"},{jacket:"#d6f3f7",helmet:"#1b1b22",paint:"#3ec1d3"}];
+const GHOST_KIT=[{jacket:"#3ec1d3",helmet:"#fff4e2",paint:"#3ec1d3",skin:["blue",-40,.9]},{jacket:"#3ec1d3",helmet:"#1b1b22",paint:"#3ec1d3",skin:["teal",0,1]}];
 function buildGPRoad(laps,drawN){
   // one lap of curves, hills and landmarks; every lap repeats it so the circuit is recognisable
   let s0=4242; const rnd=()=>(s0=(s0*16807)%2147483647)/2147483647; rnd();
@@ -496,7 +498,7 @@ function create(o){
   /* ---------- Rash GP: word lanes + a pack that fights back ---------- */
   const gp=o.mode==="gp";
   let gpLaps=3, rows=[], gpObs=[], gpNitro=[], rivals=[], heat=.4, lapIdx=0, splits=[], gpMissed=0, gpWrong=0, lastPlace=12;
-  let floats=[], atkTold=false, defTold=false, shieldTold=false, crackTold=false, playerAtkCD=0, shieldCharge=0, kos=0, hitsTaken=0, blocks=0, atkTarget=null, projs=[], comment=null, lastRivalAtk=-9999, leaderName="";
+  let custom=null, ghosts=[], track=[], trackT=0, floats=[], atkTold=false, defTold=false, shieldTold=false, crackTold=false, playerAtkCD=0, shieldCharge=0, kos=0, hitsTaken=0, blocks=0, atkTarget=null, projs=[], comment=null, lastRivalAtk=-9999, leaderName="";
   let posCand={p:12,t:0}, draft=0, slingUntil=-99999, blockedMsgT=-9999, duelT=-9999, posFlash=null, crashes=0, duelsWon=0, duelsLost=0;
   let VREF=RACE_LEN/4.6, HUD0=START_Z, HUDLEN=RACE_LEN, FINZ=FINISH_Z;
   const LANE_X=GP.LANES;
@@ -505,21 +507,31 @@ function create(o){
   function curRow(){ const r=nextPending(); return r&&r.z-P.z<=GP.ROW_GAP*SEG*GP.OPEN?r:null; }
   function nextRow(r){ const i=rows.indexOf(r); return i>=0?rows[i+1]||null:null; }
   function laneCenterOf(x){ let b=0; LANE_X.forEach((lx,i)=>{ if(Math.abs(x-lx)<Math.abs(x-LANE_X[b])) b=i; }); return b; }
-  function loadGP(lg,laps){
+  function loadGP(lg,laps,gh,cust){
+    custom=cust&&cust.words&&cust.words.length?cust:null; track=[]; trackT=0;
+    ghosts=(gh||[]).filter(g=>g&&g.track&&g.track.length>2).map((g,i)=>({name:g.name,track:g.track,kit:g.kit||{...GHOST_KIT[i%2],name:g.name},z:GP.START-2800,x:LANE_X[1],lane:1,done:false}));
     league=lg; gpLaps=laps; apWpm=LEAGUES[lg].demo; const L=GP.lg[lg]; VREF=L.vMax; HUD0=GP.START; HUDLEN=laps*GP.LAP_LEN; FINZ=GP.START+HUDLEN;
     segs=buildGPRoad(laps,DRAW);
     // words: three per gantry (easy / medium / hard), getting tougher lap by lap; no repeats in a race
     const tiers=WORDPOOL[lg], bags=tiers.map(t=>shuffled(t)), used=new Set();
     const draw=t=>{ t=Math.max(0,Math.min(2,t)); for(const d of [0,-1,1,-2,2]){ const b=bags[Math.max(0,Math.min(2,t+d))]; while(b.length){ const w=b.pop(); if(!used.has(w)){ used.add(w); return w; } } } return shuffled(tiers[t])[0]; };
     rows=[]; gpObs=[]; gpNitro=[];
+    const CR=custom?seeded(String(custom.seed||"x")):Math.random, cshuf=a=>{ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(CR()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+    let cq=[]; const ckeys=new Set(custom?custom.words.map(norm):[]); let fbag=[];
+    const filler=()=>{ for(let n=0;n<400;n++){ if(!fbag.length) fbag=cshuf(tiers[0].concat(lg==="rookie"?[]:tiers[1].filter(w=>w.length<=6))); const w=fbag.pop(); if(!ckeys.has(norm(w))&&!used.has(w)){ used.add(w); if(used.size>200) used.clear(); return w; } } return "go"; };
     const traffic=["auto","barrel","cow","truck","auto","barrel","bus"];
     for(let lap=0;lap<laps;lap++){ const f=laps===1?0:lap/(laps-1)*(laps===2?1.5:2);
-      for(let k=0;k<GP.ROWS;k++){ const base=Math.min(2,Math.floor(f)+(Math.random()<f-Math.floor(f)?1:0));
+      for(let k=0;k<GP.ROWS;k++){ let words3=[], content=["clear","clear","clear"];
+        if(custom){ // a made race: one of the maker's words on the NITRO lane, two easy fillers; same layout for everyone (seeded)
+          if(!cq.length) cq=cshuf(custom.words); const w=cq.pop(); const perm=cshuf([0,1,2]);
+          words3[perm[0]]=w; content[perm[0]]="nitro"; words3[perm[1]]=filler(); words3[perm[2]]=filler();
+          if(CR()<.6) content[perm[1]]="traffic"; else if(CR()<.35) content[perm[1]]=CR()<.55?"book":"coconut"; }
+        else { const base=Math.min(2,Math.floor(f)+(Math.random()<f-Math.floor(f)?1:0));
         const ws=[draw(base-1),draw(base),draw(base+1)].sort((a,b)=>a.length-b.length); // easy, medium, hard
-        const perm=shuffled([0,1,2]), words3=[], content=["clear","clear","clear"];
+        const perm=shuffled([0,1,2]);
         perm.forEach((lane,d)=>{ words3[lane]=ws[d]; });
         const easyLane=perm[0], hardLane=perm[2], midLane=perm[1];
-        if(k>0||lap>0){ if(Math.random()<.7) content[easyLane]="traffic"; if(Math.random()<.65) content[hardLane]="nitro"; if(content[easyLane]!=="traffic"&&Math.random()<.35) content[midLane]="traffic"; else if(Math.random()<.32) content[midLane]=Math.random()<.55?"book":"coconut"; }
+        if(k>0||lap>0){ if(Math.random()<.7) content[easyLane]="traffic"; if(Math.random()<.65) content[hardLane]="nitro"; if(content[easyLane]!=="traffic"&&Math.random()<.35) content[midLane]="traffic"; else if(Math.random()<.32) content[midLane]=Math.random()<.55?"book":"coconut"; } }
         const z=GP.START+lap*GP.LAP_LEN+(GP.FIRST+k*GP.ROW_GAP)*SEG;
         const r={z,lap,k,words:words3,keys:words3.map(norm),content,state:0,chosen:-1,t:0}; rows.push(r);
         content.forEach((c,lane)=>{ if(c==="traffic") gpObs.push({z:z+GP.ROW_GAP*SEG*.18,lane,type:traffic[(k+lane+lap)%traffic.length],hit:false});
@@ -620,6 +632,10 @@ function create(o){
   function updateGP(dt){
     const L=GP.lg[league], finalLap=lapIdx>=gpLaps-1;
     if(phase==="race"||phase==="done") now=performance.now()-t0;
+    if(phase==="race"&&finishT==null){ while(now>=trackT){ track.push(Math.round((P.z-GP.START)/10)*3+P.lane); trackT+=250; } }
+    if(phase==="race"||phase==="done") for(const g of ghosts){ const t=g.track, i=now/250, a=Math.floor(i), dec=v=>({z:GP.START+Math.floor(v/3)*10,l:((v%3)+3)%3});
+      if(a>=t.length-1){ const e=dec(t.at(-1)); g.z=e.z; g.lane=e.l; g.done=true; } else { const p=dec(t[a]), q=dec(t[a+1]); g.z=p.z+(q.z-p.z)*(i-a); g.lane=q.l; }
+      g.x+=(LANE_X[g.lane]-g.x)*Math.min(1,dt*5); }
     if(phase==="race"){
       // demo rider: picks the best lane like a good player would
       if(autopilot){ const r=curRow(); if(r&&now>=apNext){ const score=i=>(r.content[i]==="nitro"?3:r.content[i]==="traffic"?-9:1)-(rivals.some(v=>v.lane===i&&v.z>P.z&&v.z<r.z+3000)?1.5:0)+Math.random()*.5;
@@ -883,7 +899,7 @@ function create(o){
     phase="done"; if(!stopped&&finishT!=null) P.target=FINZ+3000;
     if(gp){ gpUI(true); const tot=finishT??Math.round(now), lapTimes=splits.map((t,i)=>t-(i?splits[i-1]:0)), place=finishT!=null?gpPlace():null;
       const missedRows=rows.filter(r=>r.state===-1), signsN=rows.length;
-      const res={mode:"gp",stopped:!!stopped,place,timeMs:tot,splits:splits.slice(),lapTimes,best:lapTimes.length?Math.min(...lapTimes):null,signs:signsN,correct:correctCount,wrong:gpWrong,missed:gpMissed,
+      const res={mode:"gp",track:track.slice(),custom:custom?{seed:custom.seed}:null,stopped:!!stopped,place,timeMs:tot,splits:splits.slice(),lapTimes,best:lapTimes.length?Math.min(...lapTimes):null,signs:signsN,correct:correctCount,wrong:gpWrong,missed:gpMissed,
         crashes,kos,blocks,hitsTaken,acc:signsN?Math.round(correctCount/signsN*100):0,wpm:Math.round(correctCount/(tot/60000)||0),
         trouble:[...new Set(missedRows.map(r=>r.words[r.content.indexOf("nitro")>=0?r.content.indexOf("nitro"):1]))].slice(0,12),league,laps:gpLaps,
         podium:[{name:"YOU",t:finishT,me:true},...rivals.map(r=>({name:r.name,t:r.finishT??(Math.round(now)+Math.round((GP.START+gpLaps*GP.LAP_LEN-r.z)/Math.max(r.v,1)*1000))}))].sort((a,b)=>(a.t??1e12)-(b.t??1e12))};
@@ -1038,7 +1054,8 @@ function create(o){
       rows.forEach(r=>{ if(r.z>near&&r.z<far) put(r.z,{t:"row",r,isNow:r===cr&&crOpen}); });
       gpObs.forEach(ob=>{ if(ob.z>near&&ob.z<far) put(ob.z,{t:ob.type,gob:ob}); });
       gpNitro.forEach(nz=>{ if(!nz.taken&&nz.z>near&&nz.z<far) put(nz.z,{t:nz.kind==="book"?"bookpick":nz.kind==="coconut"?"coco":"nitro",nz}); });
-      rivals.forEach(rv=>{ if(rv.z>P.z-700&&rv.z<far) put(rv.z,{t:"rival",rv}); }); }
+      rivals.forEach(rv=>{ if(rv.z>P.z-700&&rv.z<far) put(rv.z,{t:"rival",rv}); });
+      ghosts.forEach(g=>{ if(g.z>P.z-400&&g.z<far) put(g.z,{t:"ghost",g}); }); }
     for(let n=DRAW-1;n>=1;n--){ const s=segs[base+n]; if(!s||s.p1.cz<=camDepth) continue;
       const sc=s.p1.s, far=n/DRAW, alpha=far>.7?1-(far-.7)/.3*.8:1;
       if(alpha<1) ctx.globalAlpha=alpha;
@@ -1059,6 +1076,9 @@ function create(o){
         else if(d.gob||d.nz){ const lx=d.gob?d.gob.lane:d.nz.lane, h=S*WH[d.t]*W/2; if(h>=1.5){ const Sp=getSprite(d.t,{}), w=h*Sp.aspect, xx=X0+LANE_X[lx]*wpx;
             if(d.nz){ const pulse=1+.08*Math.sin(performance.now()/120); glow(xx,Y-h*.5,h*1.1*pulse,d.nz.kind==="nitro"?"rgba(62,193,211,.45)":"rgba(255,210,63,.45)"); }
             ctx.drawImage(Sp.c,xx-w/2,Y-h,w,h); } }
+        else if(d.t==="ghost"){ const g=d.g, h=S*WH.bike*W/2; if(h>2){ ctx.save(); ctx.globalAlpha=.5; drawRider(X0+g.x*wpx,Y,h,g.kit,0,{spin:2,tuck:1}); ctx.restore();
+            if(h>26){ const f=Math.max(10,Math.min(14,11*h/130)); ctx.font=`${f}px 'Racing Sans One','Arial Black',sans-serif`; const tx="GHOST · "+g.name, tw=ctx.measureText(tx).width+12;
+              ctx.fillStyle="rgba(62,193,211,.92)"; rr(ctx,X0+g.x*wpx-tw/2,Y-h*1.12-9,tw,18,9); ctx.fill(); ctx.fillStyle="#0b2a30"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText(tx,X0+g.x*wpx,Y-h*1.12); } } }
         else if(d.t==="rival"){ const rv=d.rv, h=S*WH.bike*W/2; if(h>2){ let rot=0; const kt=now-rv.knockT;
             if(kt<600){ rot=Math.sin(kt/600*Math.PI)*.35*rv.knockDir; }
             const sk=now-rv.swipeT, swing=sk<420?sk/420:0, xx=X0+rv.x*wpx, sdir=Math.sign(P.x-rv.x)||1;
@@ -1292,7 +1312,43 @@ function stars(lg){ const s=Store.get("stars."+lg,null); return Array.isArray(s)
 function saveStars(lg,ri,n){ const s=stars(lg); if(n>s[ri]){ s[ri]=n; Store.set("stars."+lg,s); } return s; }
 function nickname(){ let n=Store.get("name",null); if(!n||!/^[A-Za-z]+\d{2}$/.test(n)){ n=randomName(); Store.set("name",n); } return n; }
 
-window.ReadRash = { create, Voice, bindMic, Sound, LEAGUES, RACES, ADJ, NOUN, randomName, VOICE_OK, IN_VIEWER, Store, stars, saveStars, nickname, norm, sim, ord,
+/* ================= rider: secret device key, Rash Points, the unlock ladder ================= */
+// keep rp thresholds in sync with LEVELS in functions/_lib/rr.js; live:false = coming in a later phase
+const LADDER=[
+  {rp:0,    items:[["Rash GP, Story races and all three reading levels",1],["Race any link a friend sends you",1]]},
+  {rp:150,  items:[["Make a race from 10 to 20 of your own words",1],["Duel a friend with a link",1]]},
+  {rp:450,  items:[["Rematch and best of 3",0],["Paint shop",0],["Dictionary weapon",0]]},
+  {rp:1000, items:[["Up to 30 words in a race",1],["Group links for up to 10 riders",1],["Rajasthan Desert circuit",0]]},
+  {rp:2000, items:[["Passages: your own story race",0],["Western Ghats circuit",0]]},
+  {rp:3500, items:[["Private live room for 2 to 4 friends",0],["Decoder event",0]]},
+  {rp:5000, items:[["Race links last 30 days",1],["Live rooms of 6",0],["Mumbai Night circuit",0]]},
+  {rp:8000, items:[["Group links for up to 50 riders",1],["Run a cup",0],["Ladakh Pass circuit",0]]} ];
+const levelOf=rp=>{ let l=1; LADDER.forEach((s,i)=>{ if(rp>=s.rp) l=i+1; }); return l; };
+const Rider={ _me:null,
+  key(){ let k=Store.get("riderKey",null); if(typeof k!=="string"||!/^[a-z2-7]{20,40}$/.test(k)){ const A="abcdefghijklmnopqrstuvwxyz234567"; k=Array.from(crypto.getRandomValues(new Uint8Array(26)),x=>A[x%32]).join(""); Store.set("riderKey",k); } return k; },
+  setKey(k){ k=String(k||"").toLowerCase().replace(/[^a-z2-7]/g,""); if(k.length<20||k.length>40) return false; Store.set("riderKey",k); Store.set("adoptName",true); this._me=null; return true; },
+  async me(){ try{ const r=await fetch("/api/me",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({key:this.key(),name:Store.get("adoptName",false)?null:nickname()})});
+      if(!r.ok) throw 0; const j=await r.json(); this._me=j; if(j.name){ Store.set("name",j.name); Store.set("adoptName",false); } Store.set("rpCache",{rp:j.rp,level:j.level}); return j; }catch(e){ return null; } },
+  cached(){ return this._me||Store.get("rpCache",null); },
+  made(){ return Store.get("madeRaces",[]); }, addMade(c){ const l=this.made().filter(x=>x!==c); l.unshift(c); Store.set("madeRaces",l.slice(0,40)); } };
+function esc(t){ return String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+// results card: RP just earned, the level bar, and anything that unlocked
+function rpPanel(el,rp,rider){ if(!el) return; if(!rp||!rider){ el.hidden=true; return; } el.hidden=false;
+  const lv=rider.level, cur=LADDER[lv-1].rp, nxt=LADDER[lv]?LADDER[lv].rp:null, pct=nxt?Math.round((rider.rp-cur)/(nxt-cur)*100):100;
+  const ups=[]; for(let l=rp.levelBefore+1;l<=rp.level;l++) LADDER[l-1].items.forEach(([t,live])=>{ if(live) ups.push(t); });
+  const nextLive=nxt?LADDER[lv].items.find(x=>x[1])||LADDER[lv].items[0]:null;
+  el.innerHTML=`<div class="rpb-top"><div class="rpb-gain">+${rp.gained}<small> Rash Points</small></div><div class="rpb-lv">Level ${lv}</div></div>
+    <div class="rpb-parts">${rp.parts.filter(p=>p[1]>0).map(p=>`<span>${esc(p[0])} <b>+${p[1]}</b></span>`).join("")}</div>
+    <div class="rpb-bar"><i style="width:${Math.max(3,Math.min(100,pct))}%"></i></div>
+    <div class="rpb-next">${nxt?`${rider.rp} / ${nxt} RP · next: ${esc(nextLive[0])}`:`${rider.rp} RP · every unlock is yours`}</div>
+    ${ups.length?`<div class="rpb-up"><b>Unlocked!</b> ${ups.map(esc).join(" · ")}${ups.some(t=>/Make a race/.test(t))?' <a href="make.html">Make one now →</a>':""}</div>`:""}`;
+  if(ups.length) Sound.tone(784,.12,"square",.05), setTimeout(()=>Sound.tone(1046,.18,"square",.05),130); }
+// share a made race: the phone's share sheet, else WhatsApp / copy
+function raceLink(code){ return location.origin+"/r/"+code; }
+async function shareRace(text,url){ try{ if(navigator.share){ await navigator.share({text,url}); return "shared"; } }catch(e){ if(e&&e.name==="AbortError") return "cancel"; }
+  try{ await navigator.clipboard.writeText(text+" "+url); return "copied"; }catch(e){ return "none"; } }
+
+window.ReadRash = { create, Voice, bindMic, Rider, LADDER, levelOf, rpPanel, raceLink, shareRace, esc, Sound, LEAGUES, RACES, ADJ, NOUN, randomName, VOICE_OK, IN_VIEWER, Store, stars, saveStars, nickname, norm, sim, ord,
   paintRider:(c,w,f,o)=>{ preloadRiders(); paintRider(c,w,f,o); },
   paintSprite(canvas,t,opt={}){ const g=canvas.getContext("2d"), h=canvas.height; g.clearRect(0,0,canvas.width,canvas.height); const list=t==="bike"?[bikeOnly(opt.rider||ME),riderOnly(opt.rider||ME)]:[getSprite(t,opt)]; for(const S of list){ const w=h*S.aspect; g.drawImage(S.c,(canvas.width-w)/2,0,w,h); } } };
 })();

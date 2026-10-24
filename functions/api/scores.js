@@ -1,3 +1,4 @@
+import { getRider, award, profile } from "../_lib/rr.js";
 // Cloudflare Pages Function: GET/POST /api/scores, backed by a D1 database bound as `DB`.
 const ADJ = ["Turbo","Rapid","Zippy","Mighty","Swift","Blazing","Cosmic","Thunder","Rocket","Nitro","Lucky","Brave","Jolly","Speedy","Golden","Silver","Super","Hyper","Flying","Daring","Clever","Funky","Jumbo","Fearless"];
 const NOUN = ["Mango","Tiger","Falcon","Cheetah","Coconut","Comet","Panther","Crab","Turtle","Monsoon","Pepper","Lassi","Samosa","Dolphin","Eagle","Bolt","Wheelie","Kite","Lion","Peacock","Jalebi","Cyclone","Gecko","Rider"];
@@ -48,5 +49,8 @@ export async function onRequestPost({ request, env }) {
   const better = await env.DB.prepare(
     `SELECT COUNT(*) AS n FROM (SELECT name, MAX(score) AS s FROM scores WHERE league = ?1 AND created_at >= ?2 GROUP BY name) WHERE s > ?3`
   ).bind(league, since("today", now), score).first();
-  return json({ ok: true, wpm, acc, score, rank: (better?.n || 0) + 1 });
+  let rp = null, rider = null; const rr = await getRider(env, b.key, name, true);
+  if (rr) { const pl = Number.isInteger(b.place) && b.place >= 1 && b.place <= 4 ? b.place : null;
+    rp = await award(env, rr, { mode: "story", league, timeMs, correct, finished: true, place: pl, clean: attempts === correct && correct === words }); rider = profile(rr); }
+  return json({ ok: true, wpm, acc, score, rank: (better?.n || 0) + 1, rp, rider });
 }
