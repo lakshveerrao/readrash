@@ -1242,7 +1242,7 @@ function create(o){
     tilt+=((-s.curve*sp*.013)-tilt)*Math.min(1,dt*4);
     skyOff+=s.curve*sp*dt*.012; skyOff=Math.max(-1.2,Math.min(1.2,skyOff));
     shakeAmt*=Math.pow(.02,dt);
-    if(phase==="race"&&P.state==="ride"&&P.v>VREF*.55&&Math.random()<dt*28) dust(1,CX+(Math.random()-.5)*20,H-6);
+    if(phase==="race"&&P.state==="ride"&&P.v>VREF*.55&&Math.random()<dt*(redline?6:28)) dust(1,CX+(Math.random()-.5)*20,H-6);
     parts.forEach(p=>{ p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=(p.k==="spark"?900:-20)*dt; p.life-=dt*(p.k==="spark"?1.6:1.4); if(p.k==="dust") p.r+=dt*14; });
     parts=parts.filter(p=>p.life>0);
     bursts.forEach(b=>b.t+=dt); bursts=bursts.filter(b=>b.t<.5);
@@ -1530,7 +1530,7 @@ function create(o){
     if(k<.5){ ctx.fillStyle="#ffd23f"; ctx.font=`${Math.max(10,16*u)}px sans-serif`; ctx.textAlign="center"; ctx.fillText("★ ★",x+bx+rx,y+ry-110*u); }
   }
   function drawPlayer(){
-    const h=camDepth/playerZ*WH.bike*W/2*(o.fill?.7:.84)*(H<300&&o.fill?H/300:1), x=CX, y=H-4;
+    const h=redline?Math.min(camDepth/playerZ*WH.bike*W/2*1.05,H*.56):camDepth/playerZ*WH.bike*W/2*(o.fill?.7:.84)*(H<300&&o.fill?H/300:1), x=CX, y=H-4;
     let rot=P.lean;
     if(P.state==="crash"){ const k=Math.min(1,(now-P.crashT)/220); rot=1.2*k*(P.crashT%2?1:-1); }
     if(P.state==="skid") rot+=Math.sin(now/40)*.3;
