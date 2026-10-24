@@ -13,8 +13,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Racing+Sans+One&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
-<link rel="stylesheet" href="assets/site.css?v=20261024i">
-<link rel="stylesheet" href="assets/game.css?v=20261024i">
+<link rel="stylesheet" href="assets/site.css?v=20261024j">
+<link rel="stylesheet" href="assets/game.css?v=20261024j">
 <style>
 /* Rash GP: same race view; the text card shows the three lane words of the next gantry, with what waits in each lane */
 .lanecard{display:flex;flex-direction:column;gap:10px;justify-content:center;min-height:150px}
@@ -230,8 +230,8 @@
   </div>
 </div>
 
-<script src="assets/game.js?v=20261024i"></script>
-<script src="assets/board.js?v=20261024i"></script>
+<script src="assets/game.js?v=20261024j"></script>
+<script src="assets/board.js?v=20261024j"></script>
 <script>
 (() => {
 const RR = window.ReadRash, $ = id => document.getElementById(id);
@@ -296,7 +296,8 @@ ctl.on("finish", res => {
 });
 function showResults(res){
   const p = res.place;
-  $("endTitle").innerHTML = made ? (p === 1 ? "You won <span>the race!</span>" : `You finished <span>${RR.ord(p)}</span>`) : p === 1 ? "You won <span>Rash GP!</span>" : `You finished <span>${RR.ord(p)}</span>`;
+  const esc = RR.esc, won = made && made.maker_ms && res.timeMs < made.maker_ms;
+  $("endTitle").innerHTML = made ? (res.stopped ? "Ride <span>stopped</span>" : isMaker ? (made.status === "draft" ? "Your race is <span>open!</span>" : won ? "New best <span>time!</span>" : "Race <span>done</span>") : made.maker_ms ? (won ? `You beat <span>${esc(made.maker)}!</span>` : `${esc(made.maker)} <span>wins</span>`) : "Race <span>done</span>") : p === 1 ? "You won <span>Rash GP!</span>" : `You finished <span>${RR.ord(p)}</span>`;
   $("duelTxt").hidden = true; $("shareBox").hidden = true; $("rpBox").hidden = true;
   $("sTime").textContent = fmt(res.timeMs); $("sBest").textContent = fmt(res.best); $("sRead").textContent = `${res.correct}/${res.signs}`; $("sKO").textContent = res.kos;
   $("splits").innerHTML = ""; res.lapTimes.forEach((t, i) => { const s = document.createElement("span"); s.textContent = `Lap ${i+1} · ${fmt(t)}`; if (t === res.best) s.className = "best"; $("splits").appendChild(s); });
@@ -338,7 +339,7 @@ function madeResult(j){
     shareSetup("Send it to a friend", `I made a ReadRash race with ${n} words. Beat my ${fmt(mk)}!`);
   } else {
     const d = Math.abs(me - mk) / 1000, won = me < mk;
-    $("duelTxt").hidden = false; $("duelTxt").textContent = mk ? (won ? `You beat ${made.maker} by ${d.toFixed(1)}s!` : `${made.maker} wins by ${d.toFixed(1)}s. Rematch?`) : "Posted.";
+    $("duelTxt").hidden = false; $("duelTxt").textContent = mk ? (won ? `By ${d.toFixed(1)}s: ${fmt(me)} against ${fmt(mk)}.` : `By ${d.toFixed(1)}s: ${fmt(mk)} against your ${fmt(me)}. Rematch?`) : "Posted.";
     shareSetup(won ? "Tell them you won" : "Ask for a rematch", won ? `I beat your ReadRash race ${made.title}: ${fmt(me)} vs ${fmt(mk)}. Your move!` : `Your race ${made.title} was close: ${fmt(me)} vs ${fmt(mk)}. Rematch?`);
     $("makeBtn").hidden = false; $("makeBtn").textContent = "Make your own race";
   }

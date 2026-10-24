@@ -719,9 +719,9 @@ function create(o){
         if(rv.finishT==null&&rv.z-GP.START>=gpLaps*GP.LAP_LEN) rv.finishT=Math.round(now);
         // lane choice at each gantry: dodge traffic, like nitro, blockers cut in front of you
         const ri=rows.findIndex(r=>r.z>rv.z); const rowIdx=ri<0?rows.length:ri;
-        if(rowIdx!==rv.lastRow){ rv.lastRow=rowIdx; const r=rows[rowIdx]; if(r){ const sc=i=>(r.content[i]==="traffic"?-9:r.content[i]==="nitro"&&!custom?1.2:0)+Math.random()*1.4; // in a made race the NITRO lane is the reader's word, not theirs
+        if(rowIdx!==rv.lastRow){ rv.lastRow=rowIdx; const r=rows[rowIdx]; if(r){ const sc=i=>(r.content[i]==="traffic"?-9:r.content[i]==="nitro"?(custom?-3:1.2):0)+Math.random()*1.4; // in a made race the NITRO lane belongs to the reader: rivals keep out so duels are fair
             let b=rv.lane; for(let i=0;i<3;i++) if(sc(i)>sc(b)) b=i;
-            if(rv.style==="blocker"&&rv.z>P.z&&rv.z-P.z<1600&&r.content[P.lane]!=="traffic") b=P.lane;
+            if(!custom&&rv.style==="blocker"&&rv.z>P.z&&rv.z-P.z<1600&&r.content[P.lane]!=="traffic") b=P.lane;
             rv.lane=b; } }
         // traffic sitting in its lane: riders swerve around it
         for(const ob of gpObs){ const dz=ob.z-rv.z; if(dz>0&&dz<1200&&ob.lane===rv.lane){ rv.lane=[0,1,2].find(i=>i!==ob.lane&&!gpObs.some(o=>o.lane===i&&Math.abs(o.z-ob.z)<200))??rv.lane; } }
