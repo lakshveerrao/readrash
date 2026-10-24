@@ -519,7 +519,7 @@ function create(o){
   /* ---------- Rash GP: word lanes + a pack that fights back ---------- */
   const gp=o.mode==="gp";
   let gpLaps=3, rows=[], gpObs=[], gpNitro=[], rivals=[], heat=.4, lapIdx=0, splits=[], gpMissed=0, gpWrong=0, lastPlace=12;
-  let gpSeed="", zapTold=false, custom=null, ghosts=[], track=[], trackT=0, floats=[], atkTold=false, defTold=false, shieldTold=false, crackTold=false, playerAtkCD=0, shieldCharge=0, kos=0, hitsTaken=0, blocks=0, atkTarget=null, projs=[], comment=null, lastRivalAtk=-9999, leaderName="";
+  let shieldBuilt=0, gpSeed="", zapTold=false, custom=null, ghosts=[], track=[], trackT=0, floats=[], atkTold=false, defTold=false, shieldTold=false, crackTold=false, playerAtkCD=0, shieldCharge=0, kos=0, hitsTaken=0, blocks=0, atkTarget=null, projs=[], comment=null, lastRivalAtk=-9999, leaderName="";
   let posCand={p:12,t:0}, draft=0, slingUntil=-99999, blockedMsgT=-9999, duelT=-9999, posFlash=null, crashes=0, duelsWon=0, duelsLost=0;
   let VREF=RACE_LEN/4.6, HUD0=START_Z, HUDLEN=RACE_LEN, FINZ=FINISH_Z;
   const LANE_X=GP.LANES;
@@ -561,7 +561,7 @@ function create(o){
                                   if(c==="nitro"||c==="book"||c==="coconut") gpNitro.push({z:z+GP.ROW_GAP*SEG*.1,lane,kind:c,taken:false}); });
       } }
     words=rows.flatMap(r=>r.words); keys=words.map(norm); status=[]; trouble=new Set(); acts=[]; idx=0;
-    correctCount=0; attemptCount=0; streak=0; gpMissed=0; gpWrong=0; crashes=0; kos=0; hitsTaken=0; blocks=0; shieldCharge=0; floats=[]; zapTold=false; atkTold=false; defTold=false; shieldTold=false; crackTold=false; atkTarget=null; projs=[]; comment=null; lastRivalAtk=-9999; leaderName=""; heat=.4; lapIdx=0; splits=[]; finishT=null; lights=0; draft=0; slingUntil=0; posFlash=null;
+    correctCount=0; attemptCount=0; streak=0; gpMissed=0; gpWrong=0; crashes=0; kos=0; hitsTaken=0; blocks=0; shieldCharge=0; floats=[]; shieldBuilt=0; zapTold=false; atkTold=false; defTold=false; shieldTold=false; crackTold=false; atkTarget=null; projs=[]; comment=null; lastRivalAtk=-9999; leaderName=""; heat=.4; lapIdx=0; splits=[]; finishT=null; lights=0; draft=0; slingUntil=0; posFlash=null;
     Object.assign(P,{z:GP.START-2800,target:0,v:0,x:0,vx:0,lane:1,lean:0,state:"ride",until:0,boostUntil:0,swipeT:-9999,copUntil:0,shield:1,shieldFlashT:-9999,weapon:{type:"paper",uses:Infinity},downT:-9999,downDir:1});
     // the pack: in-game riders with personalities; everyone lines up ahead of you
     const crew=shuffled(CHARS), styles=["sprinter","closer","blocker","steady"];
@@ -591,7 +591,7 @@ function create(o){
     const sh=$u("shield"), sk=P.shield+"|"+shieldCharge; if(sh&&sh._v!==sk){ const up=sh._s!=null&&P.shield>sh._s, dn=sh._s!=null&&P.shield<sh._s; sh._v=sk; sh._s=P.shield;
       [...sh.children].forEach((c,i)=>{ c.classList.toggle("on",i<P.shield); c.classList.toggle("half",i===P.shield&&shieldCharge>0); });
       if(up||dn){ sh.classList.remove("up","dn"); void sh.offsetWidth; sh.classList.add(up?"up":"dn"); }
-      const nx=$u("shieldNext"); if(nx) nx.textContent=P.shield>=3?"Full":(2-shieldCharge)+" more word"+(2-shieldCharge===1?"":"s"); }
+      const nx=$u("shieldNext"); if(nx) nx.textContent=P.shield>=3?"Full · keep reading clean":`Read ${2-shieldCharge} more right`; }
     setText("weaponTxt",P.weapon.type==="book"?`Dictionary ×${P.weapon.uses}`:P.weapon.type==="coconut"?"Coconut":"Newspaper");
   }
   function say(rv,list){ if(now-rv.sayT<3500) return; rv.sayT=now; rv.say=list[Math.floor(Math.random()*list.length)]; }
@@ -605,9 +605,10 @@ function create(o){
     gpUI(true);
   }
   function talk(t){ comment={txt:t,t:now}; }
-  function chargeShield(){ if(P.shield>=3){ shieldCharge=0; return; } shieldCharge++; if(shieldCharge>=2){ shieldCharge=0; P.shield++; P.shieldUpT=now; Sound.tone(1040,.08,"triangle",.05,200); floatTxt("+1 SHIELD","#3ec1d3");
-    if(P.shield===3) talk("Shield full! Hits bounce off you now."); else if(!shieldTold){ shieldTold=true; talk("Shield +1. Every 2 words you read right adds a bar."); } } }
-  function crackShield(){ shieldCharge=0; if(P.shield>0){ P.shield--; P.shieldFlashT=now; floatTxt("−1 SHIELD","#ff6b5b"); if(!crackTold){ crackTold=true; talk("Missed one, so your shield cracked. Read clean to build it back."); } } }
+  function chargeShield(){ if(P.shield>=3){ shieldCharge=0; return; } shieldCharge++; if(shieldCharge>=2){ shieldCharge=0; P.shield++; P.shieldUpT=now; Sound.tone(1040,.08,"triangle",.05,200); shieldBuilt++; floatTxt("READ RIGHT · +1 SHIELD","#3ec1d3");
+    if(P.shield===3) talk("Clean reading = full shield! Hits bounce back now."); else if(!shieldTold){ shieldTold=true; talk("Your reading built a shield bar! Every 2 words read right adds one."); } } }
+  function crackShield(why){ const lost=shieldCharge>0||P.shield>0; shieldCharge=0; if(P.shield>0){ P.shield--; P.shieldFlashT=now; }
+    if(lost){ floatTxt((why==="wrong"?"WRONG WORD":"MISSED WORD")+" · −1 SHIELD","#ff6b5b"); if(!crackTold){ crackTold=true; talk(why==="wrong"?"Wrong word cracked your shield. Read carefully to build it back.":"Missed a sign, so your shield cracked. Read every sign to build it back."); } } }
   function floatTxt(t,c){ floats.push({t,c,at:now}); if(floats.length>4) floats.shift(); }
   function playerDown(dir,why){ if(P.state==="down") return; P.state="down"; P.downT=now; P.until=now+2000; P.downDir=dir||1; P.v*=.3; heat*=.6; streak=0; shakeAmt=18; P.bump=4;
     Sound.noise(.4,.35); sparks(26,CX,H-12); atkTarget=null; talk(why||"Down! Back on the bike!"); }
@@ -653,7 +654,7 @@ function create(o){
     for(let i=0;i<3;i++) if(hit(r.keys[i])){ chooseLane(r,i); return 1; }
     let lastOk=null; for(const x of rows) if(x.state===1) lastOk=x; if(lastOk&&lastOk.chosen>=0&&sim(h,lastOk.keys[lastOk.chosen])>=.8) return 1; // repeating the last word
     if(!final) return 0;
-    gpWrong++; attemptCount++; heat=Math.max(0,heat-.12); streak=0; crackShield();
+    gpWrong++; attemptCount++; heat=Math.max(0,heat-.12); streak=0; crackShield("wrong");
     P.state="skid"; P.until=now+420; shakeAmt=6; pop("WRONG!",450); Sound.tone(300,.18,"triangle",.05,-120);
     return 1;
   }
@@ -684,7 +685,7 @@ function create(o){
       draft=draftOn&&now>slingUntil+5000?Math.min(1.2,draft+dt*.8):Math.max(0,draft-dt*.6);
       P.v+=(tv-P.v)*Math.min(1,dt*(tv>P.v?1.8:2.8)); if(blockedBy) P.z=Math.min(P.z+P.v*dt,blockedBy.z-300); else P.z+=P.v*dt;
       // gantry passed without reading: stay in your lane, lose speed
-      for(const r of rows){ if(r.z>P.z+80) break; if(r.state===0){ r.state=-1; r.t=now; gpMissed++; streak=0; crackShield(); heat=Math.max(0,heat-.22); r.words.forEach(w=>trouble.add(words.indexOf(w))); pop("MISSED!",450,"small"); Sound.tone(180,.2,"sawtooth",.04,-60); } }
+      for(const r of rows){ if(r.z>P.z+80) break; if(r.state===0){ r.state=-1; r.t=now; gpMissed++; streak=0; crackShield("missed"); heat=Math.max(0,heat-.22); r.words.forEach(w=>trouble.add(words.indexOf(w))); pop("MISSED!",450,"small"); Sound.tone(180,.2,"sawtooth",.04,-60); } }
       const myLane=laneCenterOf(P.x);
       for(const ob of gpObs){ if(ob.hit) continue; const dz=ob.z-P.z; if(dz<-300) { ob.hit=true; continue; }
         if(dz<160&&dz>-120&&Math.abs(P.x-LANE_X[ob.lane])<.3){ ob.hit=true; crashes++; P.z=Math.max(P.z,ob.z+260); pop("BONK!",650); playerDown(P.x>=LANE_X[ob.lane]?1:-1,`Smashed into the ${ob.type==="cow"?"cow":ob.type==="auto"?"auto":ob.type==="bus"?"bus":ob.type==="truck"?"truck":"barrel"}!`); } }
@@ -929,7 +930,7 @@ function create(o){
     if(gp){ gpUI(true); const tot=finishT??Math.round(now), lapTimes=splits.map((t,i)=>t-(i?splits[i-1]:0)), place=finishT!=null?gpPlace():null;
       const missedRows=rows.filter(r=>r.state===-1), signsN=rows.length;
       const res={mode:"gp",seed:gpSeed,track:track.slice(),custom:custom?{seed:custom.seed}:null,stopped:!!stopped,place,timeMs:tot,splits:splits.slice(),lapTimes,best:lapTimes.length?Math.min(...lapTimes):null,signs:signsN,correct:correctCount,wrong:gpWrong,missed:gpMissed,
-        crashes,kos,blocks,hitsTaken,acc:signsN?Math.round(correctCount/signsN*100):0,wpm:Math.round(correctCount/(tot/60000)||0),
+        crashes,kos,blocks,hitsTaken,shieldBuilt,acc:signsN?Math.round(correctCount/signsN*100):0,wpm:Math.round(correctCount/(tot/60000)||0),
         trouble:[...new Set(missedRows.map(r=>r.words[r.content.indexOf("nitro")>=0?r.content.indexOf("nitro"):1]))].slice(0,12),league,laps:gpLaps,
         podium:[{name:"YOU",t:finishT,me:true},...rivals.map(r=>({name:r.name,t:r.finishT??(Math.round(now)+Math.round((GP.START+gpLaps*GP.LAP_LEN-r.z)/Math.max(r.v,1)*1000))}))].sort((a,b)=>(a.t??1e12)-(b.t??1e12))};
       if(place&&place<=3) [523,659,784,1046].forEach((f,i)=>setTimeout(()=>Sound.tone(f,.18,"square",.06),i*110));
