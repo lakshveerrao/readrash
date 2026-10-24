@@ -13,8 +13,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Racing+Sans+One&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
-<link rel="stylesheet" href="assets/site.css?v=20261024l">
-<link rel="stylesheet" href="assets/game.css?v=20261024l">
+<link rel="stylesheet" href="assets/site.css?v=20261024m">
+<link rel="stylesheet" href="assets/game.css?v=20261024m">
 <style>
 /* Rash GP: same race view; the text card shows the three lane words of the next gantry, with what waits in each lane */
 .lanecard{display:flex;flex-direction:column;gap:10px;justify-content:center;min-height:150px}
@@ -108,7 +108,7 @@
       <div class="cside" style="width:100%">
         <div class="crow"><small>Lap</small><span class="lapbox" id="lapTxt">1/3</span></div>
         <div class="crow"><small>Place</small><span class="pos" id="posTxt">–</span></div>
-        <div class="crow"><small>Shield</small><span class="shw"><span class="pips" id="shield" title="Every 2 words you read right adds a shield bar. Each bar blocks one hit. A missed or wrong word cracks one."><i></i><i></i><i></i></span><small class="shn" id="shieldNext">2 more words</small></span></div>
+        <div class="crow"><small>Shield</small><span class="shw"><span class="pips" id="shield" title="Every 2 words you read right adds a shield bar. A hit costs one bar. 2 bars zap the attacker, 3 bars knock them off their bike. A missed or wrong word cracks one."><i></i><i></i><i></i></span><small class="shn" id="shieldNext">2 more words</small></span></div>
         <div class="crow"><small>Weapon</small><span class="wpn" id="weaponTxt">Newspaper</span></div>
         <div class="nitro" id="nitroWrap" title="Nitro: 10 words in a row"><i id="nitroBar"></i></div>
         <div class="crow"><small>Nitro</small><small id="streakTxt">0/10</small></div>
@@ -135,7 +135,7 @@
       <p class="kicker" style="color:#b14a12">Sprint · Read the word · 12 riders</p>
       <h2 style="margin-top:6px">Rash <span>GP</span></h2>
     </div>
-    <p>Every sign has three words, one over each lane. <b>Read a word and you ride into its lane.</b> Hard words hide nitro, easy words hide traffic. Riders alongside carry a word: <b>read it to hit them.</b> Read right and your <b>shield</b> charges to block their hits.</p>
+    <p>Every sign has three words, one over each lane. <b>Read a word and you ride into its lane.</b> Hard words hide nitro, easy words hide traffic. Riders alongside carry a word: <b>read it to hit them.</b> Read right and your <b>power shield</b> charges: it blocks hits, and a full shield knocks attackers off their bikes.</p>
     <p class="lab">Level</p>
     <div class="pick" id="lgPick">
       <button class="choice" data-lg="rookie" aria-pressed="false"><b>Rookie</b><small>Short words</small></button>
@@ -233,8 +233,8 @@
   </div>
 </div>
 
-<script src="assets/game.js?v=20261024l"></script>
-<script src="assets/board.js?v=20261024l"></script>
+<script src="assets/game.js?v=20261024m"></script>
+<script src="assets/board.js?v=20261024m"></script>
 <script>
 (() => {
 const RR = window.ReadRash, $ = id => document.getElementById(id);

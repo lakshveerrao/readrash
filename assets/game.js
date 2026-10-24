@@ -284,6 +284,24 @@ function paintRider(canvas,who,fi,o){ o=o||{}; const sk=SKINS[who]||SKINS.ME, ke
     const sc=Math.min(H*fill/f.h,W*fill/f.w); g.clearRect(0,0,W,H); g.save(); g.translate(W/2,H); if(o.flip) g.scale(-1,1);
     g.drawImage(SC,f.x*k,f.y*k,f.w*k,f.h*k,-f.w*sc/2,-f.h*sc,f.w*sc,f.h*sc); g.restore(); };
   draw(); }
+// the power shield: a glowing energy dome, one pre-rendered canvas per strength (1 to 3 bars), drawn as an image each frame
+const SHIELD_SPR={};
+function shieldSprite(lv){ if(SHIELD_SPR[lv]) return SHIELD_SPR[lv];
+  const c=mk(280,360), g=c.getContext("2d"), cx=140, cy=180, rx=104, ry=146, col=["","62,193,211","70,205,240","120,230,255"][lv], A=[0,.55,.8,1][lv];
+  // outer glow grows with strength
+  g.save(); g.shadowColor=`rgba(${col},${.35*lv})`; g.shadowBlur=6+lv*9; g.strokeStyle=`rgba(${col},${.35+lv*.2})`; g.lineWidth=1.5+lv*1.1; g.beginPath(); g.ellipse(cx,cy,rx-1,ry-1,0,0,7); g.stroke(); g.restore();
+  // edge-heavy fill: clear in the middle so the rider reads, bright at the rim
+  const gr=g.createRadialGradient(0,0,rx*.35,0,0,rx);
+  gr.addColorStop(0,`rgba(${col},0)`); gr.addColorStop(.7,`rgba(${col},${.02*A+.01})`); gr.addColorStop(.92,`rgba(${col},${.16*A+.04})`); gr.addColorStop(1,`rgba(${col},${.4*A+.06})`);
+  g.save(); g.translate(cx,cy); g.scale(1,ry/rx); g.fillStyle=gr; g.beginPath(); g.arc(0,0,rx,0,7); g.fill(); g.restore();
+  // honeycomb only around the rim, on its own layer
+  const hc=mk(280,360), h=hc.getContext("2d"); h.strokeStyle=`rgba(${col},${.25+lv*.15})`; h.lineWidth=1.1;
+  const sz=12; for(let row=0, y=0; y<380; row++, y+=sz*1.5) for(let x=(row%2)*sz*.866; x<300; x+=sz*1.732){ h.beginPath(); for(let i=0;i<6;i++){ const a=Math.PI/3*i+Math.PI/6; h.lineTo(x+Math.cos(a)*sz*.9,y+Math.sin(a)*sz*.9); } h.closePath(); h.stroke(); }
+  h.globalCompositeOperation="destination-in"; h.save(); h.translate(cx,cy); h.scale(1,ry/rx); const m=h.createRadialGradient(0,0,rx*.55,0,0,rx); m.addColorStop(0,"rgba(0,0,0,0)"); m.addColorStop(.85,`rgba(0,0,0,${.35*A})`); m.addColorStop(1,`rgba(0,0,0,${.7*A})`); h.fillStyle=m; h.beginPath(); h.arc(0,0,rx,0,7); h.fill(); h.restore();
+  g.drawImage(hc,0,0);
+  g.strokeStyle=`rgba(${col},${.5+lv*.15})`; g.lineWidth=1+lv*.6; g.beginPath(); g.ellipse(cx,cy,rx-1,ry-1,0,0,7); g.stroke();
+  g.strokeStyle=`rgba(240,254,255,${.25+lv*.2})`; g.lineWidth=1.5+lv; g.beginPath(); g.ellipse(cx,cy,rx-5,ry-5,0,Math.PI*1.1,Math.PI*1.42); g.stroke();
+  return SHIELD_SPR[lv]=c; }
 function preloadRiders(){ riderImg("orange"); setTimeout(()=>{ for(const b in RIDER_META) riderImg(b); },60); }
 function drawWeapon(c,type,u){ // drawn in hand space: hand at 0,0, weapon points along +x
   if(type==="book"){ c.fillStyle="#1d2f5a"; rr(c,-4*u,-11*u,26*u,22*u,2*u); c.fill(); c.fillStyle="#f3ead6"; c.fillRect(20*u,-9*u,3*u,18*u); c.fillStyle="#d9a520"; c.fillRect(2*u,-11*u,3*u,22*u); c.fillRect(8*u,-3*u,9*u,2.5*u); }
@@ -498,7 +516,7 @@ function create(o){
   /* ---------- Rash GP: word lanes + a pack that fights back ---------- */
   const gp=o.mode==="gp";
   let gpLaps=3, rows=[], gpObs=[], gpNitro=[], rivals=[], heat=.4, lapIdx=0, splits=[], gpMissed=0, gpWrong=0, lastPlace=12;
-  let custom=null, ghosts=[], track=[], trackT=0, floats=[], atkTold=false, defTold=false, shieldTold=false, crackTold=false, playerAtkCD=0, shieldCharge=0, kos=0, hitsTaken=0, blocks=0, atkTarget=null, projs=[], comment=null, lastRivalAtk=-9999, leaderName="";
+  let zapTold=false, custom=null, ghosts=[], track=[], trackT=0, floats=[], atkTold=false, defTold=false, shieldTold=false, crackTold=false, playerAtkCD=0, shieldCharge=0, kos=0, hitsTaken=0, blocks=0, atkTarget=null, projs=[], comment=null, lastRivalAtk=-9999, leaderName="";
   let posCand={p:12,t:0}, draft=0, slingUntil=-99999, blockedMsgT=-9999, duelT=-9999, posFlash=null, crashes=0, duelsWon=0, duelsLost=0;
   let VREF=RACE_LEN/4.6, HUD0=START_Z, HUDLEN=RACE_LEN, FINZ=FINISH_Z;
   const LANE_X=GP.LANES;
@@ -538,7 +556,7 @@ function create(o){
                                   if(c==="nitro"||c==="book"||c==="coconut") gpNitro.push({z:z+GP.ROW_GAP*SEG*.1,lane,kind:c,taken:false}); });
       } }
     words=rows.flatMap(r=>r.words); keys=words.map(norm); status=[]; trouble=new Set(); acts=[]; idx=0;
-    correctCount=0; attemptCount=0; streak=0; gpMissed=0; gpWrong=0; crashes=0; kos=0; hitsTaken=0; blocks=0; shieldCharge=0; floats=[]; atkTold=false; defTold=false; shieldTold=false; crackTold=false; atkTarget=null; projs=[]; comment=null; lastRivalAtk=-9999; leaderName=""; heat=.4; lapIdx=0; splits=[]; finishT=null; lights=0; draft=0; slingUntil=0; posFlash=null;
+    correctCount=0; attemptCount=0; streak=0; gpMissed=0; gpWrong=0; crashes=0; kos=0; hitsTaken=0; blocks=0; shieldCharge=0; floats=[]; zapTold=false; atkTold=false; defTold=false; shieldTold=false; crackTold=false; atkTarget=null; projs=[]; comment=null; lastRivalAtk=-9999; leaderName=""; heat=.4; lapIdx=0; splits=[]; finishT=null; lights=0; draft=0; slingUntil=0; posFlash=null;
     Object.assign(P,{z:GP.START-2800,target:0,v:0,x:0,vx:0,lane:1,lean:0,state:"ride",until:0,boostUntil:0,swipeT:-9999,copUntil:0,shield:1,shieldFlashT:-9999,weapon:{type:"paper",uses:Infinity},downT:-9999,downDir:1});
     // the pack: in-game riders with personalities; everyone lines up ahead of you
     const crew=shuffled(CHARS), styles=["sprinter","closer","blocker","steady"];
@@ -609,8 +627,13 @@ function create(o){
     const dz=rv.z-P.z, dx=Math.abs(rv.x-P.x);
     if(P.state==="down"||Math.abs(dz)>560||dx>1.3){ say(rv,["Missed!","Grr!"]); return; }
     const power=(rv.weapon==="book"?2:1)+(rv.v>P.v*1.08?1:0), dir=Math.sign(P.x-rv.x)||1;
-    if(P.shield>0){ P.shield=Math.max(0,P.shield-(power>=2?2:1)); P.shieldFlashT=now; blocks++; rv.knockT=now; rv.knockDir=-dir; rv.v*=.72; rv.stunUntil=now+900;
-      pop("BLOCKED!",600,"go"); Sound.tone(1300,.1,"square",.05,-500); Sound.noise(.08,.15); shakeAmt=6; say(rv,["What?!","Bounced!","No way!"]); talk(`Shield blocks ${rv.name}!`); }
+    if(P.shield>0){ // the shield takes the hit and shocks the attacker: the more bars, the harder it bites back
+      const lv=P.shield; P.shield=Math.max(0,P.shield-1); P.shieldFlashT=now; P.shieldHit={t:now,dir:-dir,lv,broke:P.shield===0}; blocks++;
+      Sound.tone(1300,.1,"square",.05,-500); Sound.noise(.08,.15); shakeAmt=6+lv*2;
+      if(lv>=3){ knockRider(rv,-dir); kos++; pop("SHOCKED!",700,"go"); Sound.tone(180,.4,"sawtooth",.06,-120); say(rv,["Aaargh!","Zzzap!","Ouch!"]); talk(`Your full shield shocks ${rv.name} off the bike!`); }
+      else if(lv===2){ rv.knockT=now; rv.knockDir=-dir; rv.v*=.5; rv.stunUntil=now+1600; rv.shield=Math.max(0,(rv.shield||0)-1); rv.vx+=-dir*3; pop("ZAPPED!",600,"go"); say(rv,["Ow!","It bites!","Zzt!"]); talk(`${rv.name} gets zapped by your shield!`); }
+      else { rv.knockT=now; rv.knockDir=-dir; rv.v*=.72; rv.stunUntil=now+900; pop("BLOCKED!",600,"go"); say(rv,["What?!","Bounced!","No way!"]); talk(lv===1&&!zapTold?(zapTold=true,"Blocked! 2 or 3 shield bars hit back harder."):`Shield blocks ${rv.name}!`); }
+      if(P.shield===0) floatTxt("SHIELD DOWN","#ff6b5b"); }
     else { hitsTaken++; P.bump=3; bursts.push({x:CX+dir*-W*.06,y:H*.62,t:0,dir});
       if(power>=2) playerDown(dir,`${rv.name} knocks you down!`);
       else { P.state="skid"; P.until=now+650; P.v*=.72; heat=Math.max(0,heat-.12); shakeAmt=10; pop("HIT!",500); Sound.noise(.15,.3); }
@@ -729,7 +752,8 @@ function create(o){
         rv.lean+=((Math.max(-.45,Math.min(.45,rv.vx*.42)))-rv.lean)*Math.min(1,dt*8);
         if(!rv.down&&phase==="race"){ const lz=rv.z-P.z, lx=rv.x-P.x; if(lz>-700&&lz<120&&Math.abs(lx)>.35&&Math.abs(lx)<1.5){ P.lookDir=Math.sign(lx); P.lookUntil=now+500; } }
         // side by side contact: bikes bump and bounce apart
-        if(!rv.down&&P.state!=="down"&&phase==="race"){ const dz=rv.z-P.z, dx=rv.x-P.x; if(Math.abs(dz)<230&&Math.abs(dx)<.3){ const d=Math.sign(dx)||1; rv.vx+=d*2.2; P.vx-=d*1.4; P.bump=2; shakeAmt=Math.max(shakeAmt,5); if(now-(rv.bumpT||0)>700){ rv.bumpT=now; Sound.noise(.06,.18); say(rv,["Oi!","Watch it!","Move!"]); } } }
+        if(!rv.down&&P.state!=="down"&&phase==="race"){ const dz=rv.z-P.z, dx=rv.x-P.x; if(Math.abs(dz)<230&&Math.abs(dx)<.3){ const d=Math.sign(dx)||1, zap=P.shield>=2; rv.vx+=d*(zap?3.6:2.2); P.vx-=d*(zap?.7:1.4); P.bump=2; shakeAmt=Math.max(shakeAmt,5);
+          if(now-(rv.bumpT||0)>700){ rv.bumpT=now; if(zap){ rv.v*=.82; rv.knockT=now; rv.knockDir=d; P.shieldFlashT=now; P.shieldHit={t:now,dir:d,lv:P.shield,broke:false}; Sound.tone(1500,.06,"square",.04,-600); say(rv,["Zzt!","Ow, it stings!","Hot!"]); } else { Sound.noise(.06,.18); say(rv,["Oi!","Watch it!","Move!"]); } } } }
         // overtakes trigger taunts
         const side=Math.sign(rv.z-P.z); if(phase==="race"&&rv.side&&side!==rv.side&&Math.abs(rv.z-P.z)<1500){ if(side>0) say(rv,SAY_PASS); else { say(rv,SAY_LOSE); Sound.noise(.08,.06); } }
         rv.side=side; if(rv.say&&now-rv.sayT>1300) rv.say=null;
@@ -1167,7 +1191,23 @@ function create(o){
     if(opt.word) wordSign(x,y-h*1.08,Math.max(h,70),opt.word,opt.wordColor||"#ff6a1a");
   }
   // painted sprite: pick the frame for the moment, then weapon, nitro and shield on top
-  function shieldFx(u,opt,tn){ if(!(opt.shield>0)) return; const fl=opt.shieldFlash||0, a=.18+opt.shield*.12+fl*.5;
+  function shieldFx(u,opt,tn){
+    const hit=opt.shieldHit, ht=hit?(tn-t0-hit.t):1e9;
+    if(!(opt.shield>0)&&!(hit&&hit.broke&&ht<500)) return;
+    const lv=Math.max(1,Math.min(3,opt.shield||hit.lv)), Sp=shieldSprite(lv), k=52*u/104, fl=opt.shieldFlash||0, pulse=1+.012*Math.sin(tn/180);
+    ctx.save(); ctx.translate(0,-70*u); ctx.scale(pulse,pulse);
+    if(opt.shield>0){ ctx.globalAlpha=1; ctx.drawImage(Sp,-140*k,-180*k+4*k,280*k,360*k); }
+    if(fl>0){ ctx.globalAlpha=fl*.3; ctx.fillStyle="#e9fdff"; ctx.beginPath(); ctx.ellipse(0,4*k,104*k,146*k,0,0,7); ctx.fill(); }
+    ctx.globalAlpha=1;
+    // a bright arc sweeping round the rim
+    ctx.strokeStyle=`rgba(230,252,255,${.35+lv*.15})`; ctx.lineWidth=(1.4+lv*.6)*u; const a0=(tn/(700-lv*120))%(Math.PI*2);
+    ctx.beginPath(); ctx.ellipse(0,4*k,103*k,145*k,0,a0,a0+.7); ctx.stroke();
+    if(hit&&ht<450){ const e=ht/450, side=hit.dir||1; ctx.strokeStyle=`rgba(255,255,255,${1-e})`; ctx.lineWidth=(3+hit.lv*1.5)*u*(1-e);
+      for(let r=0;r<2;r++){ ctx.beginPath(); ctx.ellipse(side*70*k,4*k,(18+e*60+r*14)*k,(30+e*90+r*20)*k,0,0,7); ctx.stroke(); } }
+    if(hit&&hit.broke&&ht<500){ const e=ht/500; ctx.strokeStyle=`rgba(140,235,255,${1-e})`; ctx.lineWidth=2*u;
+      for(let i=0;i<10;i++){ const a=i/10*Math.PI*2, r1=(104+e*70)*k, r2=(104+e*110)*k; ctx.beginPath(); ctx.moveTo(Math.cos(a)*r1,Math.sin(a)*r1*1.4); ctx.lineTo(Math.cos(a+.15)*r2,Math.sin(a+.15)*r2*1.4); ctx.stroke(); } }
+    ctx.restore(); }
+  function _oldShieldFx(u,opt,tn){ if(!(opt.shield>0)) return; const fl=opt.shieldFlash||0, a=.18+opt.shield*.12+fl*.5;
     ctx.strokeStyle=`rgba(${fl>0?"255,255,255":"62,193,211"},${Math.min(1,a+.25)})`; ctx.lineWidth=(1.5+opt.shield*1.2+fl*4)*u;
     ctx.beginPath(); ctx.ellipse(0,-66*u,54*u,74*u,0,0,7); ctx.stroke();
     ctx.fillStyle=`rgba(62,193,211,${.04+opt.shield*.03+fl*.25})`; ctx.fill();
@@ -1227,7 +1267,7 @@ function create(o){
     const down=P.state==="down"?{k:(now-P.downT)/2000,dir:P.downDir||1}:null;
     if(down&&down.k<.45&&Math.random()<.6) sparks(1,x+(P.downDir||1)*20,H-8);
     drawRider(x,y,h,ME,rot,{nitro:P.boostUntil>now&&phase==="race",swing,sdir:P.swipeDir,weapon:gp?P.weapon.type:"paper",
-      shield:gp&&phase==="race"?P.shield:0,shieldFlash:Math.max(0,1-(now-(P.shieldFlashT||-9999))/380),look:gp&&P.lookUntil>now&&!swing&&P.state==="ride"?P.lookDir:0,fist:finishT!=null&&now-finishT<3500&&(gp?gpPlace():placeOf())<=3,tuck:Math.min(1,sp*.9),spin:phase==="idle"||phase==="countdown"?0:sp*2,bob:P.bob||0,down});
+      shield:gp&&phase==="race"?P.shield:0,shieldHit:gp?P.shieldHit:null,shieldFlash:Math.max(0,1-(now-(P.shieldFlashT||-9999))/380),look:gp&&P.lookUntil>now&&!swing&&P.state==="ride"?P.lookDir:0,fist:finishT!=null&&now-finishT<3500&&(gp?gpPlace():placeOf())<=3,tuck:Math.min(1,sp*.9),spin:phase==="idle"||phase==="countdown"?0:sp*2,bob:P.bob||0,down});
     if(P.state==="crash"){ ctx.fillStyle="#ffd23f"; ctx.font="22px sans-serif"; ctx.textAlign="center"; ctx.fillText("★  ★",x+Math.sin(now/120)*10,y-h*.9); }
     if(P.copUntil>now&&phase==="race"){ const cx=W*.84, ch=h*.95;
       drawRider(cx,H-6,ch,{jacket:"#26355a",helmet:"#fff4e2",paint:"#fff4e2"},Math.sin(now/200)*.05,{});
