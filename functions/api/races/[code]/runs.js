@@ -1,5 +1,5 @@
 // A finished run on a made race: checks it, opens the race on the maker's first run, awards Rash Points.
-import { json, getRider, award, makerBonus, profile, noteFairPlay, raceData } from "../../../_lib/rr.js";
+import { json, getRider, award, makerBonus, profile, noteFairPlay, raceData, checkRedline } from "../../../_lib/rr.js";
 const LAP_LEN = 1000 * 200, SIGNS_PER_LAP = 10, VMAX = { rookie: 8333, pro: 13333, legend: 18333 };
 const MIN_LAP_MS = l => Math.floor(LAP_LEN / (VMAX[l] * 1.46) * 1000 * 0.97);
 export async function onRequestPost({ request, env, params }) {
@@ -19,7 +19,10 @@ export async function onRequestPost({ request, env, params }) {
   }
   const { splits, correct, wrong, missed, place, missedWords } = b, laps = race.laps, signs = laps * SIGNS_PER_LAP, d = raceData(race);
   let track = b.track, total;
-  if (d.kind === "story") { // a passage: one read-through, timed
+  if (d.kind === "redline") { // a drag run: time, and the distance trace for the ghost
+    const err = checkRedline(b); if (err) return json({ error: err }, 400);
+    total = b.timeMs; track = b.trace;
+  } else if (d.kind === "story") { // a passage: one read-through, timed
     const n = d.passage.split(" ").length, { timeMs, attempts } = b;
     if (!Number.isInteger(correct) || correct < 0 || correct > n || !Number.isInteger(attempts) || attempts < correct || attempts > n * 4) return json({ error: "Bad counts" }, 400);
     if (!Number.isFinite(timeMs) || timeMs < n * 150 || timeMs > 15 * 60 * 1000) return json({ error: "Time out of range" }, 400);
@@ -40,7 +43,7 @@ export async function onRequestPost({ request, env, params }) {
   if (isMaker) { if (race.status === "draft" || !race.maker_ms || total < race.maker_ms) await env.DB.prepare(`UPDATE races SET status = 'live', maker_ms = ?1 WHERE code = ?2`).bind(Math.min(total, race.maker_ms || total), c).run(); }
   else await makerBonus(env, race.maker_id);
   await noteFairPlay(env, r, "race", c, b.chk);
-  const rp = await award(env, r, { mode: "race", code: c, league: race.league, laps, timeMs: total, correct, finished: true, place: Number.isInteger(place) ? place : null, clean: d.kind === "story" ? b.attempts === b.correct && b.correct === d.passage.split(" ").length : missed === 0 && wrong === 0, rate: isMaker ? 0.5 : 1 });
+  const rp = await award(env, r, { mode: "race", code: c, league: race.league, laps, timeMs: total, correct, finished: true, place: Number.isInteger(place) ? place : null, clean: d.kind === "redline" ? (b.missed | 0) === 0 && b.attempts === correct : d.kind === "story" ? b.attempts === b.correct && b.correct === d.passage.split(" ").length : missed === 0 && wrong === 0, rate: isMaker ? 0.5 : 1 });
   const { results } = await env.DB.prepare(`SELECT rider_id, name, MIN(time_ms) AS time_ms FROM race_runs WHERE code = ?1 GROUP BY rider_id ORDER BY time_ms ASC LIMIT 50`).bind(c).all();
   const board = (results || []).map(x => ({ name: x.name, time_ms: x.time_ms, maker: x.rider_id === race.maker_id, me: x.rider_id === r.id }));
   return json({ ok: true, time_ms: total, rank: board.findIndex(x => x.me) + 1, board, maker_ms: isMaker ? Math.min(total, race.maker_ms || total) : race.maker_ms, opened: isMaker && race.status === "draft", rp, rider: profile(r) });

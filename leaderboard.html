@@ -22,7 +22,7 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preload" href="assets/fonts/racing-sans-one.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/site.css?v=20261024y">
+<link rel="stylesheet" href="assets/site.css?v=20261024z">
 <style>
 /* Layout: title band, league + period switches, one wide table */
 .top{padding-block:48px 24px;display:flex;flex-direction:column;gap:12px}
@@ -53,6 +53,7 @@
       <h1>Fastest <em>readers.</em></h1>
       <div class="tabs" role="tablist" aria-label="Game" id="modeTabs" style="margin-top:8px;align-self:flex-start">
         <button class="tab" role="tab" data-m="gp" aria-selected="true">Rash GP</button>
+        <button class="tab" role="tab" data-m="redline" aria-selected="false">Redline</button>
         <button class="tab" role="tab" data-m="story" aria-selected="false">Story races</button>
       </div>
     </div>
@@ -74,6 +75,27 @@
       <div class="boardwrap">
         <table class="board"><thead><tr><th>#</th><th>Rider</th><th class="r">Score</th><th class="r">WPM</th><th class="r">Acc</th></tr></thead><tbody id="boardBody"></tbody></table>
         <p class="note" id="boardNote" style="margin:12px 0 0"></p>
+      </div>
+    </section>
+
+    <section id="rlBoard" hidden>
+      <p class="lede" style="margin-bottom:16px">Fastest drag run wins. One board for each pack and level. Every finished run posts itself, and each rider's best run counts.</p>
+      <div class="controls">
+        <div class="tabs small" role="tablist" aria-label="Pack" id="rPk"></div>
+        <div class="tabs" role="tablist" aria-label="Level" id="rLg">
+          <button class="tab" role="tab" data-lg="rookie" aria-selected="false">Rookie</button>
+          <button class="tab" role="tab" data-lg="pro" aria-selected="true">Pro</button>
+          <button class="tab" role="tab" data-lg="legend" aria-selected="false">Legend</button>
+        </div>
+        <div class="tabs small" role="tablist" aria-label="Period" id="rP">
+          <button class="tab" role="tab" data-p="today" aria-selected="true">Today</button>
+          <button class="tab" role="tab" data-p="week" aria-selected="false">This week</button>
+          <button class="tab" role="tab" data-p="all" aria-selected="false">All time</button>
+        </div>
+      </div>
+      <div class="boardwrap">
+        <table class="board"><thead><tr><th>#</th><th>Rider</th><th class="r">Time</th><th class="r">Top km/h</th></tr></thead><tbody id="rlBody"></tbody></table>
+        <p class="note" id="rlNote" style="margin:12px 0 0"></p>
       </div>
     </section>
 
@@ -106,8 +128,8 @@
 <footer class="foot gut">
   <div class="inner"><span class="logo" style="font-size:22px">READ<span>RASH</span></span><span>Read fast. Ride rash. © 2026 ReadRash · <a href="about.html">Parents &amp; privacy</a></span></div>
 </footer>
-<script src="assets/game.js?v=20261024y"></script>
-<script src="assets/board.js?v=20261024y"></script>
+<script src="assets/game.js?v=20261024z"></script>
+<script src="assets/board.js?v=20261024z"></script>
 <script>
 (() => {
 const $ = id => document.getElementById(id), RR = window.ReadRash;
@@ -121,10 +143,28 @@ Board.mount({ body: $("boardBody"), note: $("boardNote"), tabs: tabs("sLg"), per
 const gpB = { r: null };
 const mountGP = () => gpB.r || (gpB.r = Board.mountGP({ body: $("gpBody"), note: $("gpNote"), lgTabs: tabs("gLg"), lapTabs: tabs("gL"), periodTabs: tabs("gP"), league: lg0, laps: (RR && RR.Store.get("gpLaps",3)) || 3, period: "today", limit: 50 }));
 
-/* switch between the two boards (#gp opens Rash GP) */
-function mode(m){ sel("modeTabs","m",m); $("storyBoard").hidden = m !== "story"; $("gpBoard").hidden = m !== "gp"; if (m === "gp") mountGP(); }
+/* Redline board: pack + level + period */
+const rl = { pack: (RR && RR.Store.get("rlPack", "animals")) || "animals", lg: lg0, p: "today", on: false };
+$("rPk").innerHTML = Object.entries(RR.PACKS).map(([k, v]) => `<button class="tab" role="tab" data-k="${k}">${v.name}</button>`).join("");
+async function rlRender(){
+  sel("rPk","k",rl.pack); sel("rLg","lg",rl.lg); sel("rP","p",rl.p); const body = $("rlBody"), fmt = ms => (ms / 1000).toFixed(1) + "s", me = RR.Store.get("name", null), PN = { today: "today", week: "this week", all: "yet" };
+  body.innerHTML = `<tr><td colspan="4" class="note">Loading…</td></tr>`;
+  let rows = [], used = rl.p;
+  try { const get = async p => { const r = await fetch(`/api/redline?pack=${rl.pack}&league=${rl.lg}&period=${p}&limit=50`); if (!r.ok) throw 0; return (await r.json()).rows || []; };
+    rows = await get(rl.p); if (!rows.length) for (const p of (rl.p === "today" ? ["week", "all"] : rl.p === "week" ? ["all"] : [])) { rows = await get(p); if (rows.length) { used = p; break; } } }
+  catch (e) { body.innerHTML = `<tr><td colspan="4" class="note">Couldn't load the board. Try again in a moment.</td></tr>`; return; }
+  body.innerHTML = rows.length ? rows.map((r, i) => `<tr class="${me && r.name === me ? "me" : ""}"><td class="rk">${i + 1}</td><td class="nm">${RR.esc(r.name)}</td><td class="r sc">${fmt(r.time_ms)}</td><td class="r">${r.top_kmh}</td></tr>`).join("")
+    : `<tr><td colspan="4" class="note">No ${RR.PACKS[rl.pack].name} runs yet. <a href="redline.html" style="color:var(--sun)">Be the first</a>.</td></tr>`;
+  $("rlNote").textContent = rows.length ? (used !== rl.p ? `Nobody has run ${PN[rl.p]} yet, so this shows ${used === "week" ? "this week" : "all time"}. ` : "") + "Lower time is better." : "";
+}
+tabs("rPk").forEach(t => t.onclick = () => { rl.pack = t.dataset.k; rlRender(); });
+tabs("rLg").forEach(t => t.onclick = () => { rl.lg = t.dataset.lg; rlRender(); });
+tabs("rP").forEach(t => t.onclick = () => { rl.p = t.dataset.p; rlRender(); });
+
+/* switch between the boards (#gp, #redline, #story) */
+function mode(m){ sel("modeTabs","m",m); $("storyBoard").hidden = m !== "story"; $("gpBoard").hidden = m !== "gp"; $("rlBoard").hidden = m !== "redline"; if (m === "gp") mountGP(); if (m === "redline" && !rl.on) { rl.on = true; rlRender(); } }
 tabs("modeTabs").forEach(t => t.onclick = () => mode(t.dataset.m));
-mode(location.hash === "#story" ? "story" : "gp");
+mode(location.hash === "#story" ? "story" : location.hash === "#redline" ? "redline" : "gp");
 })();
 </script>
 </body>

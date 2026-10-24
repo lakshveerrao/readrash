@@ -56,6 +56,8 @@ If you change GP speeds or lap length in `assets/game.js`, update the matching n
 - Rematch: after racing anyone's link, `POST /api/races/<code>/rematch` makes a one-on-one race back to the maker (same signs or words, the rider's best run as ghost). The best-of-3 score lives in the race's `words` JSON (`series`). Open to every rider.
 - Circuits: Konkan Coast, Rajasthan Desert (1,000 RP) and Western Ghats (2,000 RP). Palettes and roadside sets are in `CIRCUITS` in `assets/game.js`; the server's unlock points are `CIRCUIT_RP` in `functions/_lib/rr.js`. A challenge keeps its circuit.
 - Story races (Level 5, 2,000 RP): riders write 30 to 150 words on the Make page (Story race tab). Each word is checked like made-race words (`checkPassage` in `functions/_lib/rr.js`); links open on `play.html?r=<code>`.
+- Redline (`redline.html`): the solo drag race. Word packs live in `PACKS` in `assets/game.js` (keep the pack names in sync with `RL_PACKS` in `functions/_lib/rr.js`). Runs post to `/api/redline` (table `redline_runs`); challenges go through `/api/races/redline`.
+- Voice lag: the race acts on Chrome's live (interim) text. If a stray word sneaks into it, the game skips to the next word it recognises instead of waiting for Chrome's final text at the next pause.
 - Paint shop (Level 3, 450 RP) is in the Garage; the choice is kept on the device.
 - `robots.txt` and `sitemap.xml` are in the root. Fonts are self-hosted in `assets/fonts/` (SIL Open Font License).
 

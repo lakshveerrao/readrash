@@ -25,7 +25,7 @@ export async function onRequestPost({ request, env, params }) {
   const over = s.g >= 3 || Object.values(w).some(n => n >= 2);
   const next = over ? { g: 1, names: [r.name, them], w: {} } : { g: s.g + 1, names: s.names, w };
   const data = { from: src, series: next, circuit: d.circuit };
-  if (d.kind === "gp") data.seed = d.seed; else if (d.kind === "story") data.passage = d.passage; else data.words = d.words;
+  if (d.kind === "gp") data.seed = d.seed; else if (d.kind === "story") data.passage = d.passage; else if (d.kind === "redline") data.redline = d.redline; else data.words = d.words;
   const title = `${r.name} vs ${them} · Game ${next.g} of 3`;
   const lim = RACE_LIMITS(r.rp);
   let c = code(); for (let i = 0; i < 4 && await env.DB.prepare(`SELECT 1 FROM races WHERE code = ?1`).bind(c).first(); i++) c = code();

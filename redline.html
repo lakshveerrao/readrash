@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Redline · ReadRash</title>
+<meta name="description" content="A solo drag race you ride by reading. Words from one pack roll past: read them fast, like a rap, and every word kicks the throttle.">
+<link rel="canonical" href="https://readrash.com/redline.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ReadRash">
+<meta property="og:title" content="Redline · ReadRash">
+<meta property="og:description" content="Read faster. Rev higher. A solo drag race you ride with your voice.">
+<meta property="og:url" content="https://readrash.com/redline.html">
+<meta property="og:image" content="https://readrash.com/assets/og/og-redline.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#121016">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preload" href="assets/fonts/racing-sans-one.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/site.css?v=20261024z">
+<link rel="stylesheet" href="assets/game.css?v=20261024z">
+<style>
+/* Layout: race view → big dial + the rolling words; every step before and after is a panel over the paused strip */
+.rldash{display:grid;grid-template-columns:250px 1fr;gap:14px;align-items:stretch}
+.dialbox{background:linear-gradient(180deg,#26222d,#17151b);border-radius:18px;box-shadow:inset 0 0 0 3px #000;padding:10px 12px;display:flex;flex-direction:column;align-items:center;gap:6px}
+#dial{width:226px;height:200px;display:block}
+.mini{display:flex;gap:14px;justify-content:center;width:100%}
+.mini span{display:flex;flex-direction:column;align-items:center;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.mini b{font-family:var(--display);font-style:italic;font-weight:400;font-size:20px;color:var(--chalk);letter-spacing:0;line-height:1.1}
+.tkcard{display:flex;flex-direction:column;justify-content:center;gap:10px;min-width:0}
+.tkhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#8a8294}
+.tkhead b{color:var(--ink);letter-spacing:.06em}
+.ticker{position:relative;overflow:hidden;height:86px;border-radius:14px;background:#fff;border:3px solid var(--ink);display:flex;align-items:center;
+  -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 6%,#000 88%,transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 6%,#000 88%,transparent 100%)}
+.tk-track{display:flex;align-items:center;gap:22px;white-space:nowrap;transition:transform .16s cubic-bezier(.2,.8,.3,1);will-change:transform;padding-left:2px}
+.tk-track .w{font-family:var(--read);font-weight:700;font-size:clamp(26px,4.4vw,40px);padding:4px 10px;border-radius:10px;color:var(--ink);transition:color .12s,background .12s,transform .12s}
+.tk-track .w.done{color:#b8b0c2;transform:scale(.8)}
+.tk-track .w.miss{color:var(--bad)}
+.tk-track .w.cur{background:var(--sun);box-shadow:0 4px 0 var(--ink);transform:scale(1.12)}
+.tk-veil{width:100%;text-align:center;font-family:var(--display);font-style:italic;font-size:clamp(20px,3vw,28px);color:#8a8294}
+.packs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.pack{font:inherit;cursor:pointer;border:3px solid var(--ink);background:#fff;color:var(--ink);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:3px;text-align:left;min-width:0}
+.pack b{font-family:var(--display);font-style:italic;font-weight:400;font-size:24px;line-height:1}
+.pack small{font-size:12px;color:#6b6476;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pack[aria-pressed="true"]{background:var(--sun);box-shadow:0 4px 0 var(--ink);transform:translateY(-2px)}
+.pick{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.choice{font:inherit;cursor:pointer;border:3px solid var(--ink);background:#fff;color:var(--ink);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:2px;text-align:left}
+.choice b{font-family:var(--display);font-style:italic;font-weight:400;font-size:22px;line-height:1}
+.choice small{font-size:12px;color:#6b6476}
+.choice[aria-pressed="true"]{background:var(--sun);box-shadow:0 4px 0 var(--ink);transform:translateY(-2px)}
+.lab{font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:#6b6476;margin-bottom:-8px}
+.pb{font-weight:700;color:#6b6476;margin:0;font-size:14px}
+.pb b{color:var(--ink)}
+.launch{font-weight:700;margin:0}
+.stage{background:#9fd6f4}
+@media (max-width:640px){
+  .rldash{grid-template-columns:1fr}
+  .dialbox{flex-direction:row;justify-content:center;gap:14px;padding:8px}
+  #dial{width:172px;height:152px}
+  .mini{flex-direction:column;width:auto;gap:8px}
+  .ticker{height:72px}
+  .tkhead span:last-child{display:none}
+  .packs{grid-template-columns:repeat(2,1fr)}
+  .choice small{display:none}
+}
+</style>
+</head>
+<body>
+<header class="nav gut">
+  <div class="inner">
+    <a class="logo" href="index.html">READ<span>RASH</span></a>
+    <nav class="links" aria-label="Main">
+      <a href="gp.html">Rash GP</a>
+      <a class="opt" href="leaderboard.html#redline">Leaderboard</a>
+      <a href="garage.html">Garage</a>
+    </nav>
+  </div>
+</header>
+
+<main class="gut">
+<div class="wrap">
+  <div class="bar">
+    <div class="left">
+      <span class="chip"><span class="dot" id="micDot"></span><span id="modeTxt">Voice</span></span>
+      <span class="chip" id="raceChip">Redline</span>
+      <span class="chip" id="timeChip">0.0s</span>
+      <span class="chip" id="wpmChip">0 wpm</span>
+    </div>
+    <div class="left">
+      <button class="chip" id="sndBtn" aria-pressed="true">Sound on</button>
+      <span class="chip rec" id="recChip" hidden><i></i>REC</span>
+      <button class="chip exit" id="quitBtn" hidden>✕ Exit race</button>
+    </div>
+  </div>
+
+  <div class="stage">
+    <canvas id="road" aria-label="Race view: your bike on a straight drag strip"></canvas>
+    <div class="pop" id="pop"></div>
+    <div class="facecam" id="faceCam" hidden><video id="faceVid" muted playsinline></video><svg class="visor" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="vz" x1="0" y1="0" x2="1" y2=".4"><stop offset="0" stop-color="#141e30" stop-opacity=".93"/><stop offset=".6" stop-color="#28466e" stop-opacity=".9"/><stop offset="1" stop-color="#141e30" stop-opacity=".93"/></linearGradient></defs><rect x="0" y="0" width="100" height="15" fill="#ffd23f"/><path d="M0 19 Q50 11 100 19 L100 51 Q50 59 0 51 Z" fill="url(#vz)"/><path d="M20 29 Q45 24 57 27" stroke="rgba(255,255,255,.45)" stroke-width="3" fill="none"/></svg></div>
+  </div>
+
+  <div class="rldash">
+    <div class="dialbox">
+      <canvas id="dial" aria-label="Speedometer"></canvas>
+      <div class="mini"><span><b id="mWords">0</b>words</span><span><b id="mTop">0</b>top km/h</span></div>
+    </div>
+    <div class="card tkcard">
+      <div class="tkhead"><span id="tkPack">Animals</span><span>Read them all, no stopping</span></div>
+      <div class="ticker" id="ticker" aria-live="polite"></div>
+      <div class="heard" id="heard"></div>
+    </div>
+  </div>
+</div>
+</main>
+
+<!-- 1. pick a pack -->
+<div class="overlay" id="pickScreen">
+  <div class="panel">
+    <a class="x" href="index.html" aria-label="Close and go home">✕</a>
+    <div>
+      <p class="kicker" style="color:#b14a12" id="pickKick">Solo drag race · read like a rap</p>
+      <h2 style="margin-top:6px" id="pickTitle">Red<span>line</span></h2>
+    </div>
+    <p id="pickLede" style="margin:0">Words from one pack roll past. <b>Read them out loud, fast and without stopping.</b> Every word you get right kicks the throttle. Keep the rhythm and you climb through six gears.</p>
+    <div id="pickChoices">
+      <p class="lab" style="margin-bottom:8px">Pack</p>
+      <div class="packs" id="packPick"></div>
+      <p class="lab" style="margin:14px 0 8px">Level</p>
+      <div class="pick" id="lgPick">
+        <button class="choice" data-lg="rookie"><b>Rookie</b><small>Short words</small></button>
+        <button class="choice" data-lg="pro"><b>Pro</b><small>Longer words</small></button>
+        <button class="choice" data-lg="legend"><b>Legend</b><small>Tongue twisters</small></button>
+      </div>
+    </div>
+    <div id="linkInfo" hidden></div>
+    <p class="pb" id="pbTxt"></p>
+    <div class="extras">
+      <div class="ex"><span><b>Face cam</b><small>See yourself ride. Stays on your device.</small></span><div class="seg" id="camPick"><button data-c="off">Off</button><button data-c="on">On</button><button data-c="helmet">Helmet</button></div></div>
+      <div class="ex"><span><b>Record my race</b><small>Saves a clip on your device to share.</small></span><button class="tog" id="recTog" role="switch" aria-checked="false"><i></i></button></div>
+    </div>
+    <div class="who"><span>Riding as <b id="whoName"></b></span><button class="linkbtn" id="reroll">New name</button></div>
+    <button class="btn" id="rideBtn">Line up</button>
+  </div>
+</div>
+
+<!-- 2. voice not available here -->
+<div class="overlay" id="gateScreen" hidden>
+  <div class="panel">
+    <a class="x" href="index.html" aria-label="Close and go home">✕</a>
+    <h2>Voice racing needs <span>Chrome.</span></h2>
+    <p id="gateMsg">ReadRash runs on your voice. Open this page in Chrome or Edge on a laptop or Android phone, allow the microphone, and you're riding.</p>
+    <div class="row">
+      <button class="btn" id="demoBtn">Watch a demo run</button>
+      <button class="btn ghost" id="gateBack">Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- 3. mic check + say GO -->
+<div class="overlay" id="micScreen" hidden>
+  <div class="panel" style="align-items:center;text-align:center">
+    <a class="x" href="index.html" aria-label="Close and go home">✕</a>
+    <p class="kicker" style="color:#b14a12" id="micStep">Mic check</p>
+    <div class="big-say" id="sayWord">Say <span>LET'S GO!</span></div>
+    <div class="mic" id="micState"><i></i><span id="micLabel">Starting microphone…</span></div>
+    <div class="heardbox" id="micHeard"></div>
+    <p class="err" id="micErr" hidden></p>
+    <button class="btn sm" id="micFix" hidden>Restart mic</button>
+    <button class="linkbtn" id="micBack">Back</button>
+  </div>
+</div>
+
+<!-- 4. results -->
+<div class="overlay" id="endScreen" hidden>
+  <div class="panel">
+    <a class="x" href="index.html" aria-label="Close and go home">✕</a>
+    <h2 id="endTitle"></h2>
+    <div class="duel" id="duelTxt" hidden></div>
+    <p class="launch" id="launchTxt"></p>
+    <div class="clipbox" id="clipBox" hidden><b id="clipHead">Making your clip…</b><button class="btn sm" id="clipBtn" disabled>Save clip</button><span class="note" id="clipMsg" style="color:#6b6476"></span></div>
+    <div class="row" style="gap:10px"><button class="btn" id="rematchBtn" hidden>Rematch: send it back</button><button class="btn" id="chalBtn" hidden>Challenge a friend to beat this</button><button class="btn sm ghost" id="cardBtn" hidden>Share picture</button></div>
+    <div class="sharebox" id="shareBox" hidden>
+      <b id="shareHead">Send it to a friend</b>
+      <div class="shl"><input id="shareUrl" readonly aria-label="Race link"><button class="btn sm" id="shareBtn">Share</button></div>
+      <div class="shl"><a class="btn sm ghost" id="waBtn" target="_blank" rel="noopener">WhatsApp</a><span class="note" id="shareMsg" style="color:#6b6476"></span></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><b id="sTime">0s</b><small>Time</small></div>
+      <div class="stat"><b id="sTop">0</b><small>Top km/h</small></div>
+      <div class="stat"><b id="sWpm">0</b><small>Words/min</small></div>
+      <div class="stat"><b id="sRead">0</b><small>Words read</small></div>
+    </div>
+    <div id="practiceWrap"><p style="font-weight:700;margin-bottom:8px">Words to practise</p><div class="practice" id="practice"></div></div>
+    <div class="rpbox" id="rpBox" hidden></div>
+    <div class="post" id="postBox">
+      <span class="nm" id="postName"></span>
+      <button class="linkbtn" id="postReroll">New name</button>
+      <button class="btn sm" id="postBtn">Post time</button>
+      <span class="note" id="postMsg" style="flex-basis:100%;color:#cfc6b8"></span>
+    </div>
+    <div class="row">
+      <button class="btn" id="againBtn">Race again</button>
+      <button class="btn ghost" id="setupBtn">Change pack</button>
+    </div>
+  </div>
+</div>
+
+<script src="assets/game.js?v=20261024z"></script>
+<script src="assets/board.js?v=20261024z"></script>
+<script>
+(() => {
+const RR = window.ReadRash, $ = id => document.getElementById(id);
+const show = id => ["pickScreen","gateScreen","micScreen","endScreen"].forEach(s => $(s).hidden = s !== id);
+const fmt = ms => (ms / 1000).toFixed(1) + "s";
+let league = RR.Store.get("league", "pro"); if (!RR.LEAGUES[league]) league = "pro";
+let pack = RR.Store.get("rlPack", "animals"); if (!RR.PACKS[pack]) pack = "animals";
+let demo = false, lastRes = null, exiting = false, posted = false, chal = null;
+const CODE = (new URLSearchParams(location.search).get("r") || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 12);
+let made = null, isMaker = false;
+
+const ctl = RR.create({ canvas: $("road"), mode: "redline", league, pack,
+  ui: { heard: $("heard"), pop: $("pop"), timeChip: $("timeChip"), wpmChip: $("wpmChip"), ticker: $("ticker"), dial: $("dial") } });
+
+$("sndBtn").onclick = () => { RR.Sound.setOn(!RR.Sound.on); $("sndBtn").textContent = RR.Sound.on ? "Sound on" : "Sound off"; $("sndBtn").setAttribute("aria-pressed", RR.Sound.on); };
+RR.bindMic({ dot: $("micDot"), state: $("micState"), label: $("micLabel"), err: $("micErr"), fix: $("micFix"), heard: $("heard"), chip: $("modeTxt"), isDemo: () => demo });
+function setModeChip(){ $("modeTxt").parentElement.classList.toggle("demo-chip", demo); $("modeTxt").textContent = demo ? "Demo run" : "Voice"; }
+
+/* your best run on each pack + level rides beside you as a ghost (kept on this device) */
+const pbKey = () => `rlpb.${pack}.${league}`;
+const myPB = () => { const p = RR.Store.get(pbKey(), null); return p && p.ms && Array.isArray(p.trace) ? p : null; };
+function ghostNow(){ if (made) return isMaker ? null : made.ghost ? { name: made.maker, ms: made.maker_ms, trace: made.ghost.track } : null; const p = myPB(); return p ? { name: "Your best", ms: p.ms, trace: p.trace } : null; }
+function prepare(){ ctl.loadRL(pack, league, made ? made.redline.seed : undefined, ghostNow()); label(); }
+function label(){ const P = RR.PACKS[pack]; $("raceChip").textContent = `Redline · ${P.name} · ${RR.LEAGUES[league].name}`; $("tkPack").innerHTML = `<b>${P.name}</b> · ${RR.LEAGUES[league].name}`; }
+
+/* ---- pick screen ---- */
+$("packPick").innerHTML = Object.entries(RR.PACKS).map(([k, p]) => `<button class="pack" data-p="${k}"><b>${p.name}</b><small>${p.rookie.slice(0, 3).join(" · ")}…</small></button>`).join("");
+function renderPick(){
+  $("packPick").querySelectorAll(".pack").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.p === pack)));
+  $("lgPick").querySelectorAll(".choice").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lg === league)));
+  $("whoName").textContent = RR.nickname();
+  const pb = myPB(); $("pbTxt").innerHTML = made ? "" : pb ? `Your best on ${RR.PACKS[pack].name} · ${RR.LEAGUES[league].name}: <b>${fmt(pb.ms)}</b>. Your ghost rides beside you.` : "Your first run sets your best. After that, your ghost rides beside you.";
+}
+$("packPick").querySelectorAll(".pack").forEach(b => b.onclick = () => { pack = b.dataset.p; RR.Store.set("rlPack", pack); renderPick(); prepare(); });
+$("lgPick").querySelectorAll(".choice").forEach(b => b.onclick = () => { league = b.dataset.lg; RR.Store.set("league", league); renderPick(); prepare(); });
+$("reroll").onclick = () => { RR.Store.set("name", RR.randomName()); renderPick(); };
+const X = RR.mountExtras({ ctl, canvas: $("road"), dial: $("dial"), isDemo: () => demo, shareText: () => "Watch me hit the redline on ReadRash!" });
+$("rideBtn").onclick = () => { RR.Sound.wake(); if (!RR.VOICE_OK) { show("gateScreen"); return; } demo = false; setModeChip(); X.camUp(); startMic(); };
+$("gateBack").onclick = () => show("pickScreen");
+$("demoBtn").onclick = () => { RR.Sound.wake(); demo = true; setModeChip(); prepare(); ctl.setAutopilot(true); show(null); $("quitBtn").hidden = false; ctl.countdown(); };
+if (RR.IN_VIEWER) $("gateMsg").textContent = "ReadRash runs on your voice, and microphones are switched off in this preview. On readrash.com in Chrome or Edge, you'll allow the mic and race with your voice.";
+
+/* ---- mic check: say LET'S GO ---- */
+const GO = new Set(["go","goes","gone","goal","gold","ko","goh","gooo","goo","lets","letsgo","start","race","ride"]);
+let micStage = "off", hintT = 0, heardAny = false;
+function startMic(){
+  ctl.setAutopilot(false); prepare();
+  show("micScreen"); $("micStep").textContent = `${RR.PACKS[pack].name} · ${RR.LEAGUES[league].name}`; $("sayWord").innerHTML = "Say <span>LET'S GO!</span>";
+  $("micHeard").textContent = "Then read every word as it rolls in. Don't stop!"; micStage = "go";
+  heardAny = false; clearTimeout(hintT); hintT = setTimeout(() => { if (micStage === "go" && !heardAny) $("micHeard").textContent = "Can't hear you yet. Check the mic is allowed and speak a little louder: LET'S GO!"; }, 7000);
+  RR.Voice.start(micHandler);
+}
+function micHandler(e){
+  if (e.reset) return;
+  let txt = ""; for (let r = e.resultIndex; r < e.results.length; r++) txt += " " + e.results[r][0].transcript;
+  txt = txt.trim(); if (!txt) return; heardAny = true; $("micHeard").textContent = "Heard: " + txt;
+  const toks = txt.split(/\s+/).map(RR.norm).filter(Boolean);
+  if (micStage === "go" && (toks.join("").includes("letsgo") || toks.some(t => GO.has(t) || (t.length <= 4 && "gk".includes(t[0]) && RR.sim(t, "go") >= .5)))) {
+    clearTimeout(hintT); RR.Sound.tone(880, .12, "square", .05); micStage = "off"; show(null); $("quitBtn").hidden = false;
+    ctl.listen(); X.recStart(); ctl.countdown();
+  }
+}
+$("micBack").onclick = () => { RR.Voice.stop(); show("pickScreen"); renderPick(); };
+
+/* ---- live numbers under the dial ---- */
+setInterval(() => { const s = ctl.state(); if (!s.rl) return; $("mWords").textContent = s.idx; $("mTop").textContent = Math.round(s.rl.top); }, 200);
+
+/* ---- results ---- */
+ctl.on("finish", res => {
+  lastRes = res; RR.Voice.stop(); $("quitBtn").hidden = true;
+  const P = RR.PACKS[res.pack];
+  X.finish(res, exiting || res.stopped ? null : { kicker: `Redline · ${P.name} · ${RR.LEAGUES[res.league].name}`, big: fmt(res.timeMs), line: `Top ${res.top} km/h · ${res.wpm} words a minute`, url: "readrash.com" });
+  if (exiting) { exiting = false; demo = false; setModeChip(); ctl.setAutopilot(false); prepare(); show("pickScreen"); renderPick(); return; }
+  setTimeout(() => showResults(res), res.stopped ? 150 : 1500);
+});
+function showResults(res){
+  const pb = myPB(), newPB = !demo && !res.stopped && !made && (!pb || res.timeMs < pb.ms);
+  if (newPB) RR.Store.set(pbKey(), { ms: res.timeMs, trace: res.trace });
+  const g = res.ghost;
+  $("endTitle").innerHTML = res.stopped ? "Run <span>stopped</span>" : made && !isMaker && made.maker_ms ? (res.timeMs < made.maker_ms ? `You beat <span>${RR.esc(made.maker)}!</span>` : `${RR.esc(made.maker)} <span>wins</span>`)
+    : newPB && pb ? `New <span>best!</span>` : `<span>${fmt(res.timeMs)}</span>`;
+  $("duelTxt").hidden = true; $("shareBox").hidden = true; $("rematchBtn").hidden = true; $("chalBtn").hidden = true; chal = null;
+  if (!res.stopped && !made && g) { $("duelTxt").hidden = false; const d = Math.abs(res.timeMs - g.ms) / 1000; $("duelTxt").textContent = res.timeMs < g.ms ? `${d.toFixed(1)}s faster than your best!` : `${d.toFixed(1)}s off your best of ${fmt(g.ms)}.`; }
+  $("launchTxt").textContent = res.stopped ? "" : res.launch === "perfect" ? "🚦 Perfect launch: first word on the green." : res.launch === "good" ? "🚦 Good launch. Say the first word right on green for a perfect one." : "🚦 Tip: say the first word the moment the light goes green.";
+  $("sTime").textContent = fmt(res.timeMs); $("sTop").textContent = res.top; $("sWpm").textContent = res.wpm; $("sRead").textContent = res.correct;
+  $("practice").innerHTML = ""; res.trouble.forEach(m => { const s = document.createElement("span"); s.textContent = m; $("practice").appendChild(s); }); $("practiceWrap").hidden = !res.trouble.length || demo;
+  $("cardBtn").hidden = demo || res.stopped; $("cardBtn").textContent = "Share picture";
+  const canPost = !demo && !res.stopped; $("rpBox").hidden = true; $("postBox").hidden = !canPost; $("postName").textContent = RR.nickname(); $("postBtn").disabled = true; $("postBtn").textContent = "Posting…"; posted = false;
+  $("postMsg").textContent = `${fmt(res.timeMs)} · posting to the ${RR.PACKS[res.pack].name} ${RR.LEAGUES[res.league].name} board…`;
+  $("setupBtn").textContent = made ? "Pick a pack" : "Change pack";
+  show("endScreen"); X.showClip();
+  if (canPost && !RR.IN_VIEWER) postRun();
+}
+$("postReroll").onclick = () => { RR.Store.set("name", RR.randomName()); $("postName").textContent = RR.nickname(); };
+async function postRun(){
+  const res = lastRes; if (!res) return; if (posted) { location.href = made ? "garage.html" : "leaderboard.html#redline"; return; }
+  $("postBtn").disabled = true; $("postBtn").textContent = "Posting…";
+  const body = { key: RR.Rider.key(), name: RR.nickname(), chk: res.chk, pack: res.pack, league: res.league, timeMs: res.timeMs, top: res.top, correct: res.correct, missed: res.missed, attempts: res.attempts, trace: res.trace, missedWords: res.trouble };
+  try { const r = await fetch(made ? `/api/races/${made.code}/runs` : "/api/redline", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+    const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || "Couldn't post. Tap Try again.");
+    posted = true; $("postBtn").disabled = false; $("postBtn").textContent = made ? "Your Garage" : "See the board";
+    RR.rpPanel($("rpBox"), j.rp, j.rider); if (j.rider) RR.Store.set("rpCache", { rp: j.rider.rp, level: j.rider.level });
+    if (made) madeResult(j);
+    else { $("postMsg").textContent = `Posted ✓ You're #${j.rank} today on the ${RR.PACKS[res.pack].name} ${RR.LEAGUES[res.league].name} board.`; $("chalBtn").hidden = false; $("chalBtn").disabled = false; $("chalBtn").textContent = "Challenge a friend to beat this"; }
+  } catch (e) { $("postBtn").disabled = false; $("postBtn").textContent = "Try again"; $("postMsg").textContent = e.message; }
+}
+$("postBtn").onclick = postRun;
+function shareSetup(head, text, code){ const url = RR.raceLink(code); $("shareBox").hidden = false; $("shareHead").textContent = head; $("shareUrl").value = url;
+  $("waBtn").href = "https://wa.me/?text=" + encodeURIComponent(text + " " + url); $("waBtn").onclick = () => RR.ev("share_whatsapp"); $("shareMsg").textContent = "";
+  $("shareBtn").onclick = async () => { const how = await RR.shareRace(text, url); $("shareMsg").textContent = how === "copied" ? "Link copied. Paste it anywhere." : how === "shared" ? "Sent!" : how === "none" ? "Copy the link above." : ""; }; }
+$("chalBtn").onclick = async () => { const res = lastRes; if (!res) return; const text = `I hit ${res.top} km/h on ReadRash Redline (${RR.PACKS[res.pack].name}) in ${fmt(res.timeMs)}. Same words, my ghost. Beat me!`;
+  if (chal) { shareSetup("Send it to a friend", text, chal); return; }
+  $("chalBtn").disabled = true; $("chalBtn").textContent = "Making your challenge…";
+  try { const r = await fetch("/api/races/redline", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ key: RR.Rider.key(), name: RR.nickname(), pack: res.pack, league: res.league, seed: res.seed, timeMs: res.timeMs, top: res.top, correct: res.correct, trace: res.trace }) });
+    const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || "Couldn't make the challenge. Try again.");
+    chal = j.code; RR.Rider.addMade(j.code); $("chalBtn").hidden = true; RR.ev("challenge_rl");
+    shareSetup(j.max_riders === 1 ? "Send it to one friend" : `Send it to up to ${j.max_riders} friends`, text, chal);
+  } catch (e) { $("chalBtn").disabled = false; $("chalBtn").textContent = "Try again"; $("postMsg").textContent = e.message; } };
+$("cardBtn").onclick = async () => { const res = lastRes; if (!res) return; $("cardBtn").textContent = "Making picture…"; const code = made ? made.code : chal;
+  const won = made && !isMaker && made.maker_ms ? res.timeMs < made.maker_ms : false;
+  const how = await RR.shareCard({ kicker: `Redline · ${RR.PACKS[res.pack].name} · ${RR.LEAGUES[res.league].name}`, big: `${res.top} KM/H`, line: `${fmt(res.timeMs)} · ${res.wpm} words a minute`,
+    stats: [["Words read", res.correct], ["Time", fmt(res.timeMs)], ["Launch", res.launch === "perfect" ? "Perfect" : res.launch === "good" ? "Good" : "–"]], win: won, url: code ? RR.raceLink(code) : location.origin, cta: code ? "Race my ghost" : "Read to ride", text: code ? "Beat me on ReadRash!" : "I hit the redline on ReadRash!" });
+  $("cardBtn").textContent = how === "saved" ? "Picture saved" : "Share picture"; };
+
+/* ---- links: a friend's Redline challenge (and rematches) ---- */
+function seriesLine(j){
+  const meB = (j.board.find(x => x.me) || {}).time_ms || j.time_ms, mk = j.maker_ms, them = made.maker, me = RR.nickname();
+  let s = made.series; if (!s || !(s.names || []).includes(me) || !s.names.includes(them)) s = { g: 1, w: {} };
+  const w = { ...s.w }; if (mk && meB < mk) w[me] = (w[me] || 0) + 1; else if (mk && meB > mk) w[them] = (w[them] || 0) + 1;
+  const a = w[me] || 0, b = w[them] || 0;
+  if (a >= 2) return [`You win the series ${a}–${b}! 🏆`, true]; if (b >= 2) return [`${them} wins the series ${b}–${a}. Start a new one?`, true];
+  if (s.g >= 3) return [a > b ? `You win the series ${a}–${b}! 🏆` : b > a ? `${them} wins the series ${b}–${a}.` : `Series level ${a}–${b}.`, true];
+  return [`Best of 3 · Game ${s.g} done · You ${a}–${b} ${them}`, false];
+}
+function madeResult(j){
+  $("postMsg").textContent = `Posted ✓ You're #${j.rank} on this race's board.`; $("duelTxt").hidden = false;
+  if (isMaker) { $("duelTxt").textContent = `Your best on this race: ${fmt(j.maker_ms)}`; shareSetup("Send it to a friend", `Beat my ${fmt(j.maker_ms)} on ReadRash Redline. Same words, my ghost!`, made.code); return; }
+  const me = j.time_ms, mk = j.maker_ms, d = Math.abs(me - mk) / 1000;
+  $("duelTxt").textContent = d < .1 ? `Level with ${made.maker} at ${fmt(mk)}.` : me < mk ? `By ${d.toFixed(1)}s: ${fmt(me)} against ${fmt(mk)}.` : `By ${d.toFixed(1)}s: ${fmt(mk)} against your ${fmt(me)}.`;
+  const [ser, over] = seriesLine(j); $("duelTxt").innerHTML = `${RR.esc($("duelTxt").textContent)}<br><b>${RR.esc(ser)}</b>`;
+  $("rematchBtn").hidden = false; $("rematchBtn").disabled = false; $("rematchBtn").textContent = over ? "New best of 3" : "Rematch: send it back";
+}
+$("rematchBtn").onclick = async () => { $("rematchBtn").disabled = true; $("rematchBtn").textContent = "Making the rematch…";
+  try { const r = await fetch(`/api/races/${made.code}/rematch`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ key: RR.Rider.key(), name: RR.nickname() }) });
+    const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || "Couldn't make the rematch.");
+    RR.Rider.addMade(j.code); $("rematchBtn").hidden = true; RR.ev("rematch");
+    shareSetup(`Send game ${j.series.g} to ${made.maker}`, `Rematch! Game ${j.series.g} of 3 on ReadRash Redline. Beat my ${fmt(j.maker_ms)}, same words, my ghost.`, j.code);
+  } catch (e) { $("rematchBtn").disabled = false; $("rematchBtn").textContent = "Try again"; $("postMsg").textContent = e.message; } };
+async function openMade(){
+  let j = null; try { const r = await fetch(`/api/races/${CODE}`); j = await r.json(); if (!r.ok) throw new Error(j.error || "Not found"); } catch (e) { j = { error: (e && e.message) || "Check the link and try again." }; }
+  if (j.kind === "story") { location.replace("play.html?r=" + CODE); return; } if (j.kind && j.kind !== "redline") { location.replace("gp.html?r=" + CODE); return; }
+  $("pickChoices").hidden = true; $("pickLede").hidden = true; $("linkInfo").hidden = false;
+  if (j.error) { $("pickKick").textContent = "Redline"; $("pickTitle").textContent = "Race not found"; $("linkInfo").innerHTML = `<p>${RR.esc(j.error)}</p>`; $("rideBtn").hidden = true; return; }
+  made = j; pack = j.redline.pack; league = j.league; isMaker = RR.Rider.made().includes(j.code) || j.maker === RR.nickname();
+  const inBoard = j.board.some(x => !x.maker && x.name === RR.nickname()); let note = "", ok = true;
+  if (j.status === "expired") { ok = false; note = "This race has ended."; } else if (j.status === "paused") { ok = false; note = "This race is paused while we check it."; }
+  else if (!isMaker && !inBoard && j.riders >= j.max_riders) { ok = false; note = j.max_riders === 1 ? "This duel already has its challenger." : "This race is full."; }
+  const w = (j.series && j.series.w) || {}, me = RR.nickname();
+  $("pickKick").textContent = isMaker ? "Your Redline challenge" : j.series && j.series.g > 1 ? `Best of 3 · Game ${j.series.g}${(j.series.names || []).includes(me) ? ` · You ${w[me] || 0}–${w[j.maker] || 0}` : ""}` : `A Redline from ${j.maker}`;
+  $("pickTitle").innerHTML = isMaker ? "Your <span>challenge</span>" : j.series && j.series.g > 1 ? `${RR.esc(j.maker)} wants a <span>rematch</span>` : `${RR.esc(j.maker)} <span>challenges you</span>`;
+  $("linkInfo").innerHTML = `<p style="margin:0">${RR.PACKS[pack].name} · ${RR.LEAGUES[league].name} · the same words in the same order${j.maker_ms ? ` · time to beat <b>${fmt(j.maker_ms)}</b>` : ""}</p>
+    <p class="note" style="color:#6b6476;margin:6px 0 0">${note || (isMaker ? "Your ghost rides this race for everyone who opens the link." : `${RR.esc(j.maker)}'s ghost rides in the next lane. Read fast!`)}</p>
+    ${j.board.length ? `<div class="podium" style="margin-top:10px">${j.board.slice(0, 5).map((x, i) => `<div class="${x.name === me ? "me" : ""}"><b>${i + 1}. ${RR.esc(x.name)}</b><span>${fmt(x.time_ms)}</span></div>`).join("")}</div>` : ""}`;
+  $("rideBtn").hidden = !ok; if (!isMaker) RR.ev("open_link");
+  prepare(); renderPick();
+}
+$("againBtn").onclick = () => { if (demo) { $("demoBtn").click(); return; } startMic(); };
+$("setupBtn").onclick = () => { if (made) { location.href = "redline.html"; return; } demo = false; setModeChip(); ctl.setAutopilot(false); prepare(); show("pickScreen"); renderPick(); };
+$("quitBtn").onclick = () => { exiting = true; RR.Voice.stop(); ctl.finish(); };
+
+setModeChip(); show("pickScreen");
+if (CODE) openMade(); else { renderPick(); prepare(); RR.ev("visit_redline"); }
+window.__rr = ctl;
+})();
+</script>
+</body>
+</html>

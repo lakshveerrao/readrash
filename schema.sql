@@ -112,3 +112,17 @@ CREATE TABLE IF NOT EXISTS flags (
   created_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_flags_time ON flags (created_at);
+
+-- Redline: solo drag runs, best time per rider per pack and level
+CREATE TABLE IF NOT EXISTS redline_runs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  rider_id INTEGER NOT NULL,
+  name TEXT NOT NULL,
+  pack TEXT NOT NULL,
+  league TEXT NOT NULL,
+  time_ms INTEGER NOT NULL,
+  top_kmh INTEGER NOT NULL,
+  correct INTEGER NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_rl_board ON redline_runs (pack, league, created_at, time_ms);

@@ -104,9 +104,9 @@ export const CIRCUIT_RP = { konkan: 0, desert: 1000, ghats: 2000 };
 export const circuitFor = (c, rp) => (CIRCUIT_RP[c] != null && rp >= CIRCUIT_RP[c]) ? c : "konkan";
 export function raceData(race) {
   let w; try { w = JSON.parse(race.words); } catch { w = []; }
-  if (Array.isArray(w)) return { kind: "words", words: w, seed: null, circuit: "konkan", series: null, passage: null };
-  const kind = w.passage ? "story" : w.seed ? "gp" : "words";
-  return { kind, words: Array.isArray(w.words) ? w.words : [], seed: w.seed || null, circuit: CIRCUIT_RP[w.circuit] != null ? w.circuit : "konkan", series: w.series || null, passage: w.passage || null };
+  if (Array.isArray(w)) return { kind: "words", words: w, seed: null, circuit: "konkan", series: null, passage: null, redline: null };
+  const kind = w.redline ? "redline" : w.passage ? "story" : w.seed ? "gp" : "words";
+  return { kind, words: Array.isArray(w.words) ? w.words : [], seed: w.seed || null, circuit: CIRCUIT_RP[w.circuit] != null ? w.circuit : "konkan", series: w.series || null, passage: w.passage || null, redline: w.redline || null };
 }
 /* Passages: a rider's own story race (Level 5). 30 to 150 words of plain text; every word is checked like a made race's
    words (everyday dictionary, rude words blocked). No digits, links or symbols. Returns {text, bad[]} or {error}. */
@@ -125,4 +125,14 @@ export function checkPassage(raw) {
       if (!base || base.length > 18 || BSET.has(base) || (base.length < 2 ? !["a", "i"].includes(base) : !DSET.has(base))) bad.add(part); }
   }
   return { text: t, bad: [...bad], words: toks.length };
+}
+/* Redline: keep the pack names in sync with PACKS in assets/game.js */
+export const RL_PACKS = new Set(["animals", "food", "sport", "space", "india", "colours"]);
+export function checkRedline(b) {
+  const { timeMs, correct, top, trace } = b || {};
+  if (!Number.isInteger(timeMs) || timeMs < 7000 || timeMs > 10 * 60 * 1000) return "Time out of range";
+  if (!Number.isInteger(correct) || correct < 12 || correct > 140 || timeMs < correct * 150) return "Bad counts";
+  if (!Number.isInteger(top) || top < 0 || top > 450) return "Bad speed";
+  if (!Array.isArray(trace) || !trace.every(Number.isInteger) || Math.abs(trace.length - Math.ceil(timeMs / 100)) > 3) return "Bad track";
+  return null;
 }

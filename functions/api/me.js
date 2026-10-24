@@ -6,7 +6,7 @@ export async function onRequestPost({ request, env }) {
   if (!r) return json({ error: "Unknown rider" }, 400);
   const { results: recent } = await env.DB.prepare(`SELECT mode, league, laps, race_code, time_ms, correct, place, rp, created_at FROM rides WHERE rider_id = ?1 ORDER BY created_at DESC LIMIT 8`).bind(r.id).all();
   const { results: made } = await env.DB.prepare(
-    `SELECT r.code, r.title, CASE WHEN r.words LIKE '%"passage":%' THEN 'story' WHEN r.words LIKE '%"seed":%' THEN 'gp' ELSE 'words' END AS kind, r.league, r.laps, r.status, r.maker_ms, r.expires_at, r.max_riders, (SELECT COUNT(DISTINCT rider_id) FROM race_runs x WHERE x.code = r.code AND x.rider_id != r.maker_id) AS riders,
+    `SELECT r.code, r.title, CASE WHEN r.words LIKE '%"redline":%' THEN 'redline' WHEN r.words LIKE '%"passage":%' THEN 'story' WHEN r.words LIKE '%"seed":%' THEN 'gp' ELSE 'words' END AS kind, r.league, r.laps, r.status, r.maker_ms, r.expires_at, r.max_riders, (SELECT COUNT(DISTINCT rider_id) FROM race_runs x WHERE x.code = r.code AND x.rider_id != r.maker_id) AS riders,
      (SELECT MIN(time_ms) FROM race_runs x WHERE x.code = r.code) AS best_ms FROM races r WHERE r.maker_id = ?1 ORDER BY r.created_at DESC LIMIT 20`).bind(r.id).all();
   // the words friends missed most on each of your races (shown from Level 3)
   const codes = (made || []).filter(m => m.riders > 0).map(m => m.code);
