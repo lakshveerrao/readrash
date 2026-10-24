@@ -48,3 +48,17 @@ npx wrangler d1 execute readrash --remote --file=schema.sql
 Rash GP needs the `gp_runs` table from this file. Rash Points and made races need `riders`, `rides`, `races` and `race_runs`.
 If you change the unlock thresholds, change `LEVELS` in `functions/_lib/rr.js` and `LADDER` in `assets/game.js` together.
 If you change GP speeds or lap length in `assets/game.js`, update the matching numbers at the top of `functions/api/gp.js`.
+
+## Growth and sharing
+- Every page has link-preview tags; preview images live in `assets/og/`. Race links (`/r/<code>`) return their own preview (who challenges you, the time to beat), then jump to the race.
+- Any finished Rash GP race can become a challenge: `POST /api/races/gp` stores its seed, so friends get the same signs and traffic, with the rider's ghost.
+- Results can be shared as a picture (made in the browser, nothing uploaded).
+- `robots.txt` and `sitemap.xml` are in the root. Fonts are self-hosted in `assets/fonts/` (SIL Open Font License).
+
+## Your stats page
+`/stats.html` shows new riders, races, links made, links opened, shares and challenges finished, day by day.
+It needs a secret key on the Pages project (pick any long password):
+```
+npx wrangler pages secret put STATS_KEY
+```
+Then open readrash.com/stats.html and type that key. For page views, switch on Web Analytics for the Pages project in the Cloudflare dashboard (free, no cookies).

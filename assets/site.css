@@ -1,4 +1,8 @@
 /* ReadRash — one deliberate visual world: night-asphalt UI around a sunny Konkan road. */
+/* fonts are self-hosted (SIL Open Font License): fast, and no third-party requests */
+@font-face{font-family:'Racing Sans One';src:url(fonts/racing-sans-one.woff2) format('woff2');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'Atkinson Hyperlegible';src:url(fonts/atkinson-400.woff2) format('woff2');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'Atkinson Hyperlegible';src:url(fonts/atkinson-700.woff2) format('woff2');font-weight:700;font-style:normal;font-display:swap}
 :root{
   --asphalt:#121016;
   --asphalt-2:#1d1a22;

@@ -3,17 +3,27 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Ride · ReadRash</title>
+<title>Story races · ReadRash</title>
+<meta name="description" content="Read a short story out loud and every word pushes your bike forward. Win stars to unlock the next race.">
+<link rel="canonical" href="https://readrash.com/play.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ReadRash">
+<meta property="og:title" content="ReadRash story races">
+<meta property="og:description" content="Read a short story out loud and every word pushes your bike forward. Win stars to unlock the next race.">
+<meta property="og:url" content="https://readrash.com/play.html">
+<meta property="og:image" content="https://readrash.com/assets/og/og-home.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A painted rider racing on a coastal road under word signs">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#121016">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Racing+Sans+One&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
-<link rel="stylesheet" href="assets/site.css?v=20261024n">
-<link rel="stylesheet" href="assets/game.css?v=20261024n">
+<link rel="preload" href="assets/fonts/racing-sans-one.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/site.css?v=20261024p">
+<link rel="stylesheet" href="assets/game.css?v=20261024p">
 </head>
 <body>
 <header class="nav gut">
@@ -150,8 +160,8 @@
   </div>
 </div>
 
-<script src="assets/game.js?v=20261024n"></script>
-<script src="assets/board.js?v=20261024n"></script>
+<script src="assets/game.js?v=20261024p"></script>
+<script src="assets/board.js?v=20261024p"></script>
 <script>
 (() => {
 const RR = window.ReadRash, $ = id => document.getElementById(id);

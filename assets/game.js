@@ -519,7 +519,7 @@ function create(o){
   /* ---------- Rash GP: word lanes + a pack that fights back ---------- */
   const gp=o.mode==="gp";
   let gpLaps=3, rows=[], gpObs=[], gpNitro=[], rivals=[], heat=.4, lapIdx=0, splits=[], gpMissed=0, gpWrong=0, lastPlace=12;
-  let zapTold=false, custom=null, ghosts=[], track=[], trackT=0, floats=[], atkTold=false, defTold=false, shieldTold=false, crackTold=false, playerAtkCD=0, shieldCharge=0, kos=0, hitsTaken=0, blocks=0, atkTarget=null, projs=[], comment=null, lastRivalAtk=-9999, leaderName="";
+  let gpSeed="", zapTold=false, custom=null, ghosts=[], track=[], trackT=0, floats=[], atkTold=false, defTold=false, shieldTold=false, crackTold=false, playerAtkCD=0, shieldCharge=0, kos=0, hitsTaken=0, blocks=0, atkTarget=null, projs=[], comment=null, lastRivalAtk=-9999, leaderName="";
   let posCand={p:12,t:0}, draft=0, slingUntil=-99999, blockedMsgT=-9999, duelT=-9999, posFlash=null, crashes=0, duelsWon=0, duelsLost=0;
   let VREF=RACE_LEN/4.6, HUD0=START_Z, HUDLEN=RACE_LEN, FINZ=FINISH_Z;
   const LANE_X=GP.LANES;
@@ -528,14 +528,16 @@ function create(o){
   function curRow(){ const r=nextPending(); return r&&r.z-P.z<=GP.ROW_GAP*SEG*GP.OPEN?r:null; }
   function nextRow(r){ const i=rows.indexOf(r); return i>=0?rows[i+1]||null:null; }
   function laneCenterOf(x){ let b=0; LANE_X.forEach((lx,i)=>{ if(Math.abs(x-lx)<Math.abs(x-LANE_X[b])) b=i; }); return b; }
-  function loadGP(lg,laps,gh,cust){
+  function loadGP(lg,laps,gh,cust,seed){
+    gpSeed=String(seed||Math.random().toString(36).slice(2,10));
     custom=cust&&cust.words&&cust.words.length?cust:null; track=[]; trackT=0;
     ghosts=(gh||[]).filter(g=>g&&g.track&&g.track.length>2).map((g,i)=>({name:g.name,track:g.track,kit:g.kit||{...GHOST_KIT[i%2],name:g.name},z:GP.START-2800,x:LANE_X[1],lane:1,done:false}));
     league=lg; gpLaps=laps; apWpm=LEAGUES[lg].demo; const L=GP.lg[lg]; VREF=L.vMax; HUD0=GP.START; HUDLEN=laps*GP.LAP_LEN; FINZ=GP.START+HUDLEN;
     segs=buildGPRoad(laps,DRAW);
     // words: three per gantry (easy / medium / hard), getting tougher lap by lap; no repeats in a race
-    const tiers=WORDPOOL[lg], bags=tiers.map(t=>shuffled(t)), used=new Set();
-    const draw=t=>{ t=Math.max(0,Math.min(2,t)); for(const d of [0,-1,1,-2,2]){ const b=bags[Math.max(0,Math.min(2,t+d))]; while(b.length){ const w=b.pop(); if(!used.has(w)){ used.add(w); return w; } } } return shuffled(tiers[t])[0]; };
+    const GR=seeded("gp:"+lg+":"+gpSeed), gshuf=a=>{ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(GR()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+    const tiers=WORDPOOL[lg], bags=tiers.map(t=>gshuf(t)), used=new Set();
+    const draw=t=>{ t=Math.max(0,Math.min(2,t)); for(const d of [0,-1,1,-2,2]){ const b=bags[Math.max(0,Math.min(2,t+d))]; while(b.length){ const w=b.pop(); if(!used.has(w)){ used.add(w); return w; } } } return gshuf(tiers[t])[0]; };
     rows=[]; gpObs=[]; gpNitro=[];
     const CR=custom?seeded(String(custom.seed||"x")):Math.random, cshuf=a=>{ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(CR()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
     let cq=[]; const ckeys=new Set(custom?custom.words.map(norm):[]); let fbag=[];
@@ -547,12 +549,12 @@ function create(o){
           if(!cq.length) cq=cshuf(custom.words); const w=cq.pop(); const perm=cshuf([0,1,2]);
           words3[perm[0]]=w; content[perm[0]]="nitro"; words3[perm[1]]=filler(); words3[perm[2]]=filler();
           if(CR()<.6) content[perm[1]]="traffic"; else if(CR()<.35) content[perm[1]]=CR()<.55?"book":"coconut"; }
-        else { const base=Math.min(2,Math.floor(f)+(Math.random()<f-Math.floor(f)?1:0));
+        else { const base=Math.min(2,Math.floor(f)+(GR()<f-Math.floor(f)?1:0));
         const ws=[draw(base-1),draw(base),draw(base+1)].sort((a,b)=>a.length-b.length); // easy, medium, hard
-        const perm=shuffled([0,1,2]);
+        const perm=gshuf([0,1,2]);
         perm.forEach((lane,d)=>{ words3[lane]=ws[d]; });
         const easyLane=perm[0], hardLane=perm[2], midLane=perm[1];
-        if(k>0||lap>0){ if(Math.random()<.7) content[easyLane]="traffic"; if(Math.random()<.65) content[hardLane]="nitro"; if(content[easyLane]!=="traffic"&&Math.random()<.35) content[midLane]="traffic"; else if(Math.random()<.32) content[midLane]=Math.random()<.55?"book":"coconut"; } }
+        if(k>0||lap>0){ if(GR()<.7) content[easyLane]="traffic"; if(GR()<.65) content[hardLane]="nitro"; if(content[easyLane]!=="traffic"&&GR()<.35) content[midLane]="traffic"; else if(GR()<.32) content[midLane]=GR()<.55?"book":"coconut"; } }
         const z=GP.START+lap*GP.LAP_LEN+(GP.FIRST+k*GP.ROW_GAP)*SEG;
         const r={z,lap,k,words:words3,keys:words3.map(norm),content,state:0,chosen:-1,t:0}; rows.push(r);
         content.forEach((c,lane)=>{ if(c==="traffic") gpObs.push({z:z+GP.ROW_GAP*SEG*.18,lane,type:traffic[(k+lane+lap)%traffic.length],hit:false});
@@ -926,7 +928,7 @@ function create(o){
     phase="done"; if(!stopped&&finishT!=null) P.target=FINZ+3000;
     if(gp){ gpUI(true); const tot=finishT??Math.round(now), lapTimes=splits.map((t,i)=>t-(i?splits[i-1]:0)), place=finishT!=null?gpPlace():null;
       const missedRows=rows.filter(r=>r.state===-1), signsN=rows.length;
-      const res={mode:"gp",track:track.slice(),custom:custom?{seed:custom.seed}:null,stopped:!!stopped,place,timeMs:tot,splits:splits.slice(),lapTimes,best:lapTimes.length?Math.min(...lapTimes):null,signs:signsN,correct:correctCount,wrong:gpWrong,missed:gpMissed,
+      const res={mode:"gp",seed:gpSeed,track:track.slice(),custom:custom?{seed:custom.seed}:null,stopped:!!stopped,place,timeMs:tot,splits:splits.slice(),lapTimes,best:lapTimes.length?Math.min(...lapTimes):null,signs:signsN,correct:correctCount,wrong:gpWrong,missed:gpMissed,
         crashes,kos,blocks,hitsTaken,acc:signsN?Math.round(correctCount/signsN*100):0,wpm:Math.round(correctCount/(tot/60000)||0),
         trouble:[...new Set(missedRows.map(r=>r.words[r.content.indexOf("nitro")>=0?r.content.indexOf("nitro"):1]))].slice(0,12),league,laps:gpLaps,
         podium:[{name:"YOU",t:finishT,me:true},...rivals.map(r=>({name:r.name,t:r.finishT??(Math.round(now)+Math.round((GP.START+gpLaps*GP.LAP_LEN-r.z)/Math.max(r.v,1)*1000))}))].sort((a,b)=>(a.t??1e12)-(b.t??1e12))};
@@ -1398,10 +1400,41 @@ function rpPanel(el,rp,rider){ if(!el) return; if(!rp||!rider){ el.hidden=true; 
   if(ups.length) Sound.tone(784,.12,"square",.05), setTimeout(()=>Sound.tone(1046,.18,"square",.05),130); }
 // share a made race: the phone's share sheet, else WhatsApp / copy
 function raceLink(code){ return location.origin+"/r/"+code; }
-async function shareRace(text,url){ try{ if(navigator.share){ await navigator.share({text,url}); return "shared"; } }catch(e){ if(e&&e.name==="AbortError") return "cancel"; }
-  try{ await navigator.clipboard.writeText(text+" "+url); return "copied"; }catch(e){ return "none"; } }
+async function shareRace(text,url){ try{ if(navigator.share){ await navigator.share({text,url}); ev("share_link"); return "shared"; } }catch(e){ if(e&&e.name==="AbortError") return "cancel"; }
+  try{ await navigator.clipboard.writeText(text+" "+url); ev("share_copy"); return "copied"; }catch(e){ return "none"; } }
 
-window.ReadRash = { create, Voice, bindMic, Rider, LADDER, levelOf, rpPanel, raceLink, shareRace, esc, Sound, LEAGUES, RACES, ADJ, NOUN, randomName, VOICE_OK, IN_VIEWER, Store, stars, saveStars, nickname, norm, sim, ord,
+// count a moment that matters for growth (link opened, shared, challenge made); no personal data
+function ev(k){ try{ if(IN_VIEWER) return; const b=JSON.stringify({k}); if(navigator.sendBeacon) navigator.sendBeacon("/api/ev",new Blob([b],{type:"application/json"})); else fetch("/api/ev",{method:"POST",headers:{"content-type":"application/json"},body:b,keepalive:true}); }catch(e){} }
+// a 1080x1350 results picture for WhatsApp status / stories: your painted rider, the result, the link
+async function shareCard(o){
+  const W=1080, H=1350, c=document.createElement("canvas"); c.width=W; c.height=H; const g=c.getContext("2d");
+  try{ if(document.fonts&&document.fonts.load) await Promise.race([document.fonts.load("italic 80px 'Racing Sans One'"),new Promise(r=>setTimeout(r,1200))]); }catch(e){}
+  for(let i=0;i<40&&!skinCanvas(SKINS.ME);i++) await new Promise(r=>setTimeout(r,100));
+  const sky=g.createLinearGradient(0,0,0,H*.55); sky.addColorStop(0,"#2f7fd0"); sky.addColorStop(1,"#bfe7f7"); g.fillStyle=sky; g.fillRect(0,0,W,H*.55);
+  g.fillStyle="#fffbe6"; g.globalAlpha=.9; g.beginPath(); g.arc(W*.8,H*.17,70,0,7); g.fill(); g.globalAlpha=1;
+  g.fillStyle="#6f9e74"; g.beginPath(); g.moveTo(0,H*.55); for(let x=0;x<=W;x+=30) g.lineTo(x,H*.55-60-Math.sin(x*.012)*40-Math.sin(x*.031)*18); g.lineTo(W,H*.55); g.fill();
+  g.fillStyle="#2a8dbd"; g.fillRect(0,H*.55-6,W*.4,8);
+  g.fillStyle="#57565f"; g.beginPath(); g.moveTo(W*.46,H*.55); g.lineTo(W*.54,H*.55); g.lineTo(W*1.05,H); g.lineTo(-W*.05,H); g.fill();
+  g.fillStyle="#86b84a"; g.beginPath(); g.moveTo(0,H*.55); g.lineTo(W*.46,H*.55); g.lineTo(-W*.05,H); g.lineTo(0,H); g.fill(); g.beginPath(); g.moveTo(W,H*.55); g.lineTo(W*.54,H*.55); g.lineTo(W*1.05,H); g.lineTo(W,H); g.fill();
+  g.fillStyle="#f7f2e6"; for(let k=0;k<7;k++){ const t=k/7, y=H*.55+(H*.45)*t*t, h=10+t*60, w=4+t*16; g.fillRect(W/2-w/2,y,w,h); }
+  const shade=g.createLinearGradient(0,0,0,H); shade.addColorStop(0,"rgba(12,10,16,.82)"); shade.addColorStop(.42,"rgba(12,10,16,.15)"); shade.addColorStop(.7,"rgba(12,10,16,0)"); shade.addColorStop(1,"rgba(12,10,16,.9)"); g.fillStyle=shade; g.fillRect(0,0,W,H);
+  const SC=skinCanvas(SKINS.ME); if(SC){ const f=RIDER_META.orange[o.win?12:0], k=(SC.naturalHeight||SC.height)/SC._fh, sc=640/f.h; g.drawImage(SC,f.x*k,f.y*k,f.w*k,f.h*k,W/2-f.ax*sc,H*.93-f.ay*sc,f.w*sc,f.h*sc); }
+  const disp="'Racing Sans One','Arial Black',sans-serif";
+  g.textBaseline="alphabetic"; g.textAlign="left";
+  g.font=`italic 64px ${disp}`; g.fillStyle="#fff4e2"; g.fillText("READ",64,120); g.fillStyle="#ff6a1a"; g.fillText("RASH",64+g.measureText("READ").width,120);
+  g.font="700 30px Verdana,sans-serif"; g.fillStyle="#ffd23f"; g.fillText(String(o.kicker||"").toUpperCase(),66,190);
+  g.font=`italic 150px ${disp}`; g.fillStyle="#fff4e2"; let big=String(o.big||""); while(g.measureText(big).width>W-120&&big.length>3) g.font=`italic ${parseInt(g.font.match(/\d+/)[0])-10}px ${disp}`; g.fillText(big,60,340);
+  g.font=`italic 64px ${disp}`; g.fillStyle="#ff6a1a"; g.fillText(String(o.line||""),64,420);
+  const st=o.stats||[]; st.forEach(([lab,val],i)=>{ const x=64+i*(W-128)/st.length, y=H-230;
+    g.fillStyle="rgba(255,248,236,.95)"; const bw=(W-128)/st.length-16; g.beginPath(); if(g.roundRect) g.roundRect(x,y,bw,120,18); else g.rect(x,y,bw,120); g.fill();
+    g.fillStyle="#1b1b22"; g.font=`italic 54px ${disp}`; g.textAlign="center"; g.fillText(String(val),x+bw/2,y+66); g.font="700 22px Verdana,sans-serif"; g.fillStyle="#6b6476"; g.fillText(String(lab).toUpperCase(),x+bw/2,y+100); g.textAlign="left"; });
+  g.fillStyle="#ffd23f"; g.font=`italic 46px ${disp}`; g.textAlign="center"; g.fillText(String(o.cta||"Beat me on ReadRash"),W/2,H-70);
+  g.fillStyle="#fff4e2"; g.font="700 30px Verdana,sans-serif"; g.fillText(String(o.url||"readrash.com").replace(/^https?:\/\//,""),W/2,H-26); g.textAlign="left";
+  const blob=await new Promise(r=>c.toBlob(r,"image/png")); const file=new File([blob],"readrash.png",{type:"image/png"});
+  try{ if(navigator.canShare&&navigator.canShare({files:[file]})){ await navigator.share({files:[file],text:o.text?o.text+(o.url?" "+o.url:""):undefined}); ev("share_image"); return "shared"; } }catch(e){ if(e&&e.name==="AbortError") return "cancel"; }
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="readrash.png"; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },2000); ev("share_image"); return "saved"; }
+
+window.ReadRash = { create, Voice, bindMic, ev, shareCard, Rider, LADDER, levelOf, rpPanel, raceLink, shareRace, esc, Sound, LEAGUES, RACES, ADJ, NOUN, randomName, VOICE_OK, IN_VIEWER, Store, stars, saveStars, nickname, norm, sim, ord,
   paintRider:(c,w,f,o)=>{ preloadRiders(); paintRider(c,w,f,o); },
   paintSprite(canvas,t,opt={}){ const g=canvas.getContext("2d"), h=canvas.height; g.clearRect(0,0,canvas.width,canvas.height); const list=t==="bike"?[bikeOnly(opt.rider||ME),riderOnly(opt.rider||ME)]:[getSprite(t,opt)]; for(const S of list){ const w=h*S.aspect; g.drawImage(S.c,(canvas.width-w)/2,0,w,h); } } };
 })();

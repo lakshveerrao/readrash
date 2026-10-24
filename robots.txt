@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /stats.html
+Disallow: /garage.html
+
+Sitemap: https://readrash.com/sitemap.xml

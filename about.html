@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>For parents and teachers · ReadRash</title>
+<meta name="description" content="How ReadRash works, what it stores, and how voice is handled. No signup, no chat, no audio stored.">
+<link rel="canonical" href="https://readrash.com/about.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ReadRash">
+<meta property="og:title" content="ReadRash for parents and teachers">
+<meta property="og:description" content="Free voice-powered bike racing. No signup, no chat, no audio stored.">
+<meta property="og:url" content="https://readrash.com/about.html">
+<meta property="og:image" content="https://readrash.com/assets/og/og-home.jpg">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#121016">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preload" href="assets/fonts/racing-sans-one.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/site.css?v=20261024p">
+<style>
+/* Layout: title → three promise tiles → short plain sections */
+.top{padding-block:44px 22px;display:flex;flex-direction:column;gap:12px}
+.top h1{font-size:clamp(42px,8vw,76px)}.top h1 em{font-style:inherit;color:var(--heat)}
+.promise{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:28px}
+.promise div{background:var(--asphalt-2);border-radius:16px;padding:16px;border-top:4px solid var(--c)}
+.promise h3{font-size:24px;color:var(--c)}.promise p{margin:6px 0 0;color:#d4cdc1;font-size:15px}
+.sec{max-width:68ch;padding-bottom:22px}
+.sec h2{font-size:clamp(26px,4vw,34px);margin-bottom:8px}
+.sec p,.sec li{color:#d9d2c6;font-size:17px}
+.sec ul{padding-left:20px;margin:0}.sec li{margin-bottom:6px}
+.sec a{color:var(--sun)}
+@media (max-width:760px){.promise{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header class="nav gut">
+  <div class="inner">
+    <a class="logo" href="index.html">READ<span>RASH</span></a>
+    <nav class="links" aria-label="Main">
+      <a class="opt" href="make.html">Make a race</a>
+      <a class="opt" href="leaderboard.html">Leaderboard</a>
+      <a href="garage.html">Garage</a>
+      <a class="btn sm" href="gp.html">Race now</a>
+    </nav>
+  </div>
+</header>
+<main class="gut"><div class="inner">
+  <div class="top">
+    <p class="kicker">For parents and teachers</p>
+    <h1>Safe to <em>share.</em></h1>
+    <p class="lede">ReadRash is a free bike racing game you play by reading out loud. Here's exactly what it does and doesn't do.</p>
+  </div>
+  <div class="promise">
+    <div style="--c:var(--cool)"><h3>No signup</h3><p>No email, no age, no password. Riders get a fun generated name like TurboMango21.</p></div>
+    <div style="--c:var(--sun)"><h3>No chat</h3><p>Riders can't message each other. Names are never typed, so nobody can write something rude.</p></div>
+    <div style="--c:var(--heat)"><h3>No audio kept</h3><p>ReadRash never records or stores voices. Only the words recognised are used, then dropped.</p></div>
+  </div>
+
+  <section class="sec">
+    <h2>How voice works</h2>
+    <p>ReadRash uses the speech recognition built into Chrome and Edge. The browser sends the sound to its own speech service (Google for Chrome, Microsoft for Edge), which sends back the words it heard. ReadRash compares those words with the ones on screen and moves the bike. It never saves the sound or the words.</p>
+  </section>
+
+  <section class="sec">
+    <h2>What we store</h2>
+    <ul>
+      <li>A random secret code that lives on the device, so the rider's progress is kept.</li>
+      <li>The generated rider name, race times, places and Rash Points.</li>
+      <li>Races riders make: their list of words and its board.</li>
+      <li>Daily counts like "links opened today", with nothing that identifies anyone.</li>
+    </ul>
+    <p>No cookies for tracking and no advertising. Leaderboards show only generated names and times.</p>
+  </section>
+
+  <section class="sec">
+    <h2>Races made by riders</h2>
+    <p>From their second race, riders can make a race from their own words and share the link. Every word must come from our list of about 63,000 everyday English words, and about 1,000 rude, hurtful, adult and violent words are blocked, including slurs and common Hindi abuses. Numbers, links and emails can't be typed. Each word sits alone on a sign, so a race can't spell out a sentence.</p>
+    <p>Every race link has a Report button. Three reports pause the race straight away until it's checked.</p>
+  </section>
+
+  <section class="sec">
+    <h2>Reading levels, not ages</h2>
+    <p>Riders pick Rookie, Pro or Legend themselves and can switch any time. There's no age gate and no grading: just a race.</p>
+  </section>
+
+  <section class="sec" style="padding-bottom:64px">
+    <h2>Using it with a group</h2>
+    <p>Race once, tap <b>Challenge a friend</b>, and share the link. Everyone who opens it races the same signs against your ghost, and the link has its own little leaderboard. Bigger group links unlock as riders earn Rash Points.</p>
+    <p><a href="gp.html">Try a race now →</a></p>
+  </section>
+</div></main>
+<footer class="foot gut">
+  <div class="inner"><span class="logo" style="font-size:22px">READ<span>RASH</span></span><span>Read fast. Ride rash. © 2026 ReadRash · <a href="about.html">Parents &amp; privacy</a></span></div>
+</footer>
+</body>
+</html>

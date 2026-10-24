@@ -92,3 +92,10 @@ CREATE TABLE IF NOT EXISTS race_reports (
   created_at INTEGER NOT NULL,
   PRIMARY KEY (code, rider_id)
 );
+-- daily counters for growth moments (no personal data)
+CREATE TABLE IF NOT EXISTS events (
+  day TEXT NOT NULL,
+  k TEXT NOT NULL,
+  n INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (day, k)
+);

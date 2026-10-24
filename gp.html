@@ -3,18 +3,27 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Rash GP Sprint · ReadRash</title>
-<meta name="description" content="Rash GP: a 12-rider lap race where you read the words on the signs out loud to go faster.">
+<title>Rash GP · ReadRash</title>
+<meta name="description" content="12 riders, 2 to 5 laps. Read the signs out loud to pick your lane, grab nitro and knock rivals off their bikes.">
+<link rel="canonical" href="https://readrash.com/gp.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ReadRash">
+<meta property="og:title" content="Rash GP: 12 riders, your voice">
+<meta property="og:description" content="12 riders, 2 to 5 laps. Read the signs out loud to pick your lane, grab nitro and knock rivals off their bikes.">
+<meta property="og:url" content="https://readrash.com/gp.html">
+<meta property="og:image" content="https://readrash.com/assets/og/og-gp.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A painted rider racing on a coastal road under word signs">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#121016">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Racing+Sans+One&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
-<link rel="stylesheet" href="assets/site.css?v=20261024n">
-<link rel="stylesheet" href="assets/game.css?v=20261024n">
+<link rel="preload" href="assets/fonts/racing-sans-one.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/site.css?v=20261024p">
+<link rel="stylesheet" href="assets/game.css?v=20261024p">
 <style>
 /* Rash GP: same race view; the text card shows the three lane words of the next gantry, with what waits in each lane */
 .lanecard{display:flex;flex-direction:column;gap:10px;justify-content:center;min-height:150px}
@@ -204,6 +213,7 @@
     <a class="x" href="index.html" aria-label="Close and go home">✕</a>
     <h2 id="endTitle"></h2>
     <div class="duel" id="duelTxt" hidden></div>
+    <div class="row" style="gap:10px"><button class="btn" id="chalBtn" hidden>Challenge a friend to beat this</button><button class="btn sm ghost" id="cardBtn" hidden>Share picture</button></div>
     <div class="sharebox" id="shareBox" hidden>
       <b id="shareHead">Send it to a friend</b>
       <div class="shl"><input id="shareUrl" readonly aria-label="Race link"><button class="btn sm" id="shareBtn">Share</button></div>
@@ -233,8 +243,8 @@
   </div>
 </div>
 
-<script src="assets/game.js?v=20261024n"></script>
-<script src="assets/board.js?v=20261024n"></script>
+<script src="assets/game.js?v=20261024p"></script>
+<script src="assets/board.js?v=20261024p"></script>
 <script>
 (() => {
 const RR = window.ReadRash, $ = id => document.getElementById(id);
@@ -254,7 +264,7 @@ RR.bindMic({ dot: $("micDot"), state: $("micState"), label: $("micLabel"), err: 
 function setModeChip(){ const c = $("modeTxt").parentElement; c.classList.toggle("demo-chip", demo); $("modeTxt").textContent = demo ? "Demo race" : "Voice"; }
 function label(){ $("raceChip").textContent = made ? `${made.title} · ${laps} laps` : `Rash GP · Sprint · ${RR.LEAGUES[league].name} · ${laps} laps`; }
 
-async function prepare(){ if (made) ctl.loadGP(made.league, made.laps, made.ghost ? [made.ghost] : [], { words: made.words, seed: made.code }); else ctl.loadGP(league, laps); label(); }
+async function prepare(){ if (made) ctl.loadGP(made.league, made.laps, made.ghost ? [made.ghost] : [], made.seed ? null : { words: made.words, seed: made.code }, made.seed || undefined); else ctl.loadGP(league, laps); label(); }
 
 /* ---- setup screen ---- */
 function renderPick(){
@@ -299,9 +309,9 @@ ctl.on("finish", res => {
 });
 function showResults(res){
   const p = res.place;
-  const esc = RR.esc, won = made && made.maker_ms && res.timeMs < made.maker_ms;
-  $("endTitle").innerHTML = made ? (res.stopped ? "Ride <span>stopped</span>" : isMaker ? (made.status === "draft" ? "Your race is <span>open!</span>" : won ? "New best <span>time!</span>" : "Race <span>done</span>") : made.maker_ms ? (won ? `You beat <span>${esc(made.maker)}!</span>` : `${esc(made.maker)} <span>wins</span>`) : "Race <span>done</span>") : p === 1 ? "You won <span>Rash GP!</span>" : `You finished <span>${RR.ord(p)}</span>`;
-  $("duelTxt").hidden = true; $("shareBox").hidden = true; $("rpBox").hidden = true;
+  const esc = RR.esc, heat = made && made.maker_ms && Math.abs(res.timeMs - made.maker_ms) < 100, won = made && made.maker_ms && !heat && res.timeMs < made.maker_ms;
+  $("endTitle").innerHTML = made ? (res.stopped ? "Ride <span>stopped</span>" : isMaker ? (made.status === "draft" ? "Your race is <span>open!</span>" : won ? "New best <span>time!</span>" : "Race <span>done</span>") : made.maker_ms ? (heat ? "Dead <span>heat!</span>" : won ? `You beat <span>${esc(made.maker)}!</span>` : `${esc(made.maker)} <span>wins</span>`) : "Race <span>done</span>") : p === 1 ? "You won <span>Rash GP!</span>" : `You finished <span>${RR.ord(p)}</span>`;
+  $("duelTxt").hidden = true; $("shareBox").hidden = true; $("rpBox").hidden = true; $("chalBtn").hidden = true; chal = null; $("cardBtn").hidden = demo || res.stopped || res.place == null; $("cardBtn").textContent = "Share picture";
   $("sTime").textContent = fmt(res.timeMs); $("sBest").textContent = fmt(res.best); $("sRead").textContent = `${res.correct}/${res.signs}`; $("sKO").textContent = res.kos;
   $("splits").innerHTML = ""; res.lapTimes.forEach((t, i) => { const s = document.createElement("span"); s.textContent = `Lap ${i+1} · ${fmt(t)}`; if (t === res.best) s.className = "best"; $("splits").appendChild(s); });
   $("standings").innerHTML = ""; res.podium.forEach((r, i) => { const d = document.createElement("div"); if (r.me) d.className = "me";
@@ -326,23 +336,44 @@ async function postRun(){
     posted = true; $("postBtn").disabled = false; $("postBtn").textContent = made ? "Your Garage" : "See the board";
     RR.rpPanel($("rpBox"), j.rp, j.rider); if (j.rider) RR.Store.set("rpCache", { rp: j.rider.rp, level: j.rider.level });
     $("makeBtn").hidden = !(j.rider && j.rider.limits && j.rider.limits.make) || isMaker;
-    if (made) madeResult(j); else $("postMsg").textContent = j.rank ? `Posted ✓ You're #${j.rank} today on the ${RR.LEAGUES[league].name} ${laps}-lap board.` : "Posted ✓";
+    if (made) madeResult(j); else { $("postMsg").textContent = j.rank ? `Posted ✓ You're #${j.rank} today on the ${RR.LEAGUES[league].name} ${laps}-lap board.` : "Posted ✓"; $("chalBtn").hidden = false; $("chalBtn").disabled = false; $("chalBtn").textContent = "Challenge a friend to beat this"; }
   } catch (e) { $("postBtn").disabled = false; $("postBtn").textContent = "Try again"; $("postMsg").textContent = e.user ? e.message : "Couldn't reach the board. Check your connection and tap Try again."; }
 }
+/* ---- challenge a friend from any Rash GP race: same signs, your ghost ---- */
+let chal = null;
+$("chalBtn").onclick = async () => {
+  if (!lastRes) return; const res = lastRes;
+  if (chal) { shareSetup("Send it to a friend", chalText(res), chal); return; }
+  $("chalBtn").disabled = true; $("chalBtn").textContent = "Making your challenge…";
+  try {
+    const r = await fetch("/api/races/gp", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ key: RR.Rider.key(), name: RR.nickname(), league, laps, seed: res.seed, splits: res.splits, correct: res.correct, wrong: res.wrong, missed: res.missed, track: res.track }) });
+    const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || "Couldn't make the challenge. Try again.");
+    chal = j.code; RR.Rider.addMade(j.code); $("chalBtn").hidden = true; RR.ev("challenge_gp");
+    shareSetup(j.max_riders === 1 ? "Send it to one friend" : `Send it to up to ${j.max_riders} friends`, chalText(res), chal);
+  } catch (e) { $("chalBtn").disabled = false; $("chalBtn").textContent = "Try again"; $("postMsg").textContent = e.message; }
+};
+$("cardBtn").onclick = async () => { const res = lastRes; if (!res) return; $("cardBtn").textContent = "Making picture…";
+  const code = made ? made.code : chal, url = code ? RR.raceLink(code) : location.origin;
+  const won = made && made.maker_ms && !isMaker ? res.timeMs < made.maker_ms : res.place === 1;
+  const how = await RR.shareCard({ kicker: made ? (made.kind === "gp" ? `Rash GP challenge · ${made.maker}` : made.title) : `Rash GP · ${RR.LEAGUES[league].name} · ${laps} laps`,
+    big: made && !isMaker && made.maker_ms ? (won ? "I WON!" : "SO CLOSE!") : RR.ord(res.place).toUpperCase(), line: made && !isMaker && made.maker_ms ? `${fmt(res.timeMs)} vs ${fmt(made.maker_ms)}` : `${fmt(res.timeMs)} · ${res.place === 1 ? "first across the line" : "of 12 riders"}`,
+    stats: [["Signs read", `${res.correct}/${res.signs}`], ["Best lap", fmt(res.best)], ["Knockouts", res.kos]], win: won, url, cta: code ? "Race my ghost" : "Read to ride", text: code ? "Beat me on ReadRash!" : "I raced on ReadRash!" });
+  $("cardBtn").textContent = how === "saved" ? "Picture saved" : "Share picture"; };
+function chalText(res){ return `I raced Rash GP (${RR.LEAGUES[league].name}, ${laps} laps) in ${fmt(res.timeMs)} and came ${RR.ord(res.place)}. Same signs, my ghost. Beat me!`; }
 /* ---- made races: intro, duel result, sharing ---- */
 function boardHTML(rows){ return rows.slice(0, 10).map((x, i) => `<div class="${x.me || (isMaker ? x.maker : x.name === RR.nickname()) ? "me" : ""}"><b>${i+1}. ${RR.esc(x.name)}${x.maker ? ' <span class="g">maker</span>' : ""}</b><span>${fmt(x.time_ms)}</span></div>`).join(""); }
-function shareSetup(head, text){ const url = RR.raceLink(made.code); $("shareBox").hidden = false; $("shareHead").textContent = head; $("shareUrl").value = url;
-  $("waBtn").href = "https://wa.me/?text=" + encodeURIComponent(text + " " + url); $("shareMsg").textContent = "";
+function shareSetup(head, text, code){ const url = RR.raceLink(code || made.code); $("shareBox").hidden = false; $("shareHead").textContent = head; $("shareUrl").value = url;
+  $("waBtn").href = "https://wa.me/?text=" + encodeURIComponent(text + " " + url); $("waBtn").onclick = () => RR.ev("share_whatsapp"); $("shareMsg").textContent = "";
   $("shareBtn").onclick = async () => { const how = await RR.shareRace(text, url); $("shareMsg").textContent = how === "copied" ? "Link copied. Paste it anywhere." : how === "shared" ? "Sent!" : how === "none" ? "Copy the link above." : ""; }; }
 function madeResult(j){
   const me = j.time_ms, mk = j.maker_ms, n = made.words.length;
   $("postMsg").textContent = `Posted ✓ You're #${j.rank} on this race's board.`;
   if (isMaker) {
     $("duelTxt").hidden = false; $("duelTxt").textContent = j.opened ? `Your race is open! Time to beat: ${fmt(mk)}` : `Your best on this race: ${fmt(mk)}`;
-    shareSetup("Send it to a friend", `I made a ReadRash race with ${n} words. Beat my ${fmt(mk)}!`);
+    shareSetup("Send it to a friend", made.kind === "gp" ? `Beat my ${fmt(mk)} on Rash GP. Same signs, my ghost!` : `I made a ReadRash race with ${n} words. Beat my ${fmt(mk)}!`);
   } else {
     const d = Math.abs(me - mk) / 1000, won = me < mk;
-    $("duelTxt").hidden = false; $("duelTxt").textContent = mk ? (won ? `By ${d.toFixed(1)}s: ${fmt(me)} against ${fmt(mk)}.` : `By ${d.toFixed(1)}s: ${fmt(mk)} against your ${fmt(me)}. Rematch?`) : "Posted.";
+    $("duelTxt").hidden = false; $("duelTxt").textContent = mk ? (d < .1 ? `Level with ${made.maker} at ${fmt(mk)}. Rematch?` : won ? `By ${d.toFixed(1)}s: ${fmt(me)} against ${fmt(mk)}.` : `By ${d.toFixed(1)}s: ${fmt(mk)} against your ${fmt(me)}. Rematch?`) : "Posted.";
     shareSetup(won ? "Tell them you won" : "Ask for a rematch", won ? `I beat your ReadRash race ${made.title}: ${fmt(me)} vs ${fmt(mk)}. Your move!` : `Your race ${made.title} was close: ${fmt(me)} vs ${fmt(mk)}. Rematch?`);
     $("makeBtn").hidden = false; $("makeBtn").textContent = "Make your own race";
   }
@@ -354,8 +385,10 @@ async function openMade(){
   made = j; league = j.league; laps = j.laps;
   isMaker = RR.Rider.made().includes(j.code) || j.maker === RR.nickname(); $("repWrap").hidden = isMaker;
   $("rsKick").textContent = isMaker ? "Your race" : `A race from ${j.maker}`; $("rsTitle").textContent = j.title;
-  $("rsInfo").textContent = `${j.words.length} words · ${j.laps} laps · ${RR.LEAGUES[j.league].name} level · your words are on the NITRO lane`;
-  $("rsWords").innerHTML = j.words.map(w => `<span>${RR.esc(w)}</span>`).join("");
+  const gpk = j.kind === "gp";
+  $("rsInfo").textContent = gpk ? `Rash GP · ${RR.LEAGUES[j.league].name} · ${j.laps} laps · the same ${j.laps * 10} signs, the same traffic` : `${j.words.length} words · ${j.laps} laps · ${RR.LEAGUES[j.league].name} level · your words are on the NITRO lane`;
+  $("rsWords").innerHTML = j.words.map(w => `<span>${RR.esc(w)}</span>`).join(""); $("rsWords").parentElement.hidden = gpk;
+  if (gpk) $("rsTitle").textContent = isMaker ? "Your Rash GP challenge" : `${j.maker} challenges you`;
   $("rsBoard").innerHTML = boardHTML(j.board); $("rsBoardWrap").hidden = !j.board.length;
   const inBoard = j.board.some(x => !x.maker && x.name === RR.nickname());
   let note = "", ok = true;
@@ -364,9 +397,10 @@ async function openMade(){
   else if (j.status === "draft" && !isMaker) { ok = false; note = `${j.maker} hasn't raced it yet. Try again soon.`; }
   else if (!isMaker && !inBoard && j.riders >= j.max_riders) { ok = false; note = j.max_riders === 1 ? "This duel already has its challenger. Make your own race and send it to a friend!" : "This race is full."; }
   $("rsBeat").innerHTML = isMaker && j.status === "draft" ? "Race it once to set <b>the time to beat</b>" : j.maker_ms ? `Time to beat <b>${fmt(j.maker_ms)}</b>` : "";
-  $("rsNote").textContent = note || (isMaker ? (j.status === "draft" ? "Then you get a link to send. Your ghost rides it for everyone who opens it." : "Your ghost rides this race for everyone who opens the link.") : `${j.maker}'s ghost rides beside you. Read their words to hit NITRO.`);
+  $("rsNote").textContent = note || (isMaker ? (j.status === "draft" ? "Then you get a link to send. Your ghost rides it for everyone who opens it." : "Your ghost rides this race for everyone who opens the link.") : gpk ? `${j.maker}'s ghost rides beside you. Read a word on a sign to take its lane.` : `${j.maker}'s ghost rides beside you. Read their words to hit NITRO.`);
+  if (!isMaker) RR.ev("open_link");
   $("rsGo").disabled = !ok; $("rsGo").hidden = !ok; $("rsAlt").textContent = ok ? "Race Rash GP" : "Make a race"; $("rsAlt").href = ok ? "gp.html" : "make.html";
-  if (isMaker && j.status !== "draft") { shareSetup("Send it to a friend", `I made a ReadRash race with ${j.words.length} words. Beat my ${fmt(j.maker_ms)}!`); }
+  if (isMaker && j.status !== "draft") { shareSetup("Send it to a friend", gpk ? `Beat my ${fmt(j.maker_ms)} on Rash GP. Same signs, my ghost!` : `I made a ReadRash race with ${j.words.length} words. Beat my ${fmt(j.maker_ms)}!`); }
   await prepare();
 }
 $("repBtn").onclick = () => { $("repBtn").hidden = true; $("repAsk").hidden = false; };
