@@ -35,8 +35,8 @@
 .tkhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#8a8294}
 .tkhead b{color:var(--ink);letter-spacing:.06em}
 /* lyrics block: --lh is one line; four lines show (three and a half on phones), the block slides up a line at a time */
-.ticker{--fs:clamp(25px,3.4vw,34px);--lh:calc(var(--fs) * 1.62);position:relative;overflow:hidden;height:calc(var(--lh) * 4 + 16px);border-radius:14px;background:#fff;border:3px solid var(--ink);padding:8px 10px;
-  -webkit-mask-image:linear-gradient(180deg,#000 0,#000 72%,transparent 100%);mask-image:linear-gradient(180deg,#000 0,#000 72%,transparent 100%)}
+.ticker{--fs:clamp(25px,3.4vw,34px);--lh:calc(var(--fs) * 1.62);position:relative;overflow:hidden;height:calc(var(--lh) * 4 + 16px);border-radius:14px;background:#fff;border:3px solid var(--ink);padding:8px 10px;contain:layout paint}
+.ticker::after{content:"";position:absolute;left:0;right:0;bottom:0;height:calc(var(--lh) * .9);background:linear-gradient(180deg,rgba(255,255,255,0),#fff);pointer-events:none}
 .tk-track{position:relative;display:flex;flex-wrap:wrap;align-content:flex-start;column-gap:6px;transition:transform .28s cubic-bezier(.2,.8,.3,1);will-change:transform}
 .tk-track .w{font-family:var(--read);font-weight:700;font-size:var(--fs);line-height:1;height:var(--lh);display:inline-flex;align-items:center;padding:0 9px;border-radius:10px;color:var(--ink);box-shadow:none;transition:color .1s,background .1s}
 .tk-track .w.done{color:#c3bccc}
@@ -282,7 +282,7 @@ $("micBack").onclick = () => { RR.Voice.stop(); show("pickScreen"); renderPick()
 /* on GO, make sure the whole word block is on screen */
 ctl.on("go", () => { const r = $("ticker").getBoundingClientRect(); if (r.bottom > innerHeight - 8) scrollBy({ top: r.bottom - innerHeight + 16, behavior: "smooth" }); });
 /* ---- live numbers under the dial ---- */
-setInterval(() => { const s = ctl.state(); if (!s.rl) return; $("mWords").textContent = s.idx; $("mTop").textContent = Math.round(s.rl.top); }, 200);
+let lastMini = ""; setInterval(() => { const s = ctl.rlInfo(), k = s.idx + "|" + s.top; if (k === lastMini) return; lastMini = k; $("mWords").textContent = s.idx; $("mTop").textContent = s.top; }, 250);
 
 /* ---- results ---- */
 ctl.on("finish", res => {

@@ -91,16 +91,34 @@ function isMatch(h,w){ if(sim(h,w)>=OK) return true; return w.length<=4&&h[0]===
 const Voice = {
   ok: VOICE_OK, finals:0, silent:0, heard:false, rec:null, handler:null, want:false, live:false, starting:false, startedAt:0, lastEvt:0, lastRes:0, speechAt:0, fails:0, netFails:0, timer:0, dog:0,
   status:"off", onDenied:null, onState:null, onStatus:null,
+  /* On-device recognition (newer Chrome): the speech never leaves the device, so there's no network round trip and words
+     land sooner. If the language pack is installed we use it, and we bias it towards the words on screen. Anything that
+     isn't supported falls back quietly to the normal cloud recogniser. */
+  local:null, localState:"unknown", localBad:false, phrases:null, phraseBad:false, installing:false,
+  async probe(){ const S=window.SpeechRecognition; if(!this.ok||!S||typeof S.available!=="function"){ this.localState="none"; return; }
+    for(const lang of ["en-IN","en-US"]){ try{ const st=await S.available({langs:[lang],processLocally:true});
+      if(st==="available"){ this.localState="available"; this.local=lang; return; }
+      if(st==="downloadable"||st==="downloading"){ this.localState=st; this.localLang=lang; return; } }catch(e){} }
+    this.localState="none"; },
+  _install(){ const S=window.SpeechRecognition; if(this.localState!=="downloadable"||this.installing||!S||typeof S.install!=="function") return; this.installing=true;
+    try{ S.install({langs:[this.localLang],processLocally:true}).then(ok=>{ this.installing=false; if(ok){ this.localState="available"; this.local=this.localLang; } }).catch(()=>{ this.installing=false; }); }catch(e){ this.installing=false; } },
+  // words on screen right now: the on-device recogniser listens out for these
+  setPhrases(list){ const u=[...new Set((list||[]).map(w=>String(w).replace(/[^A-Za-z' -]/g,"").trim()).filter(Boolean))].slice(0,120), key=u.join("|");
+    if(key===this._pkey) return; this._pkey=key; this.phrases=u;
+    if(this.local&&!this.localBad&&!this.phraseBad&&this.live&&this.want){ this._new(); this.live=false; this.starting=false; this._later(30); } },
   _set(st,info){ if(this.status===st&&!info) return; this.status=st; this.onStatus&&this.onStatus(st,info); },
   _new(){
     if(this.rec){ const o=this.rec; o.onstart=o.onend=o.onerror=o.onresult=o.onaudiostart=o.onsoundstart=o.onspeechstart=null; try{ o.abort(); }catch(e){} }
-    const r=new SR(); r.lang="en-IN"; r.continuous=true; r.interimResults=true; r.maxAlternatives=1;
+    const r=new SR(); r.lang="en-IN"; r.continuous=true; r.interimResults=true; r.maxAlternatives=1; r._local=false;
+    if(this.local&&!this.localBad){ try{ r.processLocally=true; r.lang=this.local; r._local=true;
+      if(this.phrases&&this.phrases.length&&!this.phraseBad&&window.SpeechRecognitionPhrase) r.phrases=this.phrases.map(p=>new SpeechRecognitionPhrase(p,3)); }catch(e){ this.phraseBad=true; } }
     const touch=()=>{ this.lastEvt=performance.now(); };
     r.onaudiostart=r.onsoundstart=touch; r.onspeechstart=()=>{ touch(); this.speechAt=performance.now(); if(this.rec===r) this.heard=true; };
     r.onstart=()=>{ if(this.rec!==r) return; touch(); this.heard=false; this.live=true; this.starting=false; this.fails=0; this._set("listening"); this.onState&&this.onState(true); this.handler&&this.handler({reset:true}); };
     r.onresult=e=>{ if(this.rec!==r) return; touch(); this.lastRes=performance.now(); this.netFails=0;
       for(let i=e.resultIndex;i<e.results.length;i++) if(e.results[i].isFinal){ this.finals++; if(!this.heard&&!(this.speechAt&&performance.now()-this.speechAt<10000)) this.silent++; } this.handler&&this.handler(e); };
     r.onerror=e=>{ if(this.rec!==r) return; const er=e.error;
+      if((er==="language-not-supported"&&r._local)||er==="phrases-not-supported"){ if(er==="phrases-not-supported") this.phraseBad=true; else this.localBad=true; this._new(); this.live=false; this.starting=false; this._later(60); return; }
       if(er==="not-allowed"||er==="service-not-allowed"){ this.want=false; this._set("blocked"); this.onDenied&&this.onDenied(er); }
       else if(er==="audio-capture"){ this.fails++; this._set("nomic"); }
       else if(er==="network"){ this.netFails++; this.fails++; this._set("offline"); }
@@ -127,7 +145,8 @@ const Voice = {
     document.addEventListener("visibilitychange",()=>{ if(!document.hidden&&this.want){ this.fails=0; this._kick(); } });
     window.addEventListener("online",()=>{ if(this.want){ this.fails=0; this._kick(); } });
   },
-  start(handler){ if(!this.ok) return; this.handler=handler; this.want=true; this._watch();
+  start(handler){ if(!this.ok) return; this.handler=handler; this.want=true; this._watch(); this._install();
+    if(this.local&&!this.localBad&&this.rec&&!this.rec._local){ this._new(); this.live=false; this.starting=false; }
     if(this.live){ handler({reset:true}); return; }
     if(this.status!=="blocked") this._set("starting"); this._kick(); },
   // called from a tap: a fresh recogniser inside a user gesture clears most stuck states
@@ -135,6 +154,8 @@ const Voice = {
   use(handler){ this.handler=handler; if(this.live&&handler) handler({reset:true}); },
   stop(){ this.want=false; clearTimeout(this.timer); if(this.rec){ try{ this.rec.stop(); }catch(e){} } }
 };
+if(VOICE_OK) Voice.probe();
+
 
 /* mic status on screen: label, error text, a Restart button, and the little dot/chip in the race toolbar */
 const MIC_MSG={ starting:"Starting microphone…", listening:"Listening", retry:"Reconnecting…", off:"Microphone off",
@@ -624,7 +645,7 @@ function create(o){
   /* ---------- Redline: read a pack of words like a rap; every word kicks the throttle ---------- */
   // speed follows your reading rate over the last couple of seconds (not each word as Chrome delivers it), so its
   // half-second recognition gaps and 2-3 word bursts don't make the bike stall and lurch. KICK/DECAY only move the rev needle.
-  const RL={D:900,K:72,WIN:2.5,UP:1.7,DOWN:.9,KICK:.45,DECAY:2.2,GEARS:[0,45,90,140,190,240,999]};
+  const RL={D:900,K:72,WIN:1.6,UP:3.2,DOWN:1.1,KICK:.45,DECAY:2.2,GEARS:[0,45,90,140,190,240,999]};
   let rl={pack:"animals",seed:"",dist:0,v:0,p:0,gear:1,rpm:0,top:0,shiftT:-9999,launch:null,first:null,trace:[],traceT:0,ghost:null,ghostRider:null,miss:0,boost:0,lastGear:1,blipT:-9999};
   let gpLaps=3, rows=[], gpObs=[], gpNitro=[], rivals=[], heat=.4, lapIdx=0, splits=[], gpMissed=0, gpWrong=0, lastPlace=12;
   let gaps=[], shieldBuilt=0, gpSeed="", zapTold=false, custom=null, ghosts=[], track=[], trackT=0, floats=[], atkTold=false, defTold=false, shieldTold=false, crackTold=false, playerAtkCD=0, shieldCharge=0, kos=0, hitsTaken=0, blocks=0, atkTarget=null, projs=[], comment=null, lastRivalAtk=-9999, leaderName="";
@@ -669,7 +690,7 @@ function create(o){
         content.forEach((c,lane)=>{ if(c==="traffic") gpObs.push({z:z+GP.ROW_GAP*SEG*.18,lane,type:traffic[(k+lane+lap)%traffic.length],hit:false});
                                   if(c==="nitro"||c==="book"||c==="coconut") gpNitro.push({z:z+GP.ROW_GAP*SEG*.1,lane,kind:c,taken:false}); });
       } }
-    words=rows.flatMap(r=>r.words); keys=words.map(norm); status=[]; trouble=new Set(); acts=[]; idx=0;
+    words=rows.flatMap(r=>r.words); keys=words.map(norm); if(!attract) Voice.setPhrases(words); status=[]; trouble=new Set(); acts=[]; idx=0;
     correctCount=0; attemptCount=0; streak=0; gpMissed=0; gpWrong=0; crashes=0; kos=0; hitsTaken=0; blocks=0; shieldCharge=0; floats=[]; shieldBuilt=0; gaps=[]; zapTold=false; atkTold=false; defTold=false; shieldTold=false; crackTold=false; atkTarget=null; projs=[]; comment=null; lastRivalAtk=-9999; leaderName=""; heat=.4; lapIdx=0; splits=[]; finishT=null; lights=0; draft=0; slingUntil=0; posFlash=null;
     Object.assign(P,{z:GP.START-2800,target:0,v:0,x:0,vx:0,lane:1,lean:0,state:"ride",until:0,boostUntil:0,swipeT:-9999,copUntil:0,shield:1,shieldFlashT:-9999,weapon:{type:"paper",uses:Infinity},downT:-9999,downDir:1});
     // the pack: in-game riders with personalities; everyone lines up ahead of you
@@ -1001,7 +1022,7 @@ function create(o){
   let consumed=[];
   // would this heard word move the race on right now? (no side effects)
   function wants(h,last){ if(phase!=="race"||!h) return false; const pre=k=>last&&k.length>=5&&h.length>=Math.max(4,Math.ceil(k.length*.6))&&k.startsWith(h);
-    if(redline) return idx<keys.length&&(isMatch(h,keys[idx])||pre(keys[idx]));
+    if(redline) return idx<keys.length&&(isMatch(h,keys[idx])||pre(keys[idx])||(last&&keys[idx].length>=4&&h.length>=3&&h.length>=Math.ceil(keys[idx].length*.45)&&keys[idx].startsWith(h)));
     if(gp){ if(atkTarget&&atkTarget.atkKey&&(isMatch(h,atkTarget.atkKey)||pre(atkTarget.atkKey))) return true; const r=curRow(); return !!r&&r.keys.some(k=>isMatch(h,k)||pre(k)); }
     return idx<keys.length&&(isMatch(h,keys[idx])||pre(keys[idx])); }
   function voiceHandler(e){
@@ -1029,7 +1050,7 @@ function create(o){
     const R=seeded("rl:"+rl.pack+":"+league+":"+rl.seed), sh=a=>{ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(R()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
     const src=PACKS[rl.pack][league]; let list=[];
     while(list.length<140){ const b=sh(src); while(list.length&&list.slice(-8).includes(b[0])) b.push(b.shift()); list=list.concat(b); }
-    words=list.slice(0,140); keys=words.map(norm); status=words.map(()=>"todo"); trouble=new Set(); acts=new Array(words.length).fill(null);
+    words=list.slice(0,140); keys=words.map(norm); if(!attract) Voice.setPhrases(words.slice(0,100)); status=words.map(()=>"todo"); trouble=new Set(); acts=new Array(words.length).fill(null);
     idx=0; fails=0; correctCount=0; attemptCount=0; streak=0; finishT=null; lights=0; obstacles=[]; parts=[]; bursts=[]; shakeAmt=0; skyOff=0;
     VREF=RACE_LEN*(300/3.6)/RL.D; HUD0=START_Z; HUDLEN=RACE_LEN; FINZ=FINISH_Z;
     segs=buildDragRoad(DRAW);
@@ -1055,7 +1076,10 @@ function create(o){
     const w=keys[idx];
     if(isMatch(h,w)){ rlHit(); return 1; }
     if(next&&sim(h+next,w)>=.75){ rlHit(); return 2; }
-    if(!final&&last&&w.length>=5&&h.length>=Math.max(4,Math.ceil(w.length*.6))&&w.startsWith(h)){ rlHit(); return 1; }
+    // speed game: take a word the moment its first sounds show up in the live text ("pengu" for penguin)
+    if(!final&&last&&w.length>=4&&h.length>=3&&h.length>=Math.ceil(w.length*.45)&&w.startsWith(h)){ rlHit(); return 1; }
+    // two words run together ("catdog", "sea horse" style splits are handled above)
+    if(idx+1<words.length&&h.length>=6&&sim(h,w+keys[idx+1])>=.8){ rlHit(); rlHit(); return 1; }
     if(idx>0&&sim(h,keys[idx-1])>=.8) return 1;
     // skipped a word or two to keep the flow: keep going, the skipped ones count as missed
     for(let k=1;k<=2&&idx+k<words.length;k++) if(keys[idx+k].length>=3&&sim(h,keys[idx+k])>=.8){ if(!final&&last) return 0; for(let j=0;j<k;j++) rlSkip(); rlHit(); return 1; }
@@ -1070,7 +1094,7 @@ function create(o){
       if(autopilot&&idx<words.length&&now>=apNext){ const w=keys[idx]; rlJudge(w,null,true,false); apNext=now+(60000/apWpm)*(.75+Math.random()*.5)*(w.length>7?1.35:1); }
       rl.p-=rl.p*Math.min(1,RL.DECAY*dt);
       while(rl.hits.length&&rl.hits[0]<now-RL.WIN*1000) rl.hits.shift();
-      const win=rl.first==null?RL.WIN:Math.max(.8,Math.min(RL.WIN,(now-rl.first)/1000+.4)), rate=rl.hits.filter(t=>t>=now-win*1000).length/win;
+      const win=rl.first==null?RL.WIN:Math.max(.6,Math.min(RL.WIN,(now-rl.first)/1000+.35)), rate=rl.hits.filter(t=>t>=now-win*1000).length/win;
       const tv=RL.K*rate*(rl.boost>now?1.3:1); rl.v=Math.max(0,rl.v+(tv-rl.v)*Math.min(1,dt*(tv>rl.v?RL.UP:RL.DOWN)));
       rl.dist+=rl.v/3.6*dt; rl.top=Math.max(rl.top,rl.v);
       while(now>=rl.traceT){ rl.trace.push(Math.round(rl.dist*10)); rl.traceT+=100; }
@@ -1103,7 +1127,9 @@ function create(o){
   function drawDial(){ const c=$u("dial"); if(!c) return;
     const bw=c.clientWidth, bh=c.clientHeight; if(!bw||!bh) return; const d=Math.min(2,window.devicePixelRatio||1), w=Math.round(bw*d), h=Math.round(bh*d);
     if(c.width!==w||c.height!==h){ c.width=w; c.height=h; }
-    const g=c.getContext("2d"), tn=performance.now(); g.clearRect(0,0,w,h);
+    const tn=performance.now(), dk=[Math.round(rl.v),Math.round(rl.rpm*68),rl.gear,tn-rl.shiftT<420,rl.rpm>.9&&phase==="race"&&Math.floor(tn/80)%2,rl.boost>now&&phase==="race",w,h].join("|");
+    if(dk===drawDial.k) return; drawDial.k=dk; // only repaint the dial when something on it changed
+    const g=c.getContext("2d"); g.clearRect(0,0,w,h);
     const R=Math.min(w/2,h/2.1)*.97, cx=w/2, cy=h-R*1.02, a0=Math.PI*.78, sw=Math.PI*1.44, A=t=>a0+sw*t, pt=(a,r)=>[cx+Math.cos(a)*r,cy+Math.sin(a)*r];
     g.fillStyle="#141118"; g.beginPath(); g.arc(cx,cy,R,0,7); g.fill(); g.strokeStyle="#000"; g.lineWidth=R*.04; g.stroke();
     const N=34, lit=rl.rpm*N;
@@ -1144,7 +1170,7 @@ function create(o){
   function load(lg,ri){
     league=lg; raceIdx=ri; apWpm=LEAGUES[league].demo;
     const R=RACES[raceIdx]; segs=buildRoad(raceIdx+1,R.bridge,DRAW);
-    const text=o.text||R[league]; words=text.split(/\s+/).filter(Boolean); keys=words.map(norm);
+    const text=o.text||R[league]; words=text.split(/\s+/).filter(Boolean); keys=words.map(norm); if(!attract) Voice.setPhrases(words);
     status=words.map(()=>"todo"); trouble=new Set(); acts=new Array(words.length).fill(null);
     idx=0; fails=0; correctCount=0; attemptCount=0; streak=0; swipes=0; dodges=0; finishT=null; lights=0;
     Object.assign(P,{z:START_Z,target:START_Z,v:0,x:0,lean:0,state:"ride",until:0,boostUntil:0,swipeT:-9999,copUntil:0});
@@ -1604,7 +1630,7 @@ function create(o){
   if(attract){ lights=4; go(); }
 
   return {
-    load:(lg,ri)=>{ o.text=null; o.ghost=null; load(lg,ri); }, loadText, loadGP, loadRL, countdown, finish:()=>{ finishT=null; finish(true); },
+    load:(lg,ri)=>{ o.text=null; o.ghost=null; load(lg,ri); }, loadText, loadGP, loadRL, rlInfo:()=>({idx,top:Math.round(rl.top)}), countdown, finish:()=>{ finishT=null; finish(true); },
     listen:()=>Voice.use(voiceHandler), voiceHandler,
     setAutopilot:(on,wpm)=>{ autopilot=on; if(wpm) apWpm=wpm; },
     on:(k,f)=>{ (listeners[k]=listeners[k]||[]).push(f); },
