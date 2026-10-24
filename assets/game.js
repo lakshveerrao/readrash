@@ -1411,17 +1411,18 @@ async function shareCard(o){
   try{ if(document.fonts&&document.fonts.load) await Promise.race([document.fonts.load("italic 80px 'Racing Sans One'"),new Promise(r=>setTimeout(r,1200))]); }catch(e){}
   for(let i=0;i<40&&!skinCanvas(SKINS.ME);i++) await new Promise(r=>setTimeout(r,100));
   const sky=g.createLinearGradient(0,0,0,H*.55); sky.addColorStop(0,"#2f7fd0"); sky.addColorStop(1,"#bfe7f7"); g.fillStyle=sky; g.fillRect(0,0,W,H*.55);
-  g.fillStyle="#fffbe6"; g.globalAlpha=.9; g.beginPath(); g.arc(W*.8,H*.17,70,0,7); g.fill(); g.globalAlpha=1;
   g.fillStyle="#6f9e74"; g.beginPath(); g.moveTo(0,H*.55); for(let x=0;x<=W;x+=30) g.lineTo(x,H*.55-60-Math.sin(x*.012)*40-Math.sin(x*.031)*18); g.lineTo(W,H*.55); g.fill();
   g.fillStyle="#2a8dbd"; g.fillRect(0,H*.55-6,W*.4,8);
   g.fillStyle="#57565f"; g.beginPath(); g.moveTo(W*.46,H*.55); g.lineTo(W*.54,H*.55); g.lineTo(W*1.05,H); g.lineTo(-W*.05,H); g.fill();
   g.fillStyle="#86b84a"; g.beginPath(); g.moveTo(0,H*.55); g.lineTo(W*.46,H*.55); g.lineTo(-W*.05,H); g.lineTo(0,H); g.fill(); g.beginPath(); g.moveTo(W,H*.55); g.lineTo(W*.54,H*.55); g.lineTo(W*1.05,H); g.lineTo(W,H); g.fill();
   g.fillStyle="#f7f2e6"; for(let k=0;k<7;k++){ const t=k/7, y=H*.55+(H*.45)*t*t, h=10+t*60, w=4+t*16; g.fillRect(W/2-w/2,y,w,h); }
   const shade=g.createLinearGradient(0,0,0,H); shade.addColorStop(0,"rgba(12,10,16,.82)"); shade.addColorStop(.42,"rgba(12,10,16,.15)"); shade.addColorStop(.7,"rgba(12,10,16,0)"); shade.addColorStop(1,"rgba(12,10,16,.9)"); g.fillStyle=shade; g.fillRect(0,0,W,H);
+  { const sg=g.createRadialGradient(W*.8,H*.2,10,W*.8,H*.2,150); sg.addColorStop(0,"rgba(255,246,200,.95)"); sg.addColorStop(.45,"rgba(255,220,120,.55)"); sg.addColorStop(1,"rgba(255,200,80,0)"); g.fillStyle=sg; g.beginPath(); g.arc(W*.8,H*.2,150,0,7); g.fill(); }
   const SC=skinCanvas(SKINS.ME); if(SC){ const f=RIDER_META.orange[o.win?12:0], k=(SC.naturalHeight||SC.height)/SC._fh, sc=640/f.h; g.drawImage(SC,f.x*k,f.y*k,f.w*k,f.h*k,W/2-f.ax*sc,H*.93-f.ay*sc,f.w*sc,f.h*sc); }
   const disp="'Racing Sans One','Arial Black',sans-serif";
   g.textBaseline="alphabetic"; g.textAlign="left";
   g.font=`italic 64px ${disp}`; g.fillStyle="#fff4e2"; g.fillText("READ",64,120); g.fillStyle="#ff6a1a"; g.fillText("RASH",64+g.measureText("READ").width,120);
+  { const lw=g.measureText("READRASH").width+64+26; g.fillStyle="#ff6a1a"; g.fillRect(lw,74,6,52); g.font=`italic 50px ${disp}`; g.fillStyle="#fff4e2"; g.fillText("Read to ride.",lw+24,118); }
   g.font="700 30px Verdana,sans-serif"; g.fillStyle="#ffd23f"; g.fillText(String(o.kicker||"").toUpperCase(),66,190);
   g.font=`italic 150px ${disp}`; g.fillStyle="#fff4e2"; let big=String(o.big||""); while(g.measureText(big).width>W-120&&big.length>3) g.font=`italic ${parseInt(g.font.match(/\d+/)[0])-10}px ${disp}`; g.fillText(big,60,340);
   g.font=`italic 64px ${disp}`; g.fillStyle="#ff6a1a"; g.fillText(String(o.line||""),64,420);
