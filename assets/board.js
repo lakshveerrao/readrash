@@ -1,11 +1,6 @@
-/* ReadRash leaderboard client: reads /api/scores, falls back to clearly-labelled example rows when the API isn't live yet. */
+/* ReadRash leaderboard client: reads /api/scores and /api/gp; says so plainly if the board can't be reached. */
 (function(){
 "use strict";
-const EXAMPLE = {
-  rookie:[["SpeedyMango21",92,96,98],["JollyCrab47",88,94,97],["BraveKite12",81,90,96],["LuckyLassi33",77,85,99],["ZippyGecko58",70,82,94],["SuperSamosa16",66,78,95],["FlyingTurtle90",61,74,93],["CleverComet44",58,70,94]],
-  pro:[["TurboFalcon77",141,149,97],["NitroPeacock12",133,140,96],["CosmicCheetah05",126,135,95],["RapidJalebi64",118,124,97],["MightyMonsoon29",110,118,95],["GoldenKite83",104,111,96],["SwiftDolphin40",97,104,95],["HyperGecko18",90,98,94]],
-  legend:[["FearlessCyclone11",182,188,98],["ThunderPanther56",171,180,96],["BlazingEagle23",163,171,97],["RocketTiger95",155,165,95],["SilverBolt37",148,156,96],["DaringWheelie62",139,148,95],["FunkyLion08",131,140,95],["JumboComet71",124,133,94]]
-};
 function esc(s){ return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 async function fetchRows(league,period,limit){
   try{
@@ -14,7 +9,7 @@ async function fetchRows(league,period,limit){
     const ct=r.headers.get("content-type")||""; if(!ct.includes("json")) throw new Error("not json");
     const j=await r.json(); return {live:true,rows:j.rows||[]};
   }catch(e){
-    return {live:false,rows:EXAMPLE[league].slice(0,limit).map(([name,score,wpm,acc])=>({name,score,wpm,acc}))};
+    return {live:false,rows:[]};
   }
 }
 async function submit(entry){
@@ -30,6 +25,7 @@ function mount(o){
     o.body.innerHTML=`<tr><td colspan="5" class="note">Loading…</td></tr>`;
     let {live,rows}=await fetchRows(league,period,o.limit||10), used=period;
     if(live&&!rows.length) for(const p of (period==="today"?["week","all"]:period==="week"?["all"]:[])){ const r=await fetchRows(league,p,o.limit||10); if(r.rows.length){ rows=r.rows; used=p; break; } }
+    if(!live){ o.body.innerHTML=`<tr><td colspan="5" class="note">${window.ReadRash&&window.ReadRash.IN_VIEWER?"The board is live on readrash.com.":"Couldn't load the board. Try again in a moment."}</td></tr>`; if(o.note) o.note.textContent=""; return; }
     if(!rows.length){ o.body.innerHTML=`<tr><td colspan="5" class="note">No rides yet in this league. Finish a race and you're on top.</td></tr>`; }
     else o.body.innerHTML=rows.map((r,i)=>`<tr class="${live&&me&&r.name===me?"me":""}"><td class="rk">${i+1}</td><td class="nm">${esc(r.name)}${live?"":' <span class="tag">Example</span>'}</td><td class="r sc">${r.score|0}</td><td class="r">${r.wpm|0}</td><td class="r">${r.acc|0}%</td></tr>`).join("");
     if(o.note) o.note.textContent = live ? (used!==period?`Nobody has raced ${period==="today"?"today":"this week"} yet, so this shows ${used==="week"?"this week":"all time"}. `:"")+"Score = words per minute × accuracy. Every finished race posts itself; best ride per rider." : "These are example rows. The live board switches on when ReadRash launches on its own site.";

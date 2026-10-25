@@ -29,9 +29,12 @@ export async function onRequestGet({ request, env }) {
 }
 
 export async function onRequestPost({ request, env }) {
-  let b; try { b = await request.json(); } catch { return json({ error: "Bad JSON" }, 400); }
-  const { name, league, race, words, correct, attempts, timeMs } = b || {};
-  if (typeof name !== "string" || !NAME_RE.test(name)) return json({ error: "Pick a ReadRash rider name" }, 400);
+  let b; try { b = await request.json(); } catch { b = null; } if (!b || typeof b !== "object" || Array.isArray(b)) return json({ error: "Bad JSON" }, 400);
+  const { league, race, words, correct, attempts, timeMs } = b || {};
+  if (typeof b.name !== "string" || !NAME_RE.test(b.name)) return json({ error: "Pick a ReadRash rider name" }, 400);
+  // posted under the rider's own name, worked out from their secret key
+  const rr = await getRider(env, b.key, b.name, true); if (!rr) return json({ error: "Unknown rider" }, 400);
+  const name = rr.name;
   if (!LEAGUES.has(league)) return json({ error: "Unknown league" }, 400);
   if (!Number.isInteger(race) || race < 0 || race > 4) return json({ error: "Unknown race" }, 400);
   if (words !== WORDS[league][race]) return json({ error: "Race doesn't match" }, 400);
@@ -49,8 +52,8 @@ export async function onRequestPost({ request, env }) {
   const better = await env.DB.prepare(
     `SELECT COUNT(*) AS n FROM (SELECT name, MAX(score) AS s FROM scores WHERE league = ?1 AND created_at >= ?2 GROUP BY name) WHERE s > ?3`
   ).bind(league, since("today", now), score).first();
-  let rp = null, rider = null; const rr = await getRider(env, b.key, name, true);
-  if (rr) { const pl = Number.isInteger(b.place) && b.place >= 1 && b.place <= 4 ? b.place : null;
+  let rp = null, rider = null;
+  { const pl = Number.isInteger(b.place) && b.place >= 1 && b.place <= 4 ? b.place : null;
     await noteFairPlay(env, rr, "story", `${league}/${race}`, b.chk);
     rp = await award(env, rr, { mode: "story", league, timeMs, correct, finished: true, place: pl, clean: attempts === correct && correct === words }); rider = profile(rr); }
   return json({ ok: true, wpm, acc, score, rank: (better?.n || 0) + 1, rp, rider });

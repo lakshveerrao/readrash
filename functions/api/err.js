@@ -2,7 +2,7 @@
 import { json, dayOf } from "../_lib/rr.js";
 const cut = (v, n) => String(v || "").slice(0, n);
 export async function onRequestPost({ request, env }) {
-  let b; try { b = await request.json(); } catch { return json({ ok: false }, 400); }
+  let b; try { b = await request.json(); } catch { b = null; } if (!b || typeof b !== "object" || Array.isArray(b)) return json({ ok: false }, 400);
   const now = Date.now(), day = dayOf(now), w = cut(b.w, 30), m = cut(b.m, 200);
   if (!w || !m) return json({ ok: false }, 400);
   try {

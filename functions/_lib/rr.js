@@ -19,7 +19,7 @@ export async function getRider(env, key, name, create = true) {
   const h = await sha(key);
   let r = await env.DB.prepare(`SELECT * FROM riders WHERE key_hash = ?1`).bind(h).first();
   if (!r && create && typeof name === "string" && NAME_RE.test(name)) {
-    await env.DB.prepare(`INSERT INTO riders (key_hash, name, created_at) VALUES (?1, ?2, ?3)`).bind(h, name, Date.now()).run();
+    try { await env.DB.prepare(`INSERT INTO riders (key_hash, name, created_at) VALUES (?1, ?2, ?3)`).bind(h, name, Date.now()).run(); } catch (e) {} // two first requests at once: the other one made it
     r = await env.DB.prepare(`SELECT * FROM riders WHERE key_hash = ?1`).bind(h).first();
   } else if (r && typeof name === "string" && NAME_RE.test(name) && name !== r.name) {
     await env.DB.prepare(`UPDATE riders SET name = ?1 WHERE id = ?2`).bind(name, r.id).run(); r.name = name;

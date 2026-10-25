@@ -4,7 +4,7 @@ const LG = new Set(["rookie", "pro", "legend"]);
 const ALPHA = "abcdefghjkmnpqrstuvwxyz23456789";
 const code = () => Array.from(crypto.getRandomValues(new Uint8Array(6)), x => ALPHA[x % ALPHA.length]).join("");
 export async function onRequestPost({ request, env }) {
-  let b; try { b = await request.json(); } catch { return json({ error: "Bad JSON" }, 400); }
+  let b; try { b = await request.json(); } catch { b = null; } if (!b || typeof b !== "object" || Array.isArray(b)) return json({ error: "Bad JSON" }, 400);
   const r = await getRider(env, b.key, b.name, true);
   if (!r) return json({ error: "Unknown rider" }, 400);
   const lim = RACE_LIMITS(r.rp);
@@ -37,6 +37,8 @@ export async function onRequestPost({ request, env }) {
   await env.DB.prepare(`INSERT INTO races (code, maker_id, maker_name, title, words, league, laps, max_riders, status, created_at, expires_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 'draft', ?9, ?10)`)
     .bind(c, r.id, r.name, title, JSON.stringify({ words: ok, circuit: circuitFor(b.circuit, r.rp) }), b.league, b.laps, lim.riders, now, now + lim.days * 864e5).run();
   // keep at most 20 races per maker
-  await env.DB.prepare(`DELETE FROM races WHERE maker_id = ?1 AND code NOT IN (SELECT code FROM races WHERE maker_id = ?1 ORDER BY created_at DESC LIMIT 20)`).bind(r.id).run();
+  // tidy up: only races that have already ended, and never the newest 20 (a shared link keeps working until it expires)
+  await env.DB.prepare(`DELETE FROM race_runs WHERE code IN (SELECT code FROM races WHERE maker_id = ?1 AND expires_at < ?2 AND code NOT IN (SELECT code FROM races WHERE maker_id = ?1 ORDER BY created_at DESC LIMIT 20))`).bind(r.id, Date.now()).run();
+  await env.DB.prepare(`DELETE FROM races WHERE maker_id = ?1 AND expires_at < ?2 AND code NOT IN (SELECT code FROM races WHERE maker_id = ?1 ORDER BY created_at DESC LIMIT 20)`).bind(r.id, Date.now()).run();
   return json({ code: c, title, words: ok });
 }

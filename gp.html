@@ -21,8 +21,8 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="assets/site.css?v=20261025e">
-<link rel="stylesheet" href="assets/game.css?v=20261025e">
+<link rel="stylesheet" href="assets/site.css?v=20261025f">
+<link rel="stylesheet" href="assets/game.css?v=20261025f">
 <style>
 /* Rash GP: same race view; the text card shows the three lane words of the next gantry, with what waits in each lane */
 .lanecard{display:flex;flex-direction:column;gap:10px;justify-content:center;min-height:150px}
@@ -263,8 +263,8 @@
   </div>
 </div>
 
-<script src="assets/game.js?v=20261025e"></script>
-<script src="assets/board.js?v=20261025e"></script>
+<script src="assets/game.js?v=20261025f"></script>
+<script src="assets/board.js?v=20261025f"></script>
 <script>
 (() => {
 const RR = window.ReadRash, $ = id => document.getElementById(id);
@@ -439,7 +439,7 @@ async function openMade(){
   if (j.kind === "story") { location.replace("play.html?r=" + CODE); return; }
   if (j.kind === "redline") { location.replace("redline.html?r=" + CODE); return; }
   made = j; league = j.league; laps = j.laps;
-  isMaker = RR.Rider.made().includes(j.code) || j.maker === RR.nickname(); $("repWrap").hidden = isMaker;
+  isMaker = RR.Rider.made().includes(j.code); $("repWrap").hidden = isMaker;
   $("rsKick").textContent = isMaker ? "Your race" : `A race from ${j.maker}`; $("rsTitle").textContent = j.title;
   const gpk = j.kind === "gp";
   $("rsInfo").textContent = gpk ? `Rash GP · ${RR.LEAGUES[j.league].name} · ${j.laps} laps · the same ${j.laps * 10} signs, the same traffic` : `${j.words.length} words · ${j.laps} laps · ${RR.LEAGUES[j.league].name} level · your words are on the NITRO lane`;

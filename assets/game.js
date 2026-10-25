@@ -154,7 +154,7 @@ const Voice = {
   /* Fast voice: same calls, handled by assets/fastvoice.js (loaded the first time it's switched on) */
   fast:false, _loadSubs:[], onLoad(p){ this._loadSubs.forEach(f=>{ try{ f(p); }catch(e){} }); },
   setFast(on){ this.fast=!!on&&FAST_OK; this.ok=this.fast||VOICE_OK; try{ localStorage.setItem("rr.fastVoice",JSON.stringify(this.fast)); }catch(e){} if(this.fast) this._fastLib(); return this.fast; },
-  _fastLib(){ if(window.RRFast) return Promise.resolve(window.RRFast); if(!this._fl) this._fl=new Promise((ok,no)=>{ const s=document.createElement("script"); s.src="assets/fastvoice.js?v=20261025e"; s.onload=()=>ok(window.RRFast); s.onerror=no; document.head.appendChild(s); }); return this._fl; },
+  _fastLib(){ if(window.RRFast) return Promise.resolve(window.RRFast); if(!this._fl) this._fl=new Promise((ok,no)=>{ const s=document.createElement("script"); s.src="assets/fastvoice.js?v=20261025f"; s.onload=()=>ok(window.RRFast); s.onerror=no; document.head.appendChild(s); }); return this._fl; },
   _viaFast(fn){ if(!this.fast) return false; if(this.rec&&this.live){ try{ this.rec.abort(); }catch(e){} } this._fastLib().then(F=>fn(F)).catch(()=>this._set("offline")); return true; },
   start(handler){ if(this._viaFast(F=>F.start(handler))) return; if(!this.ok) return; this.handler=handler; this.want=true; this._watch(); this._install();
     if(this.local&&!this.localBad&&this.rec&&!this.rec._local){ this._new(); this.live=false; this.starting=false; }
@@ -1150,7 +1150,7 @@ function create(o){
       // bike sag every time it goes quiet for a moment. Only a real stop (1.2s with no new word) lets the speed drop.
       const lastHit=rl.hits.length?rl.hits[rl.hits.length-1]:null, end=lastHit!=null&&now-lastHit<1200?Math.min(now,lastHit+350):now;
       const win=rl.first==null?RL.WIN:Math.max(.6,Math.min(RL.WIN,(end-rl.first)/1000+.35)), rate=rl.hits.filter(t=>t>=end-win*1000&&t<=end).length/win;
-      const tv=RL.K*rate*(rl.boost>now?1.3:1); rl.v=Math.max(0,rl.v+(tv-rl.v)*Math.min(1,dt*(tv>rl.v?RL.UP:RL.DOWN)));
+      const tv=Math.min(320,RL.K*rate*(rl.boost>now?1.3:1)); rl.v=Math.max(0,rl.v+(tv-rl.v)*Math.min(1,dt*(tv>rl.v?RL.UP:RL.DOWN)));
       rl.dist+=rl.v/3.6*dt; rl.top=Math.max(rl.top,rl.v);
       while(now>=rl.traceT){ rl.trace.push(Math.round(rl.dist*10)); rl.traceT+=100; }
       if(rl.dist>=RL.D&&finishT==null){ finishT=now; finish(false); }
@@ -1738,7 +1738,7 @@ const Rider={ _me:null,
   key(){ let k=Store.get("riderKey",null); if(typeof k!=="string"||!/^[a-z2-7]{20,40}$/.test(k)){ const A="abcdefghijklmnopqrstuvwxyz234567"; k=Array.from(crypto.getRandomValues(new Uint8Array(26)),x=>A[x%32]).join(""); Store.set("riderKey",k); } return k; },
   setKey(k){ k=String(k||"").toLowerCase().replace(/[^a-z2-7]/g,""); if(k.length<20||k.length>40) return false; Store.set("riderKey",k); Store.set("adoptName",true); this._me=null; return true; },
   async me(){ try{ const r=await fetch("/api/me",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({key:this.key(),name:Store.get("adoptName",false)?null:nickname()})});
-      if(!r.ok) throw 0; const j=await r.json(); this._me=j; if(j.name){ Store.set("name",j.name); Store.set("adoptName",false); } Store.set("rpCache",{rp:j.rp,level:j.level}); return j; }catch(e){ return null; } },
+      if(!r.ok) throw 0; const j=await r.json(); this._me=j; if(j.name){ Store.set("name",j.name); Store.set("adoptName",false); } Store.set("rpCache",{rp:j.rp,level:j.level}); (j.made||[]).slice().reverse().forEach(m=>{ if(!this.made().includes(m.code)) this.addMade(m.code); }); return j; }catch(e){ return null; } },
   cached(){ return this._me||Store.get("rpCache",null); },
   made(){ return Store.get("madeRaces",[]); }, addMade(c){ const l=this.made().filter(x=>x!==c); l.unshift(c); Store.set("madeRaces",l.slice(0,40)); } };
 function esc(t){ return String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }

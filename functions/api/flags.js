@@ -8,7 +8,7 @@ export async function onRequestGet({ request, env }) {
   return json({ enforce: ENFORCE, total: total?.n || 0, cleared: total?.c || 0, rows: (results || []).map(r => ({ ...r, reasons: JSON.parse(r.reasons), detail: JSON.parse(r.detail) })) });
 }
 export async function onRequestPost({ request, env }) {
-  let b; try { b = await request.json(); } catch { return json({ error: "Bad JSON" }, 400); }
+  let b; try { b = await request.json(); } catch { b = null; } if (!b || typeof b !== "object" || Array.isArray(b)) return json({ error: "Bad JSON" }, 400);
   if (!env.STATS_KEY || b.key !== env.STATS_KEY) return json({ error: "Wrong key" }, 403);
   await env.DB.prepare(`UPDATE flags SET cleared = 1 WHERE id = ?1`).bind(b.id | 0).run();
   return json({ ok: true });

@@ -11,7 +11,7 @@ export async function onRequestGet({ request, env }) {
   return json({ pack, league, period, rows: results || [] });
 }
 export async function onRequestPost({ request, env }) {
-  let b; try { b = await request.json(); } catch { return json({ error: "Bad JSON" }, 400); }
+  let b; try { b = await request.json(); } catch { b = null; } if (!b || typeof b !== "object" || Array.isArray(b)) return json({ error: "Bad JSON" }, 400);
   if (!RL_PACKS.has(b.pack) || !LG.has(b.league)) return json({ error: "Unknown board" }, 400);
   const err = checkRedline(b); if (err) return json({ error: err }, 400);
   const r = await getRider(env, b.key, b.name, true); if (!r) return json({ error: "Unknown rider" }, 400);

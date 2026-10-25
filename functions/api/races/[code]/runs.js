@@ -1,9 +1,9 @@
 // A finished run on a made race: checks it, opens the race on the maker's first run, awards Rash Points.
-import { json, getRider, award, makerBonus, profile, noteFairPlay, raceData, checkRedline } from "../../../_lib/rr.js";
+import { json, getRider, award, makerBonus, profile, noteFairPlay, raceData, checkRedline, checkWords } from "../../../_lib/rr.js";
 const LAP_LEN = 1000 * 200, SIGNS_PER_LAP = 10, VMAX = { rookie: 6000, pro: 9500, legend: 14000 };
 const MIN_LAP_MS = l => Math.floor(LAP_LEN / (VMAX[l] * 1.46) * 1000 * 0.97);
 export async function onRequestPost({ request, env, params }) {
-  let b; try { b = await request.json(); } catch { return json({ error: "Bad JSON" }, 400); }
+  let b; try { b = await request.json(); } catch { b = null; } if (!b || typeof b !== "object" || Array.isArray(b)) return json({ error: "Bad JSON" }, 400);
   const c = String(params.code || "").toLowerCase();
   const race = await env.DB.prepare(`SELECT * FROM races WHERE code = ?1`).bind(c).first();
   if (!race) return json({ error: "This race doesn't exist" }, 404);
@@ -31,13 +31,17 @@ export async function onRequestPost({ request, env, params }) {
     if (!Array.isArray(splits) || splits.length !== laps || !splits.every(Number.isInteger)) return json({ error: "Bad lap times" }, 400);
     if (![correct, wrong, missed].every(Number.isInteger) || correct < 0 || missed < 0 || correct + missed !== signs) return json({ error: "Bad counts" }, 400);
     let prev = 0; for (const t of splits) { const lt = t - prev; if (lt < MIN_LAP_MS(race.league) || lt > 600000) return json({ error: "Lap time out of range" }, 400); prev = t; }
-    if (!Array.isArray(track) || track.length > 4000 || !track.every(Number.isInteger)) return json({ error: "Bad track" }, 400);
+    if (!Array.isArray(track) || track.length > 6000 || !track.every(Number.isInteger)) return json({ error: "Bad track" }, 400);
     total = splits[splits.length - 1];
   }
   const now = Date.now();
   const recent = await env.DB.prepare(`SELECT 1 FROM race_runs WHERE rider_id = ?1 AND created_at > ?2 LIMIT 1`).bind(r.id, now - 10000).first();
   if (recent) return json({ error: "Slow down, rider" }, 429);
-  const mw = Array.isArray(missedWords) ? missedWords.filter(w => typeof w === "string").slice(0, 30).map(w => w.slice(0, 18)) : [];
+  // the words a friend missed are shown to the maker, so only keep words that are in this race (or, for Rash GP and
+  // Redline, whose signs aren't stored, words that pass the same dictionary and blocklist check as made races)
+  const raceWords = new Set((d.passage ? d.passage.split(" ") : d.words).map(w => String(w).toLowerCase().replace(/[^a-z]/g, "")));
+  const raw = Array.isArray(missedWords) ? missedWords.filter(w => typeof w === "string").slice(0, 30).map(w => w.toLowerCase().replace(/[^a-z]/g, "").slice(0, 18)).filter(Boolean) : [];
+  const mw = raceWords.size > 1 ? raw.filter(w => raceWords.has(w)) : checkWords(raw).ok;
   await env.DB.prepare(`INSERT INTO race_runs (code, rider_id, name, time_ms, correct, missed, track, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`)
     .bind(c, r.id, r.name, total, correct, JSON.stringify(mw), JSON.stringify(track), now).run();
   if (isMaker) { if (race.status === "draft" || !race.maker_ms || total < race.maker_ms) await env.DB.prepare(`UPDATE races SET status = 'live', maker_ms = ?1 WHERE code = ?2`).bind(Math.min(total, race.maker_ms || total), c).run(); }

@@ -4,7 +4,7 @@ import { json, getRider, RACE_LIMITS, raceData } from "../../../_lib/rr.js";
 const ALPHA = "abcdefghjkmnpqrstuvwxyz23456789";
 const code = () => Array.from(crypto.getRandomValues(new Uint8Array(6)), x => ALPHA[x % ALPHA.length]).join("");
 export async function onRequestPost({ request, env, params }) {
-  let b; try { b = await request.json(); } catch { return json({ error: "Bad JSON" }, 400); }
+  let b; try { b = await request.json(); } catch { b = null; } if (!b || typeof b !== "object" || Array.isArray(b)) return json({ error: "Bad JSON" }, 400);
   const src = String(params.code || "").toLowerCase();
   const race = await env.DB.prepare(`SELECT * FROM races WHERE code = ?1`).bind(src).first();
   if (!race || race.reports >= 3) return json({ error: "This race can't be rematched" }, 404);

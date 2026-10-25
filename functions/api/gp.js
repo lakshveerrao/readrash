@@ -22,9 +22,12 @@ export async function onRequestGet({ request, env }) {
 }
 
 export async function onRequestPost({ request, env }) {
-  let b; try { b = await request.json(); } catch { return json({ error: "Bad JSON" }, 400); }
-  const { name, league, laps, splits, correct, wrong, missed } = b || {};
-  if (typeof name !== "string" || !NAME_RE.test(name)) return json({ error: "Pick a ReadRash rider name" }, 400);
+  let b; try { b = await request.json(); } catch { b = null; } if (!b || typeof b !== "object" || Array.isArray(b)) return json({ error: "Bad JSON" }, 400);
+  const { league, laps, splits, correct, wrong, missed } = b || {};
+  if (typeof b.name !== "string" || !NAME_RE.test(b.name)) return json({ error: "Pick a ReadRash rider name" }, 400);
+  // the board shows the rider's own name, worked out from their secret key: nobody can post a time as someone else
+  const rr = await getRider(env, b.key, b.name, true); if (!rr) return json({ error: "Unknown rider" }, 400);
+  const name = rr.name;
   if (!VMAX[league] || !LAPS.has(laps)) return json({ error: "Unknown race" }, 400);
   if (!Array.isArray(splits) || splits.length !== laps || !splits.every(Number.isInteger)) return json({ error: "Bad lap times" }, 400);
   const signs = laps * SIGNS_PER_LAP;
@@ -39,8 +42,8 @@ export async function onRequestPost({ request, env }) {
   const ahead = await env.DB.prepare(
     `SELECT COUNT(*) AS n FROM (SELECT name, MIN(total_ms) AS t FROM gp_runs WHERE league = ?1 AND laps = ?2 AND created_at >= ?3 GROUP BY name) WHERE t < ?4`
   ).bind(league, laps, since("today", now), total).first();
-  let rp = null, rider = null; const rr = await getRider(env, b.key, name, true);
-  if (rr) { const pl = Number.isInteger(b.place) && b.place >= 1 && b.place <= 12 ? b.place : null;
+  let rp = null, rider = null;
+  { const pl = Number.isInteger(b.place) && b.place >= 1 && b.place <= 12 ? b.place : null;
     await noteFairPlay(env, rr, "gp", `${league}/${laps}`, b.chk);
     rp = await award(env, rr, { mode: "gp", league, laps, timeMs: total, correct, finished: true, place: pl, clean: missed === 0 && wrong === 0 }); rider = profile(rr); }
   return json({ ok: true, total_ms: total, best_lap_ms: best, acc, rank: (ahead?.n || 0) + 1, rp, rider });

@@ -20,8 +20,8 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="assets/site.css?v=20261025e">
-<link rel="stylesheet" href="assets/game.css?v=20261025e">
+<link rel="stylesheet" href="assets/site.css?v=20261025f">
+<link rel="stylesheet" href="assets/game.css?v=20261025f">
 <style>
 /* Layout: race view → big dial + the rolling words; every step before and after is a panel over the paused strip */
 .rldash{display:grid;grid-template-columns:250px 1fr;gap:14px;align-items:stretch}
@@ -214,8 +214,8 @@
   </div>
 </div>
 
-<script src="assets/game.js?v=20261025e"></script>
-<script src="assets/board.js?v=20261025e"></script>
+<script src="assets/game.js?v=20261025f"></script>
+<script src="assets/board.js?v=20261025f"></script>
 <script>
 (() => {
 const RR = window.ReadRash, $ = id => document.getElementById(id);
@@ -372,7 +372,7 @@ async function openMade(){
   if (j.kind === "story") { location.replace("play.html?r=" + CODE); return; } if (j.kind && j.kind !== "redline") { location.replace("gp.html?r=" + CODE); return; }
   $("pickChoices").hidden = true; $("pickLede").hidden = true; $("linkInfo").hidden = false;
   if (j.error) { $("pickKick").textContent = "Redline"; $("pickTitle").textContent = "Race not found"; $("linkInfo").innerHTML = `<p>${RR.esc(j.error)}</p>`; $("rideBtn").hidden = true; return; }
-  made = j; pack = j.redline.pack; league = j.league; isMaker = RR.Rider.made().includes(j.code) || j.maker === RR.nickname();
+  made = j; pack = j.redline.pack; league = j.league; isMaker = RR.Rider.made().includes(j.code);
   const inBoard = j.board.some(x => !x.maker && x.name === RR.nickname()); let note = "", ok = true;
   if (j.status === "expired") { ok = false; note = "This race has ended."; } else if (j.status === "paused") { ok = false; note = "This race is paused while we check it."; }
   else if (!isMaker && !inBoard && j.riders >= j.max_riders) { ok = false; note = j.max_riders === 1 ? "This duel already has its challenger." : "This race is full."; }

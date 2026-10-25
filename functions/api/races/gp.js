@@ -5,7 +5,7 @@ const MIN_LAP_MS = l => Math.floor(LAP_LEN / (VMAX[l] * 1.46) * 1000 * 0.97);
 const ALPHA = "abcdefghjkmnpqrstuvwxyz23456789";
 const code = () => Array.from(crypto.getRandomValues(new Uint8Array(6)), x => ALPHA[x % ALPHA.length]).join("");
 export async function onRequestPost({ request, env }) {
-  let b; try { b = await request.json(); } catch { return json({ error: "Bad JSON" }, 400); }
+  let b; try { b = await request.json(); } catch { b = null; } if (!b || typeof b !== "object" || Array.isArray(b)) return json({ error: "Bad JSON" }, 400);
   const r = await getRider(env, b.key, b.name, true); if (!r) return json({ error: "Unknown rider" }, 400);
   const { league, laps, seed, splits, correct, wrong, missed, track } = b;
   if (!VMAX[league] || ![2, 3, 5].includes(laps)) return json({ error: "Unknown race" }, 400);
@@ -25,6 +25,8 @@ export async function onRequestPost({ request, env }) {
     .bind(c, r.id, r.name, title, JSON.stringify({ seed, circuit: circuitFor(b.circuit, r.rp) }), league, laps, lim.riders, total, now, now + lim.days * 864e5).run();
   await env.DB.prepare(`INSERT INTO race_runs (code, rider_id, name, time_ms, correct, missed, track, created_at) VALUES (?1, ?2, ?3, ?4, ?5, '[]', ?6, ?7)`)
     .bind(c, r.id, r.name, total, correct, JSON.stringify(track), now).run();
-  await env.DB.prepare(`DELETE FROM races WHERE maker_id = ?1 AND code NOT IN (SELECT code FROM races WHERE maker_id = ?1 ORDER BY created_at DESC LIMIT 30)`).bind(r.id).run();
+  // tidy up: only races that have already ended, and never the newest 30 (a shared link keeps working until it expires)
+  await env.DB.prepare(`DELETE FROM race_runs WHERE code IN (SELECT code FROM races WHERE maker_id = ?1 AND expires_at < ?2 AND code NOT IN (SELECT code FROM races WHERE maker_id = ?1 ORDER BY created_at DESC LIMIT 30))`).bind(r.id, Date.now()).run();
+  await env.DB.prepare(`DELETE FROM races WHERE maker_id = ?1 AND expires_at < ?2 AND code NOT IN (SELECT code FROM races WHERE maker_id = ?1 ORDER BY created_at DESC LIMIT 30)`).bind(r.id, Date.now()).run();
   return json({ code: c, title, maker_ms: total, max_riders: lim.riders });
 }

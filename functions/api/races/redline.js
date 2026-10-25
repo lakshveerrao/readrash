@@ -4,7 +4,7 @@ const ALPHA = "abcdefghjkmnpqrstuvwxyz23456789", LG = { rookie: "Rookie", pro: "
 const NAMES = { animals: "Animals", food: "Food", sport: "Sport", space: "Space", india: "India", colours: "Colours" };
 const code = () => Array.from(crypto.getRandomValues(new Uint8Array(6)), x => ALPHA[x % ALPHA.length]).join("");
 export async function onRequestPost({ request, env }) {
-  let b; try { b = await request.json(); } catch { return json({ error: "Bad JSON" }, 400); }
+  let b; try { b = await request.json(); } catch { b = null; } if (!b || typeof b !== "object" || Array.isArray(b)) return json({ error: "Bad JSON" }, 400);
   if (!RL_PACKS.has(b.pack) || !LG[b.league]) return json({ error: "Unknown race" }, 400);
   if (typeof b.seed !== "string" || !/^[a-z0-9]{1,16}$/.test(b.seed)) return json({ error: "Bad race" }, 400);
   const err = checkRedline(b); if (err) return json({ error: err }, 400);
@@ -18,6 +18,8 @@ export async function onRequestPost({ request, env }) {
     .bind(c, r.id, r.name, title, JSON.stringify({ redline: { pack: b.pack, seed: b.seed } }), b.league, lim.riders, b.timeMs, now, now + lim.days * 864e5).run();
   await env.DB.prepare(`INSERT INTO race_runs (code, rider_id, name, time_ms, correct, missed, track, created_at) VALUES (?1, ?2, ?3, ?4, ?5, '[]', ?6, ?7)`)
     .bind(c, r.id, r.name, b.timeMs, b.correct, JSON.stringify(b.trace), now).run();
-  await env.DB.prepare(`DELETE FROM races WHERE maker_id = ?1 AND code NOT IN (SELECT code FROM races WHERE maker_id = ?1 ORDER BY created_at DESC LIMIT 30)`).bind(r.id).run();
+  // tidy up: only races that have already ended, and never the newest 30 (a shared link keeps working until it expires)
+  await env.DB.prepare(`DELETE FROM race_runs WHERE code IN (SELECT code FROM races WHERE maker_id = ?1 AND expires_at < ?2 AND code NOT IN (SELECT code FROM races WHERE maker_id = ?1 ORDER BY created_at DESC LIMIT 30))`).bind(r.id, Date.now()).run();
+  await env.DB.prepare(`DELETE FROM races WHERE maker_id = ?1 AND expires_at < ?2 AND code NOT IN (SELECT code FROM races WHERE maker_id = ?1 ORDER BY created_at DESC LIMIT 30)`).bind(r.id, Date.now()).run();
   return json({ code: c, title, maker_ms: b.timeMs, max_riders: lim.riders });
 }
