@@ -154,7 +154,7 @@ const Voice = {
   /* Fast voice: same calls, handled by assets/fastvoice.js (loaded the first time it's switched on) */
   fast:false, _loadSubs:[], onLoad(p){ this._loadSubs.forEach(f=>{ try{ f(p); }catch(e){} }); },
   setFast(on){ this.fast=!!on&&FAST_OK; this.ok=this.fast||VOICE_OK; try{ localStorage.setItem("rr.fastVoice",JSON.stringify(this.fast)); }catch(e){} if(this.fast) this._fastLib(); return this.fast; },
-  _fastLib(){ if(window.RRFast) return Promise.resolve(window.RRFast); if(!this._fl) this._fl=new Promise((ok,no)=>{ const s=document.createElement("script"); s.src="assets/fastvoice.js?v=20261025d"; s.onload=()=>ok(window.RRFast); s.onerror=no; document.head.appendChild(s); }); return this._fl; },
+  _fastLib(){ if(window.RRFast) return Promise.resolve(window.RRFast); if(!this._fl) this._fl=new Promise((ok,no)=>{ const s=document.createElement("script"); s.src="assets/fastvoice.js?v=20261025e"; s.onload=()=>ok(window.RRFast); s.onerror=no; document.head.appendChild(s); }); return this._fl; },
   _viaFast(fn){ if(!this.fast) return false; if(this.rec&&this.live){ try{ this.rec.abort(); }catch(e){} } this._fastLib().then(F=>fn(F)).catch(()=>this._set("offline")); return true; },
   start(handler){ if(this._viaFast(F=>F.start(handler))) return; if(!this.ok) return; this.handler=handler; this.want=true; this._watch(); this._install();
     if(this.local&&!this.localBad&&this.rec&&!this.rec._local){ this._new(); this.live=false; this.starting=false; }
@@ -1806,7 +1806,9 @@ const Recorder={ rec:null, chunks:[], cv:null, g:null, off:null, mic:null, endCa
   ok(){ return !!(window.MediaRecorder&&HTMLCanvasElement.prototype.captureStream&&this.pick()); },
   async start(ctl,game,opts){ if(this.rec) return; opts=opts||{}; this.blob=null; this.endCard=null;
     const cv=document.createElement("canvas"), k=Math.min(1,854/game.width); cv.width=Math.round(game.width*k/2)*2; cv.height=Math.round(game.height*k/2)*2;
-    this.roadH=cv.height; this.panel=0; if(cv.width/cv.height>2.05){ const full=Math.round(cv.width*9/16/2)*2; this.panel=full-cv.height; cv.height=full; }
+    // every video: the race on top, a panel underneath with the face, the words being read and (Redline) the speedometer,
+    // so the words never cover the race and the race never covers the words
+    this.roadH=cv.height; this.panel=Math.round(Math.max(cv.width*9/16-cv.height,cv.height*.34)/2)*2; cv.height+=this.panel;
     this.cv=cv; this.g=cv.getContext("2d"); this.opts=opts; const tracks=[...cv.captureStream(30).getVideoTracks()];
     Sound.wake(); const snd=Sound.ac; const mix=Sound.ac&&Sound.ac.createMediaStreamDestination?Sound.ac.createMediaStreamDestination():null;
     if(snd&&mix){ Sound.bus().connect(mix);
@@ -1828,7 +1830,7 @@ const Recorder={ rec:null, chunks:[], cv:null, g:null, off:null, mic:null, endCa
       if(FaceCam.mode==="helmet"){ if(!this.vz||this.vz.width!==2*r){ const v=document.createElement("canvas"); v.width=v.height=2*r; drawVisor(v.getContext("2d"),r,r,r); this.vz=v; } g.drawImage(this.vz,cx-r,cy-r); }
       g.lineWidth=Math.max(3,r*.09); g.strokeStyle=this.opts.ring||"#ff6a1a"; g.beginPath(); g.arc(cx,cy,r,0,7); g.stroke(); }
     const f=Math.round(H*.05);
-    if(this.opts.caption&&!this.endCard) this.words(g,W,H,this.opts.caption(),tn,P?{y:RH+P*.42,big:1.5,left:fc?cx+r+W*.02:W*.03,right:W*(this.opts.dial?.76:.97)}:null);
+    if(this.opts.caption&&!this.endCard) this.words(g,W,H,this.opts.caption(),tn,P?{y:RH+P*.5,big:Math.min(1.5,P/H/.17),left:fc?cx+r+W*.02:W*.03,right:W*(this.opts.dial?.76:.97)}:null);
     if(this.opts.dial&&this.opts.dial.width){ const d=this.opts.dial, dh=Math.round(P?P*.86:H*.4), dw=Math.round(dh*d.width/d.height); g.drawImage(d,W-dw-Math.round(W*.02),P?RH+(P-dh)/2:H-dh-Math.round(f*1.8),dw,dh); }
     g.font=`italic ${f}px 'Racing Sans One','Arial Black',sans-serif`; g.textBaseline="top"; g.textAlign="right";
     const tag="Read to ride.", tw=g.measureText(tag).width, lw=g.measureText("READRASH").width, x=W-f*.6, y=(P?RH:H)-f*1.5;
@@ -1845,7 +1847,7 @@ const Recorder={ rec:null, chunks:[], cv:null, g:null, off:null, mic:null, endCa
     const key=c.done.length?c.done[c.done.length-1].w+"|"+c.n:""; if(key!==this.capKey){ this.capKey=key; this.capT=tn; }
     const pop=Math.max(0,1-(tn-(this.capT||0))/350);
     const items=[]; c.done.forEach((d,i)=>items.push({t:d.w,sz:s,col:d.ok?"#7dff9b":"#ff8a7a",tick:d.ok?"✓":"✗",fresh:i===c.done.length-1}));
-    if(c.cur) items.push({t:c.cur,sz:S,col:"#1b1b22",pill:"#ffd23f"}); else if(c.choices) c.choices.forEach(w=>items.push({t:w,sz:Math.round(S*.8),col:"#1b1b22",pill:"#fff4e2"}));
+    if(c.cur) items.push({t:c.cur,sz:S,col:"#1b1b22",pill:"#ffd23f"}); else if(c.choices) c.choices.forEach(w=>items.push({t:w,sz:Math.round(S*.62),col:"#1b1b22",pill:"#fff4e2"}));
     (c.next||[]).forEach(w=>items.push({t:w,sz:s,col:"rgba(255,244,226,.75)"}));
     if(!items.length) return;
     const gap=Math.round(S*.45); let tot=0; items.forEach(it=>{ g.font=F(it.sz); it.w=g.measureText(it.t+(it.tick?" "+it.tick:"")).width+(it.pill?it.sz*.7:0); tot+=it.w+gap; }); tot-=gap;
@@ -1861,7 +1863,7 @@ const Recorder={ rec:null, chunks:[], cv:null, g:null, off:null, mic:null, endCa
       else { g.fillStyle=it.col; g.fillText(it.t+(it.tick?" "+it.tick:""),-it.w/2,0); }
       g.restore(); x+=it.w+gap; }
     g.restore();
-    if(box){ g.fillStyle="#8a8294"; g.font=`700 ${Math.round(s*.62)}px Verdana,sans-serif`; g.textAlign="left"; g.textBaseline="middle"; g.fillText("READING",L,y+bh*.95); } },
+  },
   async finish(card){ if(!this.rec) return null; if(card){ this.endCard={...card,t:performance.now()}; await new Promise(r=>setTimeout(r,2600)); }
     const rec=this.rec; const done=new Promise(r=>rec.onstop=r); rec.stop(); await done; this.rec=null;
     if(this.mic){ this.mic.getTracks().forEach(t=>t.stop()); this.mic=null; }
