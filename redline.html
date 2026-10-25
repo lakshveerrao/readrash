@@ -144,6 +144,7 @@
     <div class="extras">
       <div class="ex"><span><b>Face cam</b><small>See yourself ride. Stays on your device.</small></span><div class="seg" id="camPick"><button data-c="off">Off</button><button data-c="on">On</button><button data-c="helmet">Helmet</button></div></div>
       <div class="ex"><span><b>Record my race</b><small>Saves a clip on your device to share.</small></span><button class="tog" id="recTog" role="switch" aria-checked="false"><i></i></button></div>
+      <div class="ex"><span><b>Fast voice <i class="beta">beta</i></b><small id="fastMsg">Hears you faster. Runs on your device. One-time 41 MB download.</small></span><button class="tog" id="fastTog" role="switch" aria-checked="false"><i></i></button></div>
     </div>
     <div class="who"><span>Riding as <b id="whoName"></b></span><button class="linkbtn" id="reroll">New name</button></div>
     <button class="btn" id="rideBtn">Line up</button>
@@ -159,6 +160,7 @@
     <div class="row">
       <button class="btn" id="demoBtn">Watch a demo run</button>
       <button class="btn ghost" id="gateBack">Back</button>
+      <button class="btn" id="fastGate" hidden>Use Fast voice</button>
     </div>
   </div>
 </div>
@@ -251,7 +253,8 @@ $("packPick").querySelectorAll(".pack").forEach(b => b.onclick = () => { pack = 
 $("lgPick").querySelectorAll(".choice").forEach(b => b.onclick = () => { league = b.dataset.lg; RR.Store.set("league", league); renderPick(); prepare(); });
 $("reroll").onclick = () => { RR.Store.set("name", RR.randomName()); renderPick(); };
 const X = RR.mountExtras({ ctl, canvas: $("road"), dial: $("dial"), isDemo: () => demo, shareText: () => "Watch me hit the redline on ReadRash!" });
-$("rideBtn").onclick = () => { RR.Sound.wake(); if (!RR.VOICE_OK) { show("gateScreen"); return; } demo = false; setModeChip(); X.camUp(); startMic(); };
+$("rideBtn").onclick = () => { RR.Sound.wake(); if (!RR.Voice.ok) { show("gateScreen"); return; } demo = false; setModeChip(); X.camUp(); startMic(); };
+if (RR.FAST_OK) { $("gateMsg").textContent = "This browser doesn't have Chrome's speech service. Fast voice runs right here on your device instead: one-time 41 MB download, then it's quick. Or open ReadRash in Chrome or Edge."; $("fastGate").hidden = false; $("fastGate").onclick = () => { RR.Voice.setFast(true); const t = $("fastTog"); if (t) t.setAttribute("aria-checked", "true"); $("rideBtn").click(); }; }
 $("gateBack").onclick = () => show("pickScreen");
 $("demoBtn").onclick = () => { RR.Sound.wake(); demo = true; setModeChip(); prepare(); ctl.setAutopilot(true); show(null); $("quitBtn").hidden = false; ctl.countdown(); };
 if (RR.IN_VIEWER) $("gateMsg").textContent = "ReadRash runs on your voice, and microphones are switched off in this preview. On readrash.com in Chrome or Edge, you'll allow the mic and race with your voice.";

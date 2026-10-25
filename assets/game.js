@@ -6,6 +6,8 @@
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 const IN_VIEWER = !!(window.claude && typeof window.claude.use === "function");
 const VOICE_OK = !!SR && !IN_VIEWER;
+// Fast voice (beta) runs the recogniser inside the page: needs a mic, WebAssembly and workers (iPhone and Firefox included)
+const FAST_OK = !IN_VIEWER && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.WebAssembly && window.Worker && (window.AudioContext || window.webkitAudioContext));
 
 const LEAGUES = {
   rookie: { name:"Rookie", paces:[34,42,50],  demo:70,  blurb:"Short words, friendly rivals" },
@@ -103,7 +105,7 @@ const Voice = {
   _install(){ const S=window.SpeechRecognition; if(this.localState!=="downloadable"||this.installing||!S||typeof S.install!=="function") return; this.installing=true;
     try{ S.install({langs:[this.localLang],processLocally:true}).then(ok=>{ this.installing=false; if(ok){ this.localState="available"; this.local=this.localLang; } }).catch(()=>{ this.installing=false; }); }catch(e){ this.installing=false; } },
   // words on screen right now: the on-device recogniser listens out for these
-  setPhrases(list){ const u=[...new Set((list||[]).map(w=>String(w).replace(/[^A-Za-z' -]/g,"").trim()).filter(Boolean))].slice(0,120), key=u.join("|");
+  setPhrases(list){ if(this.fast&&window.RRFast) window.RRFast.setPhrases(list); const u=[...new Set((list||[]).map(w=>String(w).replace(/[^A-Za-z' -]/g,"").trim()).filter(Boolean))].slice(0,120), key=u.join("|");
     if(key===this._pkey) return; this._pkey=key; this.phrases=u;
     if(this.local&&!this.localBad&&!this.phraseBad&&this.live&&this.want){ this._new(); this.live=false; this.starting=false; this._later(30); } },
   _set(st,info){ if(this.status===st&&!info) return; this.status=st; this.onStatus&&this.onStatus(st,info); },
@@ -149,16 +151,22 @@ const Voice = {
     document.addEventListener("visibilitychange",()=>{ if(!document.hidden&&this.want){ this.fails=0; this._kick(); } });
     window.addEventListener("online",()=>{ if(this.want){ this.fails=0; this._kick(); } });
   },
-  start(handler){ if(!this.ok) return; this.handler=handler; this.want=true; this._watch(); this._install();
+  /* Fast voice: same calls, handled by assets/fastvoice.js (loaded the first time it's switched on) */
+  fast:false, _loadSubs:[], onLoad(p){ this._loadSubs.forEach(f=>{ try{ f(p); }catch(e){} }); },
+  setFast(on){ this.fast=!!on&&FAST_OK; this.ok=this.fast||VOICE_OK; try{ localStorage.setItem("rr.fastVoice",JSON.stringify(this.fast)); }catch(e){} if(this.fast) this._fastLib(); return this.fast; },
+  _fastLib(){ if(window.RRFast) return Promise.resolve(window.RRFast); if(!this._fl) this._fl=new Promise((ok,no)=>{ const s=document.createElement("script"); s.src="assets/fastvoice.js?v=1"; s.onload=()=>ok(window.RRFast); s.onerror=no; document.head.appendChild(s); }); return this._fl; },
+  _viaFast(fn){ if(!this.fast) return false; if(this.rec&&this.live){ try{ this.rec.abort(); }catch(e){} } this._fastLib().then(F=>fn(F)).catch(()=>this._set("offline")); return true; },
+  start(handler){ if(this._viaFast(F=>F.start(handler))) return; if(!this.ok) return; this.handler=handler; this.want=true; this._watch(); this._install();
     if(this.local&&!this.localBad&&this.rec&&!this.rec._local){ this._new(); this.live=false; this.starting=false; }
     if(this.live){ handler({reset:true}); return; }
     if(this.status!=="blocked") this._set("starting"); this._kick(); },
   // called from a tap: a fresh recogniser inside a user gesture clears most stuck states
-  restart(){ if(!this.ok) return; this.want=true; this.fails=0; this.netFails=0; this.live=false; this.starting=false; this._watch(); this._set("starting"); this._new(); this._kick(); },
-  use(handler){ this.handler=handler; if(this.live&&handler) handler({reset:true}); },
-  stop(){ this.want=false; clearTimeout(this.timer); if(this.rec){ try{ this.rec.stop(); }catch(e){} } }
+  restart(){ if(this._viaFast(F=>F.restart())) return; if(!this.ok) return; this.want=true; this.fails=0; this.netFails=0; this.live=false; this.starting=false; this._watch(); this._set("starting"); this._new(); this._kick(); },
+  use(handler){ if(this.fast&&window.RRFast){ window.RRFast.use(handler); return; } this.handler=handler; if(this.live&&handler) handler({reset:true}); },
+  stop(){ if(this.fast&&window.RRFast) window.RRFast.stop(); this.want=false; clearTimeout(this.timer); if(this.rec){ try{ this.rec.stop(); }catch(e){} } }
 };
 if(VOICE_OK) Voice.probe();
+try{ if(JSON.parse(localStorage.getItem("rr.fastVoice")||"false")) Voice.setFast(true); }catch(e){}
 
 
 /* mic status on screen: label, error text, a Restart button, and the little dot/chip in the race toolbar */
@@ -175,6 +183,7 @@ function bindMic(el){ let slowT=0;
     if(el.chip&&!(el.isDemo&&el.isDemo())) el.chip.textContent=on?"Voice":st==="retry"||st==="starting"?"Mic…":bad?"Mic off":"Voice";
     clearTimeout(slowT); if(el.fix){ el.fix.hidden=!bad; if(!on&&!bad) slowT=setTimeout(()=>{ if(Voice.status!=="listening"&&Voice.want) el.fix.hidden=false; },3500); } };
   Voice.onStatus=paint; Voice.onState=null;
+  Voice._loadSubs.push(p=>{ if(el.label&&Voice.status==="starting") el.label.textContent=p<1?`Getting fast voice ready… ${Math.round(p*100)}%`:"Starting microphone…"; });
   if(el.fix) el.fix.onclick=()=>{ el.fix.hidden=true; Voice.restart(); };
   paint(Voice.status); }
 
@@ -1045,7 +1054,8 @@ function create(o){
     if(e.reset){ consumed=[]; hist=[]; return; }
     let shown="";
     for(let r=e.resultIndex;r<e.results.length;r++){ const res=e.results[r], txt=res[0].transcript; shown=txt;
-      const toks=txt.trim().split(/\s+/).map(norm).filter(Boolean);
+      let toks=txt.trim().split(/\s+/).map(norm).filter(Boolean);
+      if(e.fast&&toks.includes("unk")){ const oov=window.RRFast.oov(), want=gp?(curRow()||{keys:[]}).keys.find(k=>oov.has(k)):keys[idx]&&oov.has(keys[idx])?keys[idx]:null; toks=toks.map(t=>t==="unk"?(want||"zzunk"):t); }
       if(phase!=="race"){ for(let k=consumed[r]||0;k<toks.length;k++) take(toks[k]); consumed[r]=toks.length; continue; }
       let c=consumed[r];
       if(c==null){ c=repeatedLead(toks); }
@@ -1060,7 +1070,7 @@ function create(o){
         if(j<0) break; c=j; }
       for(let k=c0;k<c;k++) take(toks[k]);
       consumed[r]=c; }
-    if(shown) setText("heard","Heard: "+shown);
+    if(shown) setText("heard","Heard: "+(e.shown||shown));
   }
 
   /* ---------- Redline ---------- */
@@ -1815,6 +1825,12 @@ function mountExtras(o){ const $=id=>document.getElementById(id), isDemo=o.isDem
   let camMode=Store.get("faceCam","off"); if(!["off","on","helmet"].includes(camMode)) camMode="off";
   let recOn=!!Store.get("recRace",false)&&Recorder.ok(), clip=null, fxT=0;
   if(!Recorder.ok()) $("recTog").closest(".ex").hidden=true;
+  const ft=$("fastTog"), fm=$("fastMsg");
+  if(ft){ if(!FAST_OK) ft.closest(".ex").hidden=true;
+    const pf=()=>ft.setAttribute("aria-checked",String(Voice.fast)); pf();
+    Voice._loadSubs.push(p=>{ if(fm) fm.textContent=p<1?`Downloading… ${Math.round(p*100)}%`:"Ready. Runs on your device."; });
+    ft.onclick=()=>{ Voice.setFast(!Voice.fast); pf(); if(fm) fm.textContent=Voice.fast?"Downloading…":"Hears you faster. Runs on your device. One-time 41 MB download.";
+      if(Voice.fast) Voice._fastLib().then(F=>F.load()).catch(()=>{ if(fm) fm.textContent="Couldn't download. Check your internet."; }); }; }
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||IN_VIEWER) $("camPick").closest(".ex").hidden=true;
   const paint=()=>{ $("camPick").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.c===camMode))); $("recTog").setAttribute("aria-checked",String(recOn)); };
   $("camPick").querySelectorAll("button").forEach(b=>b.onclick=()=>{ camMode=b.dataset.c; Store.set("faceCam",camMode); paint(); if(camMode==="off"){ FaceCam.stop(); $("faceCam").hidden=true; } });
@@ -1834,7 +1850,7 @@ function mountExtras(o){ const $=id=>document.getElementById(id), isDemo=o.isDem
       clip.then(b=>{ if(!b||!b.size){ $("clipBox").hidden=true; return; } $("clipHead").textContent=`Your race clip is ready (${Math.max(1,Math.round(b.size/1e6))} MB)`; $("clipBtn").disabled=false; }); },
     get on(){ return camMode!=="off"; } }; }
 
-window.ReadRash = { create, PACKS, CIRCUITS, PAINTS, PAINT_RP, applyPaint, Voice, bindMic, mountExtras, FaceCam, Recorder, drawVisor, ev, shareCard, Rider, LADDER, levelOf, rpPanel, raceLink, shareRace, esc, Sound, LEAGUES, RACES, ADJ, NOUN, randomName, VOICE_OK, IN_VIEWER, Store, stars, saveStars, nickname, norm, sim, ord,
+window.ReadRash = { create, FAST_OK, PACKS, CIRCUITS, PAINTS, PAINT_RP, applyPaint, Voice, bindMic, mountExtras, FaceCam, Recorder, drawVisor, ev, shareCard, Rider, LADDER, levelOf, rpPanel, raceLink, shareRace, esc, Sound, LEAGUES, RACES, ADJ, NOUN, randomName, VOICE_OK, IN_VIEWER, Store, stars, saveStars, nickname, norm, sim, ord,
   paintRider:(c,w,f,o)=>{ preloadRiders(); paintRider(c,w,f,o); },
   paintSprite(canvas,t,opt={}){ const g=canvas.getContext("2d"), h=canvas.height; g.clearRect(0,0,canvas.width,canvas.height); const list=t==="bike"?[bikeOnly(opt.rider||ME),riderOnly(opt.rider||ME)]:[getSprite(t,opt)]; for(const S of list){ const w=h*S.aspect; g.drawImage(S.c,(canvas.width-w)/2,0,w,h); } } };
 })();

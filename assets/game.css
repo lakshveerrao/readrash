@@ -143,3 +143,4 @@
 .tog[aria-checked="true"]{background:#ff6a1a}.tog[aria-checked="true"] i{left:26px}
 .clipbox{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#1b1b22;color:var(--chalk);border-radius:14px;padding:10px 14px}.clipbox b{flex:1;font-family:var(--display);font-style:italic;font-weight:400;font-size:20px}
 @media (max-width:520px){.ex small{display:none}.seg button{padding:6px 8px}.facecam{bottom:46px;left:8px}}
+.ex i.beta{font-style:normal;font-family:var(--read);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:var(--cool);color:var(--ink);border-radius:5px;padding:1px 5px;vertical-align:middle;margin-left:4px}
