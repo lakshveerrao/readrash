@@ -214,11 +214,15 @@ function hexA(hex,a){ const n=parseInt(hex.slice(1),16); return `rgba(${n>>16},$
 function shade(hex,amt){ const n=parseInt(hex.slice(1),16); let r=n>>16,g=(n>>8)&255,b=n&255;
   const f=amt<0?0:255, t=Math.abs(amt); r=Math.round(r+(f-r)*t); g=Math.round(g+(f-g)*t); b=Math.round(b+(f-b)*t); return "#"+((1<<24)|(r<<16)|(g<<8)|b).toString(16).slice(1); }
 function rr(g,x,y,w,h,r){ g.beginPath(); if(g.roundRect&&r) g.roundRect(x,y,w,h,r); else g.rect(x,y,w,h); }
+/* Pre-drawn canvases can be wiped by the phone when memory runs low (Chrome drops a canvas's pixels and the drawing
+   silently goes blank: a missing bike). Once drawn, each one is turned into an ImageBitmap, which isn't dropped. */
+function freeze(c,done){ if(!window.createImageBitmap) return; try{ createImageBitmap(c).then(bm=>{ if(bm&&bm.width) done(bm); }).catch(()=>{}); }catch(e){} }
 function sprite(key,aspect,size,paint){
   if(CACHE[key]) return CACHE[key];
   const h=size, w=Math.round(h*aspect), c=mk(w,h), g=c.getContext("2d");
   g.translate(w/2,h); paint(g,h/100,w,h);
-  return CACHE[key]={c,aspect};
+  const S=CACHE[key]={c,aspect}; freeze(c,bm=>{ S.c=bm; });
+  return S;
 }
 function tools(g,u){
   return {
@@ -331,7 +335,7 @@ function tintSkin(sk){ const key=sk.join("|"); if(SKIN_CACHE[key]) return; const
         let R=m[0]*r+m[1]*gg+m[2]*b, G=m[3]*r+m[4]*gg+m[5]*b, B=m[6]*r+m[7]*gg+m[8]*b;
         if(sat!==1){ const Lm=.2126*R+.7152*G+.0722*B; R=Lm+(R-Lm)*sat; G=Lm+(G-Lm)*sat; B=Lm+(B-Lm)*sat; } p[i]=R; p[i+1]=G; p[i+2]=B; }
       g.putImageData(d,0,0); }
-    g.drawImage(keepMask(sk[0],im),0,0); SKIN_CACHE[key]=cv; }catch(e){ SKIN_CACHE[key]=im; } }
+    g.drawImage(keepMask(sk[0],im),0,0); SKIN_CACHE[key]=cv; freeze(cv,bm=>{ bm._fh=cv._fh; if(bm._fh) SKIN_CACHE[key]=bm; }); }catch(e){ SKIN_CACHE[key]=im; } }
 // what to draw for a kit right now: its tinted sheet, or the plain sheet for a moment while the tint is made
 function skinCanvas(sk){ const key=sk.join("|"), c=SKIN_CACHE[key]; if(c) return c; const im=riderImg(sk[0]); if(!im) return null;
   if(!sk[1]&&sk[2]===1) return SKIN_CACHE[key]=im; tintSkin(sk); return SKIN_CACHE[key]||im; }
@@ -1322,7 +1326,7 @@ function create(o){
     const maxPx=attract?1.25:1.75; dpr=Math.min(quality>0?maxPx:1,window.devicePixelRatio||1);
     if(attract&&W*dpr>1600) dpr=1600/W;
     cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); HY=Math.round(H*(o.horizon||.4)); CX=Math.round(W*(o.cx&&W>760?o.cx:.5));
-    buildSky(); buildVignette();
+    buildSky(); buildVignette(); freeze(skyC,bm=>{ if(bm.width===skyC.width) skyC=bm; }); freeze(vignC,bm=>{ if(bm.width===vignC.width) vignC=bm; });
   }
   function buildSky(){
     const w=Math.round(W*1.6), h=Math.round(HY+H*.25); skyC=mk(w,h); const g=skyC.getContext("2d");
@@ -1742,7 +1746,7 @@ async function shareCard(o){
   g.fillStyle="#f7f2e6"; for(let k=0;k<7;k++){ const t=k/7, y=H*.55+(H*.45)*t*t, h=10+t*60, w=4+t*16; g.fillRect(W/2-w/2,y,w,h); }
   const shade=g.createLinearGradient(0,0,0,H); shade.addColorStop(0,"rgba(12,10,16,.82)"); shade.addColorStop(.42,"rgba(12,10,16,.15)"); shade.addColorStop(.7,"rgba(12,10,16,0)"); shade.addColorStop(1,"rgba(12,10,16,.9)"); g.fillStyle=shade; g.fillRect(0,0,W,H);
   { const sg=g.createRadialGradient(W*.8,H*.2,10,W*.8,H*.2,150); sg.addColorStop(0,"rgba(255,246,200,.95)"); sg.addColorStop(.45,"rgba(255,220,120,.55)"); sg.addColorStop(1,"rgba(255,200,80,0)"); g.fillStyle=sg; g.beginPath(); g.arc(W*.8,H*.2,150,0,7); g.fill(); }
-  const SC=skinCanvas(SKINS.ME); if(SC){ const f=RIDER_META.orange[o.win?12:0], k=(SC.naturalHeight||SC.height)/SC._fh, sc=640/f.h; g.drawImage(SC,f.x*k,f.y*k,f.w*k,f.h*k,W/2-f.ax*sc,H*.93-f.ay*sc,f.w*sc,f.h*sc); }
+  const SC=skinCanvas(SKINS.ME); if(SC){ const f=RIDER_META[SKINS.ME[0]][o.win?12:0], k=(SC.naturalHeight||SC.height)/SC._fh, sc=640/f.h; g.drawImage(SC,f.x*k,f.y*k,f.w*k,f.h*k,W/2-f.ax*sc,H*.93-f.ay*sc,f.w*sc,f.h*sc); }
   const disp="'Racing Sans One','Arial Black',sans-serif";
   g.textBaseline="alphabetic"; g.textAlign="left";
   g.font=`italic 64px ${disp}`; g.fillStyle="#fff4e2"; g.fillText("READ",64,120); g.fillStyle="#ff6a1a"; g.fillText("RASH",64+g.measureText("READ").width,120);
