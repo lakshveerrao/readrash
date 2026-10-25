@@ -154,7 +154,7 @@ const Voice = {
   /* Fast voice: same calls, handled by assets/fastvoice.js (loaded the first time it's switched on) */
   fast:false, _loadSubs:[], onLoad(p){ this._loadSubs.forEach(f=>{ try{ f(p); }catch(e){} }); },
   setFast(on){ this.fast=!!on&&FAST_OK; this.ok=this.fast||VOICE_OK; try{ localStorage.setItem("rr.fastVoice",JSON.stringify(this.fast)); }catch(e){} if(this.fast) this._fastLib(); return this.fast; },
-  _fastLib(){ if(window.RRFast) return Promise.resolve(window.RRFast); if(!this._fl) this._fl=new Promise((ok,no)=>{ const s=document.createElement("script"); s.src="assets/fastvoice.js?v=1"; s.onload=()=>ok(window.RRFast); s.onerror=no; document.head.appendChild(s); }); return this._fl; },
+  _fastLib(){ if(window.RRFast) return Promise.resolve(window.RRFast); if(!this._fl) this._fl=new Promise((ok,no)=>{ const s=document.createElement("script"); s.src="assets/fastvoice.js?v=20261025a"; s.onload=()=>ok(window.RRFast); s.onerror=no; document.head.appendChild(s); }); return this._fl; },
   _viaFast(fn){ if(!this.fast) return false; if(this.rec&&this.live){ try{ this.rec.abort(); }catch(e){} } this._fastLib().then(F=>fn(F)).catch(()=>this._set("offline")); return true; },
   start(handler){ if(this._viaFast(F=>F.start(handler))) return; if(!this.ok) return; this.handler=handler; this.want=true; this._watch(); this._install();
     if(this.local&&!this.localBad&&this.rec&&!this.rec._local){ this._new(); this.live=false; this.starting=false; }
