@@ -1,6 +1,23 @@
-name = "readrash"
-pages_build_output_dir = "."
+# readrash.com runs as one Cloudflare Worker: static files from this repo plus functions/ for the API.
+# Deploy from this folder with: npx wrangler deploy
+name = "readrash-site"
+main = "deploy/worker.js"
 compatibility_date = "2026-10-01"
+workers_dev = false
+preview_urls = false # old versions must never be reachable: they'd run old API code against the live database
+routes = [
+  { pattern = "readrash.com", custom_domain = true },
+  { pattern = "www.readrash.com", custom_domain = true },
+]
+
+[build]
+command = "node deploy/build.mjs"
+
+[assets]
+directory = ".deploy/dist"
+binding = "ASSETS"
+run_worker_first = ["/api/*", "/r/*"]
+not_found_handling = "single-page-application" # unknown paths get index.html
 
 [[d1_databases]]
 binding = "DB"
