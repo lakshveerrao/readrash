@@ -1,6 +1,6 @@
 // A finished run on a made race: checks it, opens the race on the maker's first run, awards Rash Points.
 import { json, getRider, award, makerBonus, profile, noteFairPlay, raceData, checkRedline } from "../../../_lib/rr.js";
-const LAP_LEN = 1000 * 200, SIGNS_PER_LAP = 10, VMAX = { rookie: 8333, pro: 13333, legend: 18333 };
+const LAP_LEN = 1000 * 200, SIGNS_PER_LAP = 10, VMAX = { rookie: 6000, pro: 9500, legend: 14000 };
 const MIN_LAP_MS = l => Math.floor(LAP_LEN / (VMAX[l] * 1.46) * 1000 * 0.97);
 export async function onRequestPost({ request, env, params }) {
   let b; try { b = await request.json(); } catch { return json({ error: "Bad JSON" }, 400); }

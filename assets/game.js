@@ -154,7 +154,7 @@ const Voice = {
   /* Fast voice: same calls, handled by assets/fastvoice.js (loaded the first time it's switched on) */
   fast:false, _loadSubs:[], onLoad(p){ this._loadSubs.forEach(f=>{ try{ f(p); }catch(e){} }); },
   setFast(on){ this.fast=!!on&&FAST_OK; this.ok=this.fast||VOICE_OK; try{ localStorage.setItem("rr.fastVoice",JSON.stringify(this.fast)); }catch(e){} if(this.fast) this._fastLib(); return this.fast; },
-  _fastLib(){ if(window.RRFast) return Promise.resolve(window.RRFast); if(!this._fl) this._fl=new Promise((ok,no)=>{ const s=document.createElement("script"); s.src="assets/fastvoice.js?v=20261025b"; s.onload=()=>ok(window.RRFast); s.onerror=no; document.head.appendChild(s); }); return this._fl; },
+  _fastLib(){ if(window.RRFast) return Promise.resolve(window.RRFast); if(!this._fl) this._fl=new Promise((ok,no)=>{ const s=document.createElement("script"); s.src="assets/fastvoice.js?v=20261025c"; s.onload=()=>ok(window.RRFast); s.onerror=no; document.head.appendChild(s); }); return this._fl; },
   _viaFast(fn){ if(!this.fast) return false; if(this.rec&&this.live){ try{ this.rec.abort(); }catch(e){} } this._fastLib().then(F=>fn(F)).catch(()=>this._set("offline")); return true; },
   start(handler){ if(this._viaFast(F=>F.start(handler))) return; if(!this.ok) return; this.handler=handler; this.want=true; this._watch(); this._install();
     if(this.local&&!this.localBad&&this.rec&&!this.rec._local){ this._new(); this.live=false; this.starting=false; }
@@ -526,9 +526,16 @@ const ridges=[0,1,2].map(l=>Array.from({length:64},(_,i)=>.32+.28*Math.sin(i*.7+
 /* ================= Rash GP: lap racing on a circuit, words on overhead signs ================= */
 const GP = {
   ROWS:10, ROW_GAP:95, FIRST:45, OPEN:.74, LANES:[-.66,0,.66], LAP_SEGS:1000, START:40*SEG, LAPS:[2,3,5],
-  lg:{ rookie:{vMax:8333}, pro:{vMax:13333}, legend:{vMax:18333} } // full-speed = one sign every 1.2s / 0.75s / 0.55s
+  lg:{ rookie:{vMax:6000}, pro:{vMax:9500}, legend:{vMax:14000} } // full speed = one sign every 3.2s / 2s / 1.4s
 };
 GP.LAP_LEN=GP.LAP_SEGS*SEG;
+/* How forgiving each level is. Rivals ride slower than before (pace = share of their full speed), reading right builds
+   speed faster, a miss or a wrong word costs less, signs can be read from further away, rivals attack less often,
+   and only Legend riders can knock you off your bike. */
+GP.ease={ rookie:{pace:.45,gain:.2,miss:.12,wrong:.06,decay:.016,aggr:.35,down:99,shield:2},
+          pro:   {pace:.68,gain:.17,miss:.15,wrong:.08,decay:.02,aggr:.6,down:3,shield:1},
+          legend:{pace:.82,gain:.14,miss:.18,wrong:.1,decay:.024,aggr:.85,down:2,shield:1} };
+GP.OPEN=.95;
 Object.values(GP.lg).forEach(l=>l.vMin=l.vMax*.32);
 // Sprint words, three tiers per level: lap 1 uses tier 1, the final lap tier 3 (words get tougher every lap)
 const WORDPOOL = {
@@ -722,7 +729,7 @@ function create(o){
       } }
     words=rows.flatMap(r=>r.words); keys=words.map(norm); if(!attract) Voice.setPhrases(words); status=[]; trouble=new Set(); acts=[]; idx=0;
     correctCount=0; attemptCount=0; streak=0; gpMissed=0; gpWrong=0; crashes=0; kos=0; hitsTaken=0; blocks=0; shieldCharge=0; floats=[]; shieldBuilt=0; gaps=[]; zapTold=false; atkTold=false; defTold=false; shieldTold=false; crackTold=false; atkTarget=null; projs=[]; comment=null; lastRivalAtk=-9999; leaderName=""; heat=.4; lapIdx=0; splits=[]; finishT=null; lights=0; draft=0; slingUntil=0; posFlash=null;
-    Object.assign(P,{z:GP.START-2800,target:0,v:0,x:0,vx:0,lane:1,lean:0,state:"ride",until:0,boostUntil:0,swipeT:-9999,copUntil:0,shield:1,shieldFlashT:-9999,weapon:{type:"paper",uses:Infinity},downT:-9999,downDir:1});
+    Object.assign(P,{z:GP.START-2800,target:0,v:0,x:0,vx:0,lane:1,lean:0,state:"ride",until:0,boostUntil:0,swipeT:-9999,copUntil:0,shield:GP.ease[lg].shield,shieldFlashT:-9999,weapon:{type:"paper",uses:Infinity},downT:-9999,downDir:1});
     // the pack: in-game riders with personalities; everyone lines up ahead of you
     const crew=shuffled(CHARS), styles=["sprinter","closer","blocker","steady"];
     const skills=shuffled([1,.97,.93,.88,.84,.8,.76,.72,.68,.62,.56]);
@@ -758,7 +765,7 @@ function create(o){
   function chooseLane(r,lane){
     const early=Math.max(0,Math.min(1,(r.z-P.z)/(GP.ROW_GAP*SEG*GP.OPEN)));
     r.state=1; r.chosen=lane; r.t=now; P.lane=lane; if(r.openT!=null) gaps.push(Math.round(now-r.openT)); emit("read",{word:r.words[lane],lane,kind:r.content[lane]}); correctCount++; attemptCount++; streak++; chargeShield();
-    heat=Math.min(1,heat+.12+.16*early);
+    heat=Math.min(1,heat+GP.ease[league].gain+.16*early);
     if(draft>=1.2&&now>slingUntil+5000){ slingUntil=now+1300; draft=0; pop("SLINGSHOT!",650,"go"); Sound.tone(300,.35,"sawtooth",.05,600); }
     Sound.tone(620+Math.min(8,streak%10)*40,.07,"square",.035);
     if(streak%10===0){ P.boostUntil=now+2200; shakeAmt=5; pop("NITRO!",700,"go"); Sound.tone(220,.5,"sawtooth",.05,500); }
@@ -801,7 +808,7 @@ function create(o){
       else { rv.knockT=now; rv.knockDir=-dir; rv.v*=.72; rv.stunUntil=now+900; pop("BLOCKED!",600,"go"); say(rv,["What?!","Bounced!","No way!"]); talk(lv===1&&!zapTold?(zapTold=true,"Blocked! 2 or 3 energy bars hit back harder."):`Shield blocks ${rv.name}!`); }
       }
     else { hitsTaken++; P.bump=3; bursts.push({x:CX+dir*-W*.06,y:H*.62,t:0,dir});
-      if(power>=2) playerDown(dir,`${rv.name} knocks you down!`);
+      if(power>=GP.ease[league].down) playerDown(dir,`${rv.name} knocks you down!`);
       else { P.state="skid"; P.until=now+650; P.v*=.72; heat=Math.max(0,heat-.12); shakeAmt=10; pop("HIT!",500); Sound.noise(.15,.3); }
       say(rv,["Gotcha!","Take that!","Ha!"]); }
   }
@@ -814,7 +821,7 @@ function create(o){
     for(let i=0;i<3;i++) if(hit(r.keys[i])){ chooseLane(r,i); return 1; }
     let lastOk=null; for(const x of rows) if(x.state===1) lastOk=x; if(lastOk&&lastOk.chosen>=0&&sim(h,lastOk.keys[lastOk.chosen])>=.8) return 1; // repeating the last word
     if(!final) return 0;
-    gpWrong++; attemptCount++; heat=Math.max(0,heat-.12); streak=0; crackShield("wrong");
+    gpWrong++; attemptCount++; heat=Math.max(0,heat-GP.ease[league].wrong); streak=0; crackShield("wrong");
     P.state="skid"; P.until=now+420; shakeAmt=6; pop("WRONG!",450); Sound.tone(300,.18,"triangle",.05,-120);
     return 1;
   }
@@ -830,7 +837,7 @@ function create(o){
       if(autopilot){ const r=curRow(); if(r&&now>=apNext){ const score=i=>(r.content[i]==="nitro"?3:r.content[i]==="traffic"?-9:1)-(rivals.some(v=>v.lane===i&&v.z>P.z&&v.z<r.z+3000)?1.5:0)+Math.random()*.5;
           if(Math.random()<.05) gpJudge("zzzz",true,false); else { let b=0; for(let i=1;i<3;i++) if(score(i)>score(b)) b=i; chooseLane(r,b); } apNext=now+(60000/apWpm)*(.8+Math.random()*.5); }
         if(atkTarget&&atkTarget.atkWord&&now-atkTarget.atkT>700&&Math.random()<dt*1.5) playerAttack(atkTarget); }
-      heat=Math.max(0,heat-.028*dt);
+      heat=Math.max(0,heat-GP.ease[league].decay*dt);
       let tv=L.vMin+(L.vMax-L.vMin)*heat; if(P.boostUntil>now) tv*=1.3; if(slingUntil>now) tv*=1.12;
       if(P.state==="skid"){ if(now<P.until) tv*=.55; else P.state="ride"; }
       if(P.state==="crash"){ if(now<P.until) tv*=.25; else P.state="ride"; }
@@ -845,7 +852,7 @@ function create(o){
       draft=draftOn&&now>slingUntil+5000?Math.min(1.2,draft+dt*.8):Math.max(0,draft-dt*.6);
       P.v+=(tv-P.v)*Math.min(1,dt*(tv>P.v?1.8:2.8)); if(blockedBy) P.z=Math.min(P.z+P.v*dt,blockedBy.z-300); else P.z+=P.v*dt;
       // gantry passed without reading: stay in your lane, lose speed
-      for(const r of rows){ if(r.z>P.z+80) break; if(r.state===0){ r.state=-1; r.t=now; gpMissed++; streak=0; crackShield("missed"); heat=Math.max(0,heat-.22); r.words.forEach(w=>trouble.add(words.indexOf(w))); pop("MISSED!",450,"small"); Sound.tone(180,.2,"sawtooth",.04,-60); } }
+      for(const r of rows){ if(r.z>P.z+80) break; if(r.state===0){ r.state=-1; r.t=now; gpMissed++; streak=0; crackShield("missed"); heat=Math.max(0,heat-GP.ease[league].miss); r.words.forEach(w=>trouble.add(words.indexOf(w))); pop("MISSED!",450,"small"); Sound.tone(180,.2,"sawtooth",.04,-60); } }
       const myLane=laneCenterOf(P.x);
       for(const ob of gpObs){ if(ob.hit) continue; const dz=ob.z-P.z; if(dz<-300) { ob.hit=true; continue; }
         if(dz<160&&dz>-120&&Math.abs(P.x-LANE_X[ob.lane])<.3){ ob.hit=true; crashes++; P.z=Math.max(P.z,ob.z+260); pop("BONK!",650); playerDown(P.x>=LANE_X[ob.lane]?1:-1,`Smashed into the ${ob.type==="cow"?"cow":ob.type==="auto"?"auto":ob.type==="bus"?"bus":ob.type==="truck"?"truck":"barrel"}!`); } }
@@ -872,7 +879,7 @@ function create(o){
       for(const rv of rivals){
         if(rv.attack){ if(rv.down||rv.finishT!=null){ rv.attack=null; continue; } if(now-rv.attack.t0>1300) rivalStrike(rv); continue; }
         if(rv.down||rv.finishT!=null||P.state==="down"||now<rv.atkCD||now<4000) continue;
-        const dz=rv.z-P.z, dx=Math.abs(rv.x-P.x), aggr={blocker:.9,closer:finalLap?1.1:.45,sprinter:.55,steady:.3}[rv.style]||.4;
+        const dz=rv.z-P.z, dx=Math.abs(rv.x-P.x), aggr=({blocker:.9,closer:finalLap?1.1:.45,sprinter:.55,steady:.3}[rv.style]||.4)*GP.ease[league].aggr;
         if(!rv.hunt&&Math.abs(dz)<2400&&now-lastRivalAtk>2500&&!rivals.some(o=>o.hunt)&&Math.random()<aggr*dt*.7){ rv.hunt=now+5500; say(rv,["Coming for you!","Hey, wait up!","Gotcha soon!"]); }
         if(rv.hunt&&now>rv.hunt){ rv.hunt=0; rv.atkCD=now+5000; }
         if(Math.abs(dz)>400||dx<.28||dx>1.25||now-lastRivalAtk<2500) continue;
@@ -885,7 +892,7 @@ function create(o){
     } else if(phase==="done"){ const stopZ=FINZ+60*SEG, room=stopZ-P.z; P.v+=((room>0?Math.min(L.vMin*.8,room*1.2):0)-P.v)*Math.min(1,dt*1.5); P.z=Math.min(stopZ,P.z+P.v*dt); }
     if(phase==="race"||phase==="done"){
       for(const rv of rivals){
-        const vs=L.vMin+(L.vMax-L.vMin)*rv.skill;
+        const vs=L.vMin+(L.vMax-L.vMin)*rv.skill*GP.ease[league].pace;
         let vt;
         if(phase==="done"){ vt=vs; }
         else if(finalLap){ const err=(P.z+rv.base*.6)-rv.z, band=Math.max(-.15*L.vMax,Math.min(.15*L.vMax,err*.25)); vt=vs*(rv.style==="closer"?1.06:1)*.7+(P.v+band)*.3; }

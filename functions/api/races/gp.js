@@ -1,6 +1,6 @@
 // Challenge from any finished Rash GP race: the same signs (same seed) with the rider's run as the ghost. Open to every rider from race 1.
 import { json, getRider, RACE_LIMITS, circuitFor } from "../../_lib/rr.js";
-const LAP_LEN = 1000 * 200, SIGNS_PER_LAP = 10, VMAX = { rookie: 8333, pro: 13333, legend: 18333 };
+const LAP_LEN = 1000 * 200, SIGNS_PER_LAP = 10, VMAX = { rookie: 6000, pro: 9500, legend: 14000 };
 const MIN_LAP_MS = l => Math.floor(LAP_LEN / (VMAX[l] * 1.46) * 1000 * 0.97);
 const ALPHA = "abcdefghjkmnpqrstuvwxyz23456789";
 const code = () => Array.from(crypto.getRandomValues(new Uint8Array(6)), x => ALPHA[x % ALPHA.length]).join("");

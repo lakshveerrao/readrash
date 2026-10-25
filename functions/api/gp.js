@@ -4,7 +4,7 @@ const ADJ = ["Turbo","Rapid","Zippy","Mighty","Swift","Blazing","Cosmic","Thunde
 const NOUN = ["Mango","Tiger","Falcon","Cheetah","Coconut","Comet","Panther","Crab","Turtle","Monsoon","Pepper","Lassi","Samosa","Dolphin","Eagle","Bolt","Wheelie","Kite","Lion","Peacock","Jalebi","Cyclone","Gecko","Rider"];
 const NAME_RE = new RegExp(`^(${ADJ.join("|")})(${NOUN.join("|")})\\d{2}$`);
 // keep in sync with GP in assets/game.js
-const LAP_LEN = 1000 * 200, SIGNS_PER_LAP = 10, VMAX = { rookie: 8333, pro: 13333, legend: 18333 }, LAPS = new Set([2, 3, 5]);
+const LAP_LEN = 1000 * 200, SIGNS_PER_LAP = 10, VMAX = { rookie: 6000, pro: 9500, legend: 14000 }, LAPS = new Set([2, 3, 5]);
 const MIN_LAP_MS = l => Math.floor(LAP_LEN / (VMAX[l] * 1.46) * 1000 * 0.97); // full speed on nitro + slingshot the whole lap
 const IST = 5.5 * 3600 * 1000;
 const json = (b, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { "content-type": "application/json", "cache-control": "no-store" } });
