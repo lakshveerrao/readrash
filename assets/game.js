@@ -154,7 +154,7 @@ const Voice = {
   /* Fast voice: same calls, handled by assets/fastvoice.js (loaded the first time it's switched on) */
   fast:false, _loadSubs:[], onLoad(p){ this._loadSubs.forEach(f=>{ try{ f(p); }catch(e){} }); },
   setFast(on){ this.fast=!!on&&FAST_OK; this.ok=this.fast||VOICE_OK; try{ localStorage.setItem("rr.fastVoice",JSON.stringify(this.fast)); }catch(e){} if(this.fast) this._fastLib(); return this.fast; },
-  _fastLib(){ if(window.RRFast) return Promise.resolve(window.RRFast); if(!this._fl) this._fl=new Promise((ok,no)=>{ const s=document.createElement("script"); s.src="assets/fastvoice.js?v=20261025c"; s.onload=()=>ok(window.RRFast); s.onerror=no; document.head.appendChild(s); }); return this._fl; },
+  _fastLib(){ if(window.RRFast) return Promise.resolve(window.RRFast); if(!this._fl) this._fl=new Promise((ok,no)=>{ const s=document.createElement("script"); s.src="assets/fastvoice.js?v=20261025d"; s.onload=()=>ok(window.RRFast); s.onerror=no; document.head.appendChild(s); }); return this._fl; },
   _viaFast(fn){ if(!this.fast) return false; if(this.rec&&this.live){ try{ this.rec.abort(); }catch(e){} } this._fastLib().then(F=>fn(F)).catch(()=>this._set("offline")); return true; },
   start(handler){ if(this._viaFast(F=>F.start(handler))) return; if(!this.ok) return; this.handler=handler; this.want=true; this._watch(); this._install();
     if(this.local&&!this.localBad&&this.rec&&!this.rec._local){ this._new(); this.live=false; this.starting=false; }
@@ -1702,6 +1702,11 @@ function create(o){
     row:()=>{ if(!gp||phase!=="race") return null; const r=nextPending(); return r?{w:r.words,c:r.content,tags:[0,1,2].map(i=>laneTag(r,i)),id:r.z,open:r.z-P.z<=GP.ROW_GAP*SEG*GP.OPEN,lane:P.lane}:null; },
     pause, resume, resize,
     pose:(x,y,h,kit,rot,opt)=>drawRider(x,y,h,kit==="me"?ME:kit,rot,opt),
+    // for race videos: the last words read, the word now, the next ones (Rash GP: the sign's three words)
+    caption:()=>{ if(phase!=="race"&&phase!=="done") return null;
+      if(gp){ const fin=rows.filter(r=>r.state!==0).slice(-3); const r=curRow();
+        return { n:fin.length, done:fin.map(x=>({w:x.state===1?x.words[x.chosen]:x.words[x.content.indexOf("nitro")>=0?x.content.indexOf("nitro"):1],ok:x.state===1})), choices:phase==="race"&&r?r.words:null, next:[] }; }
+      const a=Math.max(0,idx-(redline?3:2)); return { n:idx, done:words.slice(a,idx).map((w,i)=>({w:w.replace(/[^A-Za-z'’-]/g,""),ok:status[a+i]!=="miss"})), cur:phase==="race"?words[idx]||null:null, next:words.slice(idx+1,idx+(redline?3:2)).map(w=>w.replace(/[^A-Za-z'’-]/g,"")) }; },
     state:()=>({rl:redline?{dist:rl.dist,v:rl.v,p:rl.p,gear:rl.gear,rpm:rl.rpm,top:rl.top,miss:rl.miss,launch:rl.launch,ghost:rl.ghostRider?Math.round(rl.ghostRider.z):null}:null,gp:gp?{shield:P.shield,weapon:P.weapon.type,kos,blocks,hitsTaken,pstate:P.state,atk:atkTarget&&atkTarget.atkWord?{word:atkTarget.atkWord,name:atkTarget.name}:null,attacks:rivals.filter(r=>r.attack).length,downs:rivals.filter(r=>r.down).length,rows:rows.map(r=>({words:r.words,content:r.content,st:r.state,chosen:r.chosen,lap:r.lap,z:r.z})),lane:P.lane,lap:lapIdx,place:gpPlace(),heat,missed:gpMissed,wrong:gpWrong,crashes,v:P.v,z:P.z,draft,rivals:rivals.map(r=>({n:r.name,z:Math.round(r.z),lane:r.lane}))}:null,phase,idx,total:words.length,P:{...P},place:placeOf(),swipes,dodges,ema,quality,acts:acts.map(a=>a?a.type:null),riders:riders.map(r=>({name:r.name,z:Math.round(r.z),bound:r.bound})),words:[...words]}),
     judgeWord:(w,final=true,last=false)=>judge(norm(w),null,final,last)
   };
@@ -1801,6 +1806,7 @@ const Recorder={ rec:null, chunks:[], cv:null, g:null, off:null, mic:null, endCa
   ok(){ return !!(window.MediaRecorder&&HTMLCanvasElement.prototype.captureStream&&this.pick()); },
   async start(ctl,game,opts){ if(this.rec) return; opts=opts||{}; this.blob=null; this.endCard=null;
     const cv=document.createElement("canvas"), k=Math.min(1,854/game.width); cv.width=Math.round(game.width*k/2)*2; cv.height=Math.round(game.height*k/2)*2;
+    this.roadH=cv.height; this.panel=0; if(cv.width/cv.height>2.05){ const full=Math.round(cv.width*9/16/2)*2; this.panel=full-cv.height; cv.height=full; }
     this.cv=cv; this.g=cv.getContext("2d"); this.opts=opts; const tracks=[...cv.captureStream(30).getVideoTracks()];
     Sound.wake(); const snd=Sound.ac; const mix=Sound.ac&&Sound.ac.createMediaStreamDestination?Sound.ac.createMediaStreamDestination():null;
     if(snd&&mix){ Sound.bus().connect(mix);
@@ -1811,8 +1817,9 @@ const Recorder={ rec:null, chunks:[], cv:null, g:null, off:null, mic:null, endCa
     this.rec.ondataavailable=e=>{ if(e.data&&e.data.size) this.chunks.push(e.data); };
     this.rec.start(1000); this.t0=performance.now();
     if(!ctl._recHook){ ctl._recHook=true; ctl.on("frame",c=>{ if(this.rec) this.frame(c); }); } },
-  frame(src){ const tn=performance.now(); if(tn-(this.lastF||0)<30) return; this.lastF=tn; const g=this.g, W=this.cv.width, H=this.cv.height; g.drawImage(src,0,0,W,H);
-    const fc=this.opts.face&&FaceCam.live()?FaceCam.vid:null, r=Math.round(Math.min(W,H)*.17), cx=Math.round(W*.04+r), cy=Math.round(H-r-H*.16);
+  frame(src){ const tn=performance.now(); if(tn-(this.lastF||0)<30) return; this.lastF=tn; const g=this.g, W=this.cv.width, H=this.cv.height, P=this.panel, RH=this.roadH; g.drawImage(src,0,0,W,RH);
+    if(P){ const gr=g.createLinearGradient(0,RH,0,H); gr.addColorStop(0,"#1d1a22"); gr.addColorStop(1,"#121016"); g.fillStyle=gr; g.fillRect(0,RH,W,P); g.fillStyle="#000"; g.fillRect(0,RH,W,3); }
+    const fc=this.opts.face&&FaceCam.live()?FaceCam.vid:null, r=Math.round(P?P*.36:Math.min(W,H)*.17), cx=Math.round(W*.04+r), cy=Math.round(P?RH+P*.5:H-r-H*.16);
     if(fc){ // the face is re-cut 15 times a second into a small round tile, then pasted every frame
       if(!this.ft||this.ft.width!==2*r) { this.ft=document.createElement("canvas"); this.ft.width=this.ft.height=2*r; this.ftT=0; }
       if(tn-this.ftT>62){ this.ftT=tn; const fg=this.ft.getContext("2d"), vw=fc.videoWidth, vh=fc.videoHeight, s=Math.max(2*r/vw,2*r/vh); fg.clearRect(0,0,2*r,2*r); fg.save(); fg.beginPath(); fg.arc(r,r,r,0,7); fg.clip();
@@ -1821,9 +1828,10 @@ const Recorder={ rec:null, chunks:[], cv:null, g:null, off:null, mic:null, endCa
       if(FaceCam.mode==="helmet"){ if(!this.vz||this.vz.width!==2*r){ const v=document.createElement("canvas"); v.width=v.height=2*r; drawVisor(v.getContext("2d"),r,r,r); this.vz=v; } g.drawImage(this.vz,cx-r,cy-r); }
       g.lineWidth=Math.max(3,r*.09); g.strokeStyle=this.opts.ring||"#ff6a1a"; g.beginPath(); g.arc(cx,cy,r,0,7); g.stroke(); }
     const f=Math.round(H*.05);
-    if(this.opts.dial&&this.opts.dial.width){ const d=this.opts.dial, dh=Math.round(H*.4), dw=Math.round(dh*d.width/d.height); g.drawImage(d,W-dw-Math.round(W*.02),H-dh-Math.round(f*1.8),dw,dh); }
+    if(this.opts.caption&&!this.endCard) this.words(g,W,H,this.opts.caption(),tn,P?{y:RH+P*.42,big:1.5,left:fc?cx+r+W*.02:W*.03,right:W*(this.opts.dial?.76:.97)}:null);
+    if(this.opts.dial&&this.opts.dial.width){ const d=this.opts.dial, dh=Math.round(P?P*.86:H*.4), dw=Math.round(dh*d.width/d.height); g.drawImage(d,W-dw-Math.round(W*.02),P?RH+(P-dh)/2:H-dh-Math.round(f*1.8),dw,dh); }
     g.font=`italic ${f}px 'Racing Sans One','Arial Black',sans-serif`; g.textBaseline="top"; g.textAlign="right";
-    const tag="Read to ride.", tw=g.measureText(tag).width, lw=g.measureText("READRASH").width, x=W-f*.6, y=H-f*1.5;
+    const tag="Read to ride.", tw=g.measureText(tag).width, lw=g.measureText("READRASH").width, x=W-f*.6, y=(P?RH:H)-f*1.5;
     g.fillStyle="rgba(0,0,0,.45)"; g.fillRect(x-tw-lw-f*1.4,y-f*.25,tw+lw+f*1.6,f*1.5);
     g.fillStyle="#fff4e2"; g.fillText(tag,x,y); g.fillStyle="#ff6a1a"; g.fillText("RASH",x-tw-f*.5,y); g.fillStyle="#fff4e2"; g.fillText("READ",x-tw-f*.5-g.measureText("RASH").width,y);
     if(this.endCard){ const e=this.endCard, a=Math.min(1,(performance.now()-e.t)/350); g.fillStyle=`rgba(12,10,16,${.72*a})`; g.fillRect(0,0,W,H); g.globalAlpha=a; g.textAlign="center"; g.textBaseline="middle";
@@ -1831,14 +1839,43 @@ const Recorder={ rec:null, chunks:[], cv:null, g:null, off:null, mic:null, endCa
       g.fillStyle="#fff4e2"; g.font=`italic ${Math.round(H*.2)}px 'Racing Sans One','Arial Black',sans-serif`; g.fillText(e.big||"",W/2,H*.5);
       g.fillStyle="#ff6a1a"; g.font=`italic ${Math.round(H*.07)}px 'Racing Sans One','Arial Black',sans-serif`; g.fillText(e.line||"",W/2,H*.68);
       g.fillStyle="#fff4e2"; g.font=`700 ${Math.round(H*.045)}px Verdana,sans-serif`; g.fillText(e.url||"readrash.com",W/2,H*.82); g.globalAlpha=1; } },
+  /* karaoke strip at the top of the video: the words just read (green tick, red if missed), the word being read now in a
+     big yellow pill, the next ones waiting. A word that's just been read pops. */
+  words(g,W,H,c,tn,box){ if(!c) return; const S=Math.round(H*.064*(box?box.big:1)), s=Math.round(S*.62), y=Math.round(box?box.y:H*.205), F=sz=>`700 ${sz}px 'Atkinson Hyperlegible',Verdana,sans-serif`;
+    const key=c.done.length?c.done[c.done.length-1].w+"|"+c.n:""; if(key!==this.capKey){ this.capKey=key; this.capT=tn; }
+    const pop=Math.max(0,1-(tn-(this.capT||0))/350);
+    const items=[]; c.done.forEach((d,i)=>items.push({t:d.w,sz:s,col:d.ok?"#7dff9b":"#ff8a7a",tick:d.ok?"✓":"✗",fresh:i===c.done.length-1}));
+    if(c.cur) items.push({t:c.cur,sz:S,col:"#1b1b22",pill:"#ffd23f"}); else if(c.choices) c.choices.forEach(w=>items.push({t:w,sz:Math.round(S*.8),col:"#1b1b22",pill:"#fff4e2"}));
+    (c.next||[]).forEach(w=>items.push({t:w,sz:s,col:"rgba(255,244,226,.75)"}));
+    if(!items.length) return;
+    const gap=Math.round(S*.45); let tot=0; items.forEach(it=>{ g.font=F(it.sz); it.w=g.measureText(it.t+(it.tick?" "+it.tick:"")).width+(it.pill?it.sz*.7:0); tot+=it.w+gap; }); tot-=gap;
+    const L=box?box.left:W*.03, R=box?box.right:W*.97;
+    // keep the word being read in view: if the row is too long, slide it so the current word sits about a third in
+    let x=Math.max(L,L+(R-L-tot)/2); if(tot>R-L){ let before=0; for(const it of items){ if(it.pill) break; before+=it.w+gap; } x=Math.min(L,L+(R-L)*.3-before); }
+    const bh=Math.round(S*1.55);
+    if(!box){ g.fillStyle="rgba(12,10,16,.62)"; rr(g,Math.max(0,x-S*.5),y-bh/2,Math.min(W,tot+S),bh,bh/2); g.fill(); }
+    g.save(); g.beginPath(); g.rect(L-S*.3,y-bh,R-L+S*.6,bh*2); g.clip();
+    g.textBaseline="middle"; g.textAlign="left";
+    for(const it of items){ const k=it.fresh?1+pop*.35:1; g.save(); g.translate(x+it.w/2,y); g.scale(k,k); g.font=F(it.sz);
+      if(it.pill){ g.fillStyle=it.pill; rr(g,-it.w/2,-it.sz*.72,it.w,it.sz*1.44,it.sz*.3); g.fill(); g.fillStyle=it.col; g.fillText(it.t,-it.w/2+it.sz*.35,it.sz*.04); }
+      else { g.fillStyle=it.col; g.fillText(it.t+(it.tick?" "+it.tick:""),-it.w/2,0); }
+      g.restore(); x+=it.w+gap; }
+    g.restore();
+    if(box){ g.fillStyle="#8a8294"; g.font=`700 ${Math.round(s*.62)}px Verdana,sans-serif`; g.textAlign="left"; g.textBaseline="middle"; g.fillText("READING",L,y+bh*.95); } },
   async finish(card){ if(!this.rec) return null; if(card){ this.endCard={...card,t:performance.now()}; await new Promise(r=>setTimeout(r,2600)); }
     const rec=this.rec; const done=new Promise(r=>rec.onstop=r); rec.stop(); await done; this.rec=null;
     if(this.mic){ this.mic.getTracks().forEach(t=>t.stop()); this.mic=null; }
     this.blob=new Blob(this.chunks,{type:this.type.split(";")[0]}); return this.blob; },
   cancel(){ if(this.rec){ try{ this.rec.stop(); }catch(e){} this.rec=null; } if(this.mic){ this.mic.getTracks().forEach(t=>t.stop()); this.mic=null; } },
-  async save(text){ if(!this.blob) return "none"; const ext=this.blob.type.includes("mp4")?"mp4":"webm", file=new File([this.blob],"readrash-race."+ext,{type:this.blob.type});
-    try{ if(navigator.canShare&&navigator.canShare({files:[file]})){ await navigator.share({files:[file],text}); ev("share_video"); return "shared"; } }catch(e){ if(e&&e.name==="AbortError") return "cancel"; }
-    const a=document.createElement("a"); a.href=URL.createObjectURL(this.blob); a.download=file.name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },3000); ev("share_video"); return "saved"; } };
+  fileName(){ const d=new Date(), p=n=>String(n).padStart(2,"0"); return `readrash-${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}.${this.blob.type.includes("mp4")?"mp4":"webm"}`; },
+  canShare(){ try{ return !!(this.blob&&navigator.canShare&&navigator.canShare({files:[new File([this.blob],this.fileName(),{type:this.blob.type})]})); }catch(e){ return false; } },
+  // Save: asks where to put it when the browser can (Chrome and Edge on computers); otherwise it goes to Downloads
+  async save(){ if(!this.blob) return "none"; const name=this.fileName(), ext=name.split(".").pop(), mime=this.blob.type||"video/"+ext;
+    if(window.showSaveFilePicker){ try{ const h=await window.showSaveFilePicker({suggestedName:name,types:[{description:"Race video",accept:{[mime]:["."+ext]}}]});
+        const w=await h.createWritable(); await w.write(this.blob); await w.close(); ev("save_video"); return "picked"; }
+      catch(e){ if(e&&e.name==="AbortError") return "cancel"; } }
+    const a=document.createElement("a"); a.href=URL.createObjectURL(this.blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },3000); ev("save_video"); return "saved"; },
+  async share(text){ if(!this.blob) return "none"; try{ await navigator.share({files:[new File([this.blob],this.fileName(),{type:this.blob.type})],text}); ev("share_video"); return "shared"; }catch(e){ return e&&e.name==="AbortError"?"cancel":"fail"; } } };
 // helmet mode: a tinted racing visor across the eyes, mouth stays visible so you can see the reading
 function drawVisor(g,cx,cy,r){ g.save(); g.beginPath(); g.arc(cx,cy,r,0,7); g.clip();
   const gr=g.createLinearGradient(cx-r,cy-r*.5,cx+r,cy+r*.1); gr.addColorStop(0,"rgba(20,30,48,.93)"); gr.addColorStop(.6,"rgba(40,70,110,.9)"); gr.addColorStop(1,"rgba(20,30,48,.93)");
@@ -1864,16 +1901,19 @@ function mountExtras(o){ const $=id=>document.getElementById(id), isDemo=o.isDem
   o.ctl.on("pop",t=>{ const el=$("faceCam"); if(el.hidden) return; t=String(t).toUpperCase();
     const cls=/NITRO|SLINGSHOT|RASH!/.test(t)?"nitro":/KNOCKOUT|SHOCKED|ZAPPED|BLOCKED|SWIPE!|NICE SAVE|COCONUT|DICTIONARY/.test(t)?"good":/WRONG|HIT!|CRASH|BONK|SKID|SWIPED|MISSED|GRAMMAR/.test(t)?"bad":"";
     if(!cls) return; el.classList.remove("good","nitro","bad"); void el.offsetWidth; el.classList.add(cls); clearTimeout(fxT); fxT=setTimeout(()=>el.classList.remove(cls),900); });
-  $("clipBtn").onclick=async()=>{ const how=await Recorder.save(o.shareText?o.shareText():"Watch me race on ReadRash!"); $("clipMsg").textContent=how==="saved"?"Saved to your downloads.":how==="shared"?"Shared!":""; };
+  $("clipBtn").textContent="Save video";
+  let shareBtn=$("clipShare"); if(!shareBtn){ shareBtn=document.createElement("button"); shareBtn.id="clipShare"; shareBtn.className="btn sm ghost"; shareBtn.textContent="Share"; shareBtn.hidden=true; $("clipBtn").after(shareBtn); }
+  $("clipBtn").onclick=async()=>{ const how=await Recorder.save(); $("clipMsg").textContent=how==="picked"?"Saved.":how==="saved"?"Saved to your Downloads folder.":""; };
+  shareBtn.onclick=async()=>{ const how=await Recorder.share(o.shareText?o.shareText():"Watch me race on ReadRash!"); $("clipMsg").textContent=how==="shared"?"Shared!":how==="fail"?"Couldn't share here. Save it, then share it from your gallery.":""; };
   window.addEventListener("pagehide",()=>{ FaceCam.stop(); Recorder.cancel(); });
   paint();
   return {
     async camUp(){ if(camMode==="off"||isDemo()){ $("faceCam").hidden=true; return; } const r=await FaceCam.start($("faceVid"),camMode); $("faceCam").hidden=r!=="ok"; $("faceCam").classList.toggle("helmet",camMode==="helmet"); },
-    recStart(){ if(!recOn||isDemo()||Recorder.rec) return; Recorder.start(o.ctl,o.canvas,{face:camMode!=="off",voice:true,dial:o.dial||null}).then(()=>{ $("recChip").hidden=!Recorder.rec; }).catch(()=>{}); },
+    recStart(){ if(!recOn||isDemo()||Recorder.rec) return; Recorder.start(o.ctl,o.canvas,{face:camMode!=="off",voice:true,dial:o.dial||null,caption:()=>o.ctl.caption()}).then(()=>{ $("recChip").hidden=!Recorder.rec; }).catch(()=>{}); },
     finish(res,card){ if(!Recorder.rec){ clip=null; return; } if(!card||res.stopped){ Recorder.cancel(); $("recChip").hidden=true; clip=null; return; }
       clip=Recorder.finish(card).then(b=>{ $("recChip").hidden=true; return b; }); },
     showClip(){ if(!clip){ $("clipBox").hidden=true; return; } $("clipBox").hidden=false; $("clipBtn").disabled=true; $("clipHead").textContent="Making your clip…"; $("clipMsg").textContent="";
-      clip.then(b=>{ if(!b||!b.size){ $("clipBox").hidden=true; return; } $("clipHead").textContent=`Your race clip is ready (${Math.max(1,Math.round(b.size/1e6))} MB)`; $("clipBtn").disabled=false; }); },
+      clip.then(b=>{ if(!b||!b.size){ $("clipBox").hidden=true; return; } $("clipHead").textContent=`Your race video is ready (${Math.max(1,Math.round(b.size/1e6))} MB)`; $("clipBtn").disabled=false; $("clipShare").hidden=!Recorder.canShare(); }); },
     get on(){ return camMode!=="off"; } }; }
 
 window.ReadRash = { create, FAST_OK, PACKS, CIRCUITS, PAINTS, PAINT_RP, applyPaint, Voice, bindMic, mountExtras, FaceCam, Recorder, drawVisor, ev, shareCard, Rider, LADDER, levelOf, rpPanel, raceLink, shareRace, esc, Sound, LEAGUES, RACES, ADJ, NOUN, randomName, VOICE_OK, IN_VIEWER, Store, stars, saveStars, nickname, norm, sim, ord,
