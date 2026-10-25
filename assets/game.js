@@ -154,7 +154,7 @@ const Voice = {
   /* Fast voice: same calls, handled by assets/fastvoice.js (loaded the first time it's switched on) */
   fast:false, _loadSubs:[], onLoad(p){ this._loadSubs.forEach(f=>{ try{ f(p); }catch(e){} }); },
   setFast(on){ this.fast=!!on&&FAST_OK; this.ok=this.fast||VOICE_OK; try{ localStorage.setItem("rr.fastVoice",JSON.stringify(this.fast)); }catch(e){} if(this.fast) this._fastLib(); return this.fast; },
-  _fastLib(){ if(window.RRFast) return Promise.resolve(window.RRFast); if(!this._fl) this._fl=new Promise((ok,no)=>{ const s=document.createElement("script"); s.src="assets/fastvoice.js?v=20261025a"; s.onload=()=>ok(window.RRFast); s.onerror=no; document.head.appendChild(s); }); return this._fl; },
+  _fastLib(){ if(window.RRFast) return Promise.resolve(window.RRFast); if(!this._fl) this._fl=new Promise((ok,no)=>{ const s=document.createElement("script"); s.src="assets/fastvoice.js?v=20261025b"; s.onload=()=>ok(window.RRFast); s.onerror=no; document.head.appendChild(s); }); return this._fl; },
   _viaFast(fn){ if(!this.fast) return false; if(this.rec&&this.live){ try{ this.rec.abort(); }catch(e){} } this._fastLib().then(F=>fn(F)).catch(()=>this._set("offline")); return true; },
   start(handler){ if(this._viaFast(F=>F.start(handler))) return; if(!this.ok) return; this.handler=handler; this.want=true; this._watch(); this._install();
     if(this.local&&!this.localBad&&this.rec&&!this.rec._local){ this._new(); this.live=false; this.starting=false; }
@@ -186,6 +186,16 @@ function bindMic(el){ let slowT=0;
   Voice._loadSubs.push(p=>{ if(el.label&&Voice.status==="starting") el.label.textContent=p<1?`Getting fast voice ready… ${Math.round(p*100)}%`:"Starting microphone…"; });
   if(el.fix) el.fix.onclick=()=>{ el.fix.hidden=true; Voice.restart(); };
   paint(Voice.status); }
+
+/* ================= errors from the field ================= */
+// A game error is sent once (what failed, where, which browser) so problems on players' devices can be fixed.
+const ERR_SENT=new Set();
+function reportErr(where,e){ const m=String(e&&e.message||e).slice(0,200), key=where+"|"+m; if(ERR_SENT.has(key)) return; ERR_SENT.add(key);
+  try{ console.error("[ReadRash] "+where+":",e); }catch(x){}
+  if(IN_VIEWER||ERR_SENT.size>8) return;
+  try{ fetch("/api/err",{method:"POST",headers:{"content-type":"application/json"},keepalive:true,body:JSON.stringify({w:where,m,s:String(e&&e.stack||"").slice(0,600),p:location.pathname,ua:navigator.userAgent.slice(0,160)})}).catch(()=>{}); }catch(x){} }
+window.addEventListener("error",ev=>reportErr("page",ev.error||ev.message));
+window.addEventListener("unhandledrejection",ev=>reportErr("promise",ev.reason));
 
 /* ================= sound ================= */
 const Sound = { ac:null, on:true, eng:null, _bus:null,
@@ -1092,7 +1102,7 @@ function create(o){
     Object.assign(P,{z:START_Z,target:START_Z,v:0,x:-.42,vx:0,lean:0,state:"ride",until:0,boostUntil:0,swipeT:-9999,copUntil:0});
     Object.assign(rl,{dist:0,v:0,p:0,gear:1,rpm:0,top:0,shiftT:-9999,launch:null,first:null,trace:[],traceT:0,miss:0,boost:0,hits:[]});
     rl.ghost=ghost&&Array.isArray(ghost.trace)&&ghost.trace.length>2?ghost:null;
-    riders=rl.ghost?[{name:String(rl.ghost.name||"GHOST").toUpperCase().slice(0,16),x:.42,lane:.42,z:START_Z,jacket:"#7ff0ff",skin:["teal",-10,1.15],ghostly:true,knockT:-99999,knockDir:1,bound:-1,finishT:null,sp:0}]:[];
+    riders=rl.ghost?[{name:String(rl.ghost.name||"GHOST").toUpperCase().slice(0,16),x:.42,lane:.42,z:START_Z,jacket:"#7ff0ff",helmet:"#e8fbff",paint:"#2aa7c0",accent:"#7ff0ff",skin:["teal",-10,1.15],ghostly:true,knockT:-99999,knockDir:1,bound:-1,finishT:null,sp:0}]:[];
     rl.ghostRider=riders[0]||null;
     phase="idle"; setText("heard",""); setText("timeChip","0.0s"); setText("wpmChip","0 wpm"); renderTicker(); drawDial();
   }
@@ -1473,7 +1483,7 @@ function create(o){
   function drawRider(x,y,h,ro,rot,opt){
     const u=h/130, tn=performance.now(); let B,RD,w;
     ctx.fillStyle="rgba(0,0,0,.3)"; ctx.beginPath(); ctx.ellipse(x,y,28*u,5.5*u,0,0,7); ctx.fill();
-    const SK=skinFor(ro), SC=skinCanvas(SK);
+    const SK=skinFor(ro), SC=opt.plain?null:skinCanvas(SK);
     if(opt.down){ if(SC) drawDownImg(x,y,h,SK[0],SC,opt.down); else drawDown(x,y,h,ro,opt.down); return; }
     if(SC) bodyImg(x,y,h,rot,opt,SK[0],SC,tn); else {
     B=bikeOnly(ro); RD=riderOnly(ro,opt.look||0); w=h*B.aspect;
@@ -1598,7 +1608,7 @@ function create(o){
     ctx.save(); ctx.translate(x+bx+rx,y+ry-60*u); ctx.rotate(rr2); ctx.scale(sc,sc); ctx.drawImage(RD.c,-w/2,-h+60*u,w,h); ctx.restore();
     if(k<.5){ ctx.fillStyle="#ffd23f"; ctx.font=`${Math.max(10,16*u)}px sans-serif`; ctx.textAlign="center"; ctx.fillText("★ ★",x+bx+rx,y+ry-110*u); }
   }
-  function drawPlayer(){
+  function drawPlayer(plain){
     const h=redline?Math.min(camDepth/playerZ*WH.bike*W/2*1.05,H*.56):camDepth/playerZ*WH.bike*W/2*(o.fill?.7:.84)*(H<300&&o.fill?H/300:1), x=CX, y=H-4;
     let rot=P.lean;
     if(P.state==="crash"){ const k=Math.min(1,(now-P.crashT)/220); rot=1.2*k*(P.crashT%2?1:-1); }
@@ -1606,7 +1616,7 @@ function create(o){
     const sk=now-P.swipeT, swing=sk<420?sk/420:0, sp=Math.min(1.3,P.v/VREF);
     const down=P.state==="down"?{k:(now-P.downT)/2000,dir:P.downDir||1}:null;
     if(down&&down.k<.45&&Math.random()<.6) sparks(1,x+(P.downDir||1)*20,H-8);
-    drawRider(x,y,h,ME,rot,{nitro:P.boostUntil>now&&phase==="race",swing,sdir:P.swipeDir,weapon:gp?P.weapon.type:"paper",
+    drawRider(x,y,h,ME,rot,{plain,nitro:P.boostUntil>now&&phase==="race",swing,sdir:P.swipeDir,weapon:gp?P.weapon.type:"paper",
       shield:gp&&phase==="race"?P.shield:0,shieldHit:gp?P.shieldHit:null,shieldFlash:Math.max(0,1-(now-(P.shieldFlashT||-9999))/380),look:gp&&P.lookUntil>now&&!swing&&P.state==="ride"?P.lookDir:0,fist:finishT!=null&&now-finishT<3500&&(gp?gpPlace():placeOf())<=3,tuck:Math.min(1,sp*.9),spin:phase==="idle"||phase==="countdown"?0:sp*2,bob:P.bob||0,down});
     if(P.state==="crash"){ ctx.fillStyle="#ffd23f"; ctx.font="22px sans-serif"; ctx.textAlign="center"; ctx.fillText("★  ★",x+Math.sin(now/120)*10,y-h*.9); }
     if(P.copUntil>now&&phase==="race"){ const cx=W*.84, ch=h*.95;
@@ -1649,20 +1659,25 @@ function create(o){
       if(gp){ const lt=`LAP ${Math.min(gpLaps,lapIdx+1)}/${gpLaps}`; ctx.font=`italic ${Math.round(fs*.8)}px 'Racing Sans One','Arial Black',sans-serif`; ctx.textAlign="right"; ctx.lineWidth=5; ctx.strokeText(lt,W-16,36); ctx.fillStyle=lapIdx>=gpLaps-1?"#ffd23f":"#fff4e2"; ctx.fillText(lt,W-16,36); } }
   }
   let last=performance.now(), ema=16, frames=0;
+  // One frame. The next frame is booked first and every step is guarded: a failure in one part (seen on one laptop:
+  // the bike never drew and the clock froze at 0.0s) can no longer stop the whole race. Failures are reported once.
+  function step(name,f){ try{ return f(); }catch(e){ reportErr(name,e); return undefined; } }
   function loop(t){
-    raf=0; if(!running) return;
-    const raw=t-last, dt=Math.min(.05,raw/1000); last=t; update(dt);
+    raf=0; if(!running) return; raf=requestAnimationFrame(loop);
+    const raw=t-last, dt=Math.min(.05,raw/1000); last=t; step("update",()=>update(dt));
     if(phase==="race"){ ema=ema*.95+raw*.05; frames++; } if(quality>0&&frames>150&&ema>26){ quality=0; DRAW=attract?90:110; resize(); }
     ctx.setTransform(dpr,0,0,dpr,0,0);
     const shx=(Math.random()-.5)*shakeAmt, shy=(Math.random()-.5)*shakeAmt*.6;
     ctx.save(); ctx.translate(CX+shx,H+shy); ctx.rotate(tilt); ctx.translate(-CX,-H);
-    drawSky(); const base=drawRoad(); drawSprites(base); drawPlayer(); drawFX();
+    step("sky",drawSky); const base=step("road",drawRoad); if(base!=null) step("sprites",()=>drawSprites(base));
+    ctx.save(); const ok=step("player",()=>{ drawPlayer(); return 1; }); ctx.restore();
+    if(!ok){ ctx.save(); step("player-plain",()=>drawPlayer(true)); ctx.restore(); }
+    step("fx",drawFX);
     ctx.restore();
-    if(TH.rain) drawRain();
-    ctx.drawImage(vignC,0,0,W,H);
-    drawHUD(); if(gp&&o.hud!==false) drawGPHud();
-    if(listeners.frame) emit("frame",cv);
-    raf=requestAnimationFrame(loop);
+    if(TH.rain) step("rain",drawRain);
+    step("vignette",()=>ctx.drawImage(vignC,0,0,W,H));
+    step("hud",()=>{ drawHUD(); if(gp&&o.hud!==false) drawGPHud(); });
+    if(listeners.frame) step("frame",()=>emit("frame",cv));
   }
   function resume(){ if(running&&raf) return; running=true; last=performance.now(); if(phase==="race") t0=performance.now()-now; raf=requestAnimationFrame(loop); }
   function pause(){ running=false; if(raf) cancelAnimationFrame(raf); raf=0; }

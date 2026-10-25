@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#121016">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/site.css?v=20261025a">
+<link rel="stylesheet" href="assets/site.css?v=20261025b">
 <style>
 /* Layout: key box → four headline tiles (the plan's signals) → day-by-day table */
 .top{padding-block:36px 18px;display:flex;flex-direction:column;gap:10px}
@@ -47,6 +47,8 @@ td.z{color:#5b5664}
     <h2 style="font-size:28px;margin:6px 0 10px">Fair play <span id="fpMode" style="font-size:15px;color:var(--muted)"></span></h2>
     <p class="note" style="margin:0 0 10px" id="fpNote"></p>
     <div class="wrap" style="margin-bottom:28px"><table><thead><tr><th>When</th><th>Rider</th><th>Race</th><th>Why</th><th></th></tr></thead><tbody id="flags"></tbody></table></div>
+    <h2 style="font-size:28px;margin:6px 0 10px">Game errors <span style="font-size:15px;color:var(--muted)">from players' devices</span></h2>
+    <div class="wrap" style="margin-bottom:28px"><table><thead><tr><th>Last seen</th><th>Where</th><th>Error</th><th>Times</th><th>Browser</th></tr></thead><tbody id="errs"></tbody></table></div>
     <div class="wrap"><table><thead><tr><th>Day</th><th>New riders</th><th>Raced</th><th>Races</th><th>GP</th><th>Story</th><th>Redline</th><th>Link races</th><th>Made (words)</th><th>Made (GP)</th><th>Made (story)</th><th>Rematches</th><th>Links opened</th><th>Shares</th><th>Pictures</th><th>Challenges done</th><th>Came by link</th></tr></thead><tbody id="rows"></tbody></table></div>
   </div>
 </div></main>
@@ -66,9 +68,16 @@ async function load(){
     $("tShare").textContent = pct(Math.min(sharers, act), act); $("tLink").textContent = pct(s("arrived_by_link"), nr); $("tFin").textContent = s("challenge_finishes");
     const today = D[D.length - 1]; $("tAct").textContent = today.active_riders || 0; $("tTot").textContent = `${j.totals.riders || 0} riders · ${j.totals.rides || 0} races all time`;
     const c = v => `<td class="${v ? "" : "z"}">${v || 0}</td>`;
-    loadFlags(k);
+    loadFlags(k); loadErrs(k);
     $("rows").innerHTML = D.slice().reverse().map(d => `<tr><td>${d.day}</td>${c(d.new_riders)}${c(d.active_riders)}${c(d.races)}${c(d.gp)}${c(d.story)}${c(d.redline)}${c(d.link_races)}${c(d.made_words)}${c(d.made_gp)}${c(d.made_story)}${c(d.rematch)}${c(d.open_link)}${c((d.share_link||0)+(d.share_copy||0)+(d.share_whatsapp||0))}${c(d.share_image)}${c(d.challenge_finishes)}${c(d.arrived_by_link)}</tr>`).join("");
   } catch (e) { $("msg").innerHTML = `<span class="err">${e.message}</span>`; }
+}
+async function loadErrs(k){
+  try { const r = await fetch("/api/err?key=" + encodeURIComponent(k)); const j = await r.json(); if (!r.ok) throw 0;
+    const esc = t => String(t).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+    $("errs").innerHTML = j.rows.length ? j.rows.map(e => `<tr><td>${new Date(e.last_at).toLocaleString("en-IN",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</td><td>${esc(e.p)} · ${esc(e.w)}</td><td style="text-align:left;white-space:normal" title="${esc(e.s)}">${esc(e.m)}</td><td>${e.n}</td><td style="text-align:left;white-space:normal;font-size:12px">${esc(e.ua)}</td></tr>`).join("")
+      : '<tr><td colspan="5" style="text-align:left">No errors. Good.</td></tr>';
+  } catch (e) {}
 }
 async function loadFlags(k){
   try { const r = await fetch("/api/flags?key=" + encodeURIComponent(k)); const j = await r.json(); if (!r.ok) throw 0;

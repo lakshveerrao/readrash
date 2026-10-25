@@ -126,3 +126,16 @@ CREATE TABLE IF NOT EXISTS redline_runs (
   created_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_rl_board ON redline_runs (pack, league, created_at, time_ms);
+
+-- Game errors from players' devices (what failed, where, browser), grouped by day; shown on /stats.html
+CREATE TABLE IF NOT EXISTS errors (
+  day TEXT NOT NULL,
+  w TEXT NOT NULL,
+  m TEXT NOT NULL,
+  s TEXT NOT NULL,
+  p TEXT NOT NULL,
+  ua TEXT NOT NULL,
+  n INTEGER NOT NULL DEFAULT 1,
+  last_at INTEGER NOT NULL,
+  PRIMARY KEY (day, w, m)
+);
