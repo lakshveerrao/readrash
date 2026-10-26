@@ -153,8 +153,8 @@ const Voice = {
   },
   /* Fast voice: same calls, handled by assets/fastvoice.js (loaded the first time it's switched on) */
   fast:false, _loadSubs:[], onLoad(p){ this._loadSubs.forEach(f=>{ try{ f(p); }catch(e){} }); },
-  setFast(on){ this.fast=!!on&&FAST_OK; this.ok=this.fast||VOICE_OK; try{ localStorage.setItem("rr.fastVoice",JSON.stringify(this.fast)); }catch(e){} if(this.fast) this._fastLib(); return this.fast; },
-  _fastLib(){ if(window.RRFast) return Promise.resolve(window.RRFast); if(!this._fl) this._fl=new Promise((ok,no)=>{ const s=document.createElement("script"); s.src="assets/fastvoice.js?v=20261025f"; s.onload=()=>ok(window.RRFast); s.onerror=no; document.head.appendChild(s); }); return this._fl; },
+  setFast(on,keep=true){ this.fast=!!on&&FAST_OK; this.ok=this.fast||VOICE_OK; if(keep) try{ localStorage.setItem("rr.fastVoice",JSON.stringify(this.fast)); }catch(e){} if(this.fast) this._fastLib(); return this.fast; },
+  _fastLib(){ if(window.RRFast) return Promise.resolve(window.RRFast); if(!this._fl) this._fl=new Promise((ok,no)=>{ const s=document.createElement("script"); s.src="assets/fastvoice.js?v=20261026a"; s.onload=()=>ok(window.RRFast); s.onerror=no; document.head.appendChild(s); }); return this._fl; },
   _viaFast(fn){ if(!this.fast) return false; if(this.rec&&this.live){ try{ this.rec.abort(); }catch(e){} } this._fastLib().then(F=>fn(F)).catch(()=>this._set("offline")); return true; },
   start(handler){ if(this._viaFast(F=>F.start(handler))) return; if(!this.ok) return; this.handler=handler; this.want=true; this._watch(); this._install();
     if(this.local&&!this.localBad&&this.rec&&!this.rec._local){ this._new(); this.live=false; this.starting=false; }
@@ -1894,7 +1894,7 @@ function mountExtras(o){ const $=id=>document.getElementById(id), isDemo=o.isDem
   if(ft){ if(!FAST_OK) ft.closest(".ex").hidden=true;
     const pf=()=>ft.setAttribute("aria-checked",String(Voice.fast)); pf();
     Voice._loadSubs.push(p=>{ if(fm) fm.textContent=p<1?`Downloading… ${Math.round(p*100)}%`:"Ready. Runs on your device."; });
-    ft.onclick=()=>{ Voice.setFast(!Voice.fast); pf(); if(fm) fm.textContent=Voice.fast?"Downloading…":"Hears you faster. Runs on your device. One-time 41 MB download.";
+    ft.onclick=()=>{ Voice.setFast(!Voice.fast,!o.onFast); pf(); if(o.onFast) o.onFast(Voice.fast); if(fm) fm.textContent=Voice.fast?"Downloading…":"Hears you faster. Runs on your device. One-time 41 MB download.";
       if(Voice.fast) Voice._fastLib().then(F=>F.load()).catch(()=>{ if(fm) fm.textContent="Couldn't download. Check your internet."; }); }; }
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||IN_VIEWER) $("camPick").closest(".ex").hidden=true;
   const paint=()=>{ $("camPick").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.c===camMode))); $("recTog").setAttribute("aria-checked",String(recOn)); };

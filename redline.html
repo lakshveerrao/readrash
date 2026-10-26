@@ -20,8 +20,8 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="assets/site.css?v=20261025f">
-<link rel="stylesheet" href="assets/game.css?v=20261025f">
+<link rel="stylesheet" href="assets/site.css?v=20261026a">
+<link rel="stylesheet" href="assets/game.css?v=20261026a">
 <style>
 /* Layout: race view → big dial + the rolling words; every step before and after is a panel over the paused strip */
 .rldash{display:grid;grid-template-columns:250px 1fr;gap:14px;align-items:stretch}
@@ -141,6 +141,7 @@
     </div>
     <div id="linkInfo" hidden></div>
     <p class="pb" id="pbTxt"></p>
+    <p class="pb" id="voiceNote" hidden></p>
     <div class="extras">
       <div class="ex"><span><b>Face cam</b><small>See yourself ride. Stays on your device.</small></span><div class="seg" id="camPick"><button data-c="off">Off</button><button data-c="on">On</button><button data-c="helmet">Helmet</button></div></div>
       <div class="ex"><span><b>Record my race</b><small>Saves a clip on your device to share.</small></span><button class="tog" id="recTog" role="switch" aria-checked="false"><i></i></button></div>
@@ -214,8 +215,8 @@
   </div>
 </div>
 
-<script src="assets/game.js?v=20261025f"></script>
-<script src="assets/board.js?v=20261025f"></script>
+<script src="assets/game.js?v=20261026a"></script>
+<script src="assets/board.js?v=20261026a"></script>
 <script>
 (() => {
 const RR = window.ReadRash, $ = id => document.getElementById(id);
@@ -252,7 +253,16 @@ function renderPick(){
 $("packPick").querySelectorAll(".pack").forEach(b => b.onclick = () => { pack = b.dataset.p; RR.Store.set("rlPack", pack); renderPick(); prepare(); });
 $("lgPick").querySelectorAll(".choice").forEach(b => b.onclick = () => { league = b.dataset.lg; RR.Store.set("league", league); renderPick(); prepare(); });
 $("reroll").onclick = () => { RR.Store.set("name", RR.randomName()); renderPick(); };
-const X = RR.mountExtras({ ctl, canvas: $("road"), dial: $("dial"), isDemo: () => demo, shareText: () => "Watch me hit the redline on ReadRash!" });
+/* Redline is a speed test, so it uses Fast voice by default: the recogniser runs on the device and only listens for this
+   pack's words, so a word lands about a tenth of a second after it's said (Chrome's online service: half a second to a
+   second and a half). It starts getting ready the moment the page opens. Riders can switch it off; if it can't load,
+   the race quietly uses Chrome's voice instead. */
+const fastNote = () => { const n = $("voiceNote"); n.hidden = !RR.Voice.fast; };
+RR.Voice._loadSubs.push(p => { const n = $("voiceNote"); if (!RR.Voice.fast) return; n.hidden = false; n.textContent = p < 1 ? `⚡ Fast voice getting ready… ${Math.round(p * 100)}%` : "⚡ Fast voice ready: no lag"; });
+if (RR.FAST_OK && RR.Store.get("rlFast", true)) { RR.Voice.setFast(true, false); fastNote(); $("voiceNote").textContent = "⚡ Fast voice getting ready…";
+  RR.Voice._fastLib().then(F => F.load()).catch(() => { RR.Voice.setFast(false, false); fastNote(); const t = $("fastTog"); if (t) t.setAttribute("aria-checked", "false"); }); }
+const X = RR.mountExtras({ ctl, canvas: $("road"), dial: $("dial"), isDemo: () => demo, shareText: () => "Watch me hit the redline on ReadRash!",
+  onFast: on => { RR.Store.set("rlFast", on); fastNote(); if (on) RR.Voice._fastLib().then(F => F.load()).catch(() => {}); } });
 $("rideBtn").onclick = () => { RR.Sound.wake(); if (!RR.Voice.ok) { show("gateScreen"); return; } demo = false; setModeChip(); X.camUp(); startMic(); };
 if (RR.FAST_OK) { $("gateMsg").textContent = "This browser doesn't have Chrome's speech service. Fast voice runs right here on your device instead: one-time 41 MB download, then it's quick. Or open ReadRash in Chrome or Edge."; $("fastGate").hidden = false; $("fastGate").onclick = () => { RR.Voice.setFast(true); const t = $("fastTog"); if (t) t.setAttribute("aria-checked", "true"); $("rideBtn").click(); }; }
 $("gateBack").onclick = () => show("pickScreen");
